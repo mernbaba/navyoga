@@ -1,0 +1,149 @@
+import { useState } from 'react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router';
+import { 
+  LayoutDashboard, 
+  Users, 
+  GraduationCap, 
+  Phone, 
+  Bell, 
+  Ticket, 
+  UserPlus, 
+  CalendarDays,
+  Video,
+  Sparkles,
+  Settings, 
+  Menu, 
+  X,
+  LogOut 
+} from 'lucide-react';
+import { Button } from './ui/button';
+
+export function OperationsLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    navigate('/login');
+  };
+
+  const navigation = [
+    { name: 'Dashboard', href: '/operations', icon: LayoutDashboard },
+    { name: 'Employees', href: '/operations/employees', icon: Users },
+    { name: 'Tutors', href: '/operations/tutors', icon: GraduationCap },
+    { name: 'Frontline Team', href: '/operations/frontline-team', icon: Phone },
+    { name: 'App Notifications', href: '/operations/notifications', icon: Bell },
+    { name: 'Coupon Codes', href: '/operations/coupons', icon: Ticket },
+    { name: 'Leads', href: '/operations/leads', icon: UserPlus },
+    { name: 'Users', href: '/operations/users', icon: Users },
+    { name: 'Classes', href: '/operations/classes', icon: CalendarDays },
+    { name: 'Recorded Classes', href: '/operations/recorded-classes', icon: Video },
+    { name: 'Events', href: '/operations/events', icon: Sparkles },
+    { name: 'Settings', href: '/operations/settings', icon: Settings },
+  ];
+
+  const isActive = (path: string) => {
+    if (path === '/operations') {
+      return location.pathname === '/operations';
+    }
+    return location.pathname.startsWith(path);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+ 
+      <aside
+        className={`fixed top-0 left-0 z-50 h-full w-64 bg-white border-r transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex flex-col h-full">
+ 
+          <div className="flex items-center justify-between p-6 border-b">
+            <div>
+              <h1 className="text-xl font-bold" style={{ color: '#ff691d' }}>NavYoga</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">Operations Panel</p>
+            </div>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden p-1 rounded hover:bg-gray-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+ 
+          <nav className="flex-1 p-4 overflow-y-auto">
+            <div className="space-y-1">
+              {navigation.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                      active
+                        ? 'text-white shadow-md'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                    style={active ? { backgroundColor: '#610981' } : {}}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="font-medium">{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+ 
+          <div className="p-4 border-t">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 mb-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold" style={{ backgroundColor: '#610981' }}>
+                OP
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate">Operations User</p>
+                <p className="text-xs text-muted-foreground truncate">operations@navyoga.com</p>
+              </div>
+            </div>
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              className="w-full justify-start gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </Button>
+          </div>
+        </div>
+      </aside>
+ 
+      <div className="lg:pl-64">
+ 
+        <header className="lg:hidden sticky top-0 z-30 bg-white border-b px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 rounded-lg hover:bg-gray-100"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          <h1 className="text-lg font-bold" style={{ color: '#ff691d' }}>NavYoga Operations</h1>
+          <div className="w-10" />
+        </header>
+ 
+        <main>
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}
