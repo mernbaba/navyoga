@@ -18,17 +18,18 @@ import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "./ui/badge";
+import { clearRoleAuth } from "../lib/auth";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Leads", href: "/leads", icon: UserPlus },
-  { name: "Sādhakas", href: "/students", icon: Users },
-  { name: "Employees", href: "/employees", icon: Briefcase },
-  { name: "Yoga Shikshaks", href: "/tutors", icon: GraduationCap },
-  { name: "Classes", href: "/classes", icon: Calendar },
-  { name: "Attendance", href: "/attendance", icon: ClipboardCheck },
-  { name: "Financials", href: "/financials", icon: CreditCard },
-  { name: "Settings", href: "/settings", icon: SettingsIcon },
+  { name: "Dashboard", href: "/superadmin/dashboard", icon: LayoutDashboard },
+  { name: "Leads", href: "/superadmin/leads", icon: UserPlus },
+  { name: "Sādhakas", href: "/superadmin/students", icon: Users },
+  { name: "Employees", href: "/superadmin/employees", icon: Briefcase },
+  { name: "Yoga Shikshaks", href: "/superadmin/tutors", icon: GraduationCap },
+  { name: "Classes", href: "/superadmin/classes", icon: Calendar },
+  { name: "Attendance", href: "/superadmin/attendance", icon: ClipboardCheck },
+  { name: "Financials", href: "/superadmin/financials", icon: CreditCard },
+  { name: "Settings", href: "/superadmin/settings", icon: SettingsIcon },
 ];
 
 export function AdminLayout() {
@@ -65,8 +66,9 @@ export function AdminLayout() {
   );
 
   const handleLogout = () => {
+    clearRoleAuth("SUPERADMIN");
     toast.success("Logged out successfully!");
-    navigate("/login");
+    navigate("/login/superadmin");
   };
 
   return (

@@ -19,6 +19,7 @@ import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "./ui/badge";
+import { clearRoleAuth } from "../lib/auth";
 
 const navigation = [
   { name: 'Dashboard', href: '/user', icon: LayoutDashboard },
@@ -39,8 +40,7 @@ export function UserLayout() {
   const [open, setOpen] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userRole');
+    clearRoleAuth('STUDENT');
     toast.success('Logged out successfully');
     navigate('/login');
   };

@@ -2,9 +2,10 @@ import { NavLink, Outlet, useNavigate } from "react-router";
 import { Phone, Users, ClipboardList, Settings, LogOut, LayoutDashboard, PhoneCall } from "lucide-react";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
+import { clearRoleAuth } from "../lib/auth";
 
 const navigation = [
-  { name: "Dashboard", href: "/frontline", icon: LayoutDashboard, end: true},
+  { name: "Dashboard", href: "/frontline/dashboard", icon: LayoutDashboard, end: true},
   { name: "Leads", href: "/frontline/leads", icon: Users },
   { name: "Call Log", href: "/frontline/call-log", icon: PhoneCall },
   { name: "Daily Tasks", href: "/frontline/tasks", icon: ClipboardList },
@@ -15,8 +16,9 @@ export function FrontlineLayout() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    clearRoleAuth("FRONTLINE");
     toast.success("Logged out successfully");
-    navigate("/login");
+    navigate("/login/frontline");
   };
 
   return (

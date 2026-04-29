@@ -1,4 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router";
+import { isRoleAuthenticated, ROLE_LOGIN_PATHS } from "./lib/auth";
+import type { LoginRole } from "./components/auth/RoleLoginPage";
 import { AdminLayout } from "./components/AdminLayout";
 import { TutorLayout } from "./components/TutorLayout";
 import { FrontlineLayout } from "./components/FrontlineLayout";
@@ -13,8 +15,11 @@ import { Classes } from "./pages/Classes";
 import { Attendance } from "./pages/Attendance";
 import { Financials } from "./pages/Financials";
 import { Settings } from "./pages/Settings";
-import { Login } from "./pages/Login";
-import { LoginMinimal } from "./pages/LoginMinimal";
+import { UserLogin } from "./pages/auth/UserLogin";
+import { SuperAdminLogin } from "./pages/auth/SuperAdminLogin";
+import { TutorLogin } from "./pages/auth/TutorLogin";
+import { OperationsLogin } from "./pages/auth/OperationsLogin";
+import { FrontlineLogin } from "./pages/auth/FrontlineLogin";
 import { TutorDashboard } from "./pages/tutor/TutorDashboard";
 import { TutorClasses } from "./pages/tutor/TutorClasses";
 import { TutorStudents } from "./pages/tutor/TutorStudents";
@@ -51,34 +56,53 @@ import { UserSelfPacedCourse } from "./pages/user/UserSelfPacedCourse";
 import { UserReferrals } from "./pages/user/UserReferrals";
 import { UserEvents } from "./pages/user/UserEvents";
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+const ProtectedRoute = ({ role, children }: { role: LoginRole; children: React.ReactNode }) => {
+  if (!isRoleAuthenticated(role)) {
+    return <Navigate to={ROLE_LOGIN_PATHS[role]} replace />;
   }
-  
+
   return <>{children}</>;
 };
 
 export const router = createBrowserRouter([
   {
     path: "/login",
-    element: <LoginMinimal />,
+    element: <UserLogin />,
   },
   {
     path: "/login-minimal",
-    element: <LoginMinimal />,
+    element: <UserLogin />,
+  },
+  {
+    path: "/login/superadmin",
+    element: <SuperAdminLogin />,
+  },
+  {
+    path: "/login/tutor",
+    element: <TutorLogin />,
+  },
+  {
+    path: "/login/operations",
+    element: <OperationsLogin />,
+  },
+  {
+    path: "/login/frontline",
+    element: <FrontlineLogin />,
   },
   {
     path: "/",
+    element: <Navigate to="/superadmin" replace />,
+  },
+  {
+    path: "/superadmin",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute role="SUPERADMIN">
         <AdminLayout />
       </ProtectedRoute>
     ),
     children: [
-      { index: true, Component: Dashboard },
+      { index: true, element: <Navigate to="/superadmin/dashboard" replace /> },
+      { path: "dashboard", Component: Dashboard },
       { path: "leads", Component: Leads },
       { path: "students", Component: Students },
       { path: "employees", Component: Employees },
@@ -92,12 +116,13 @@ export const router = createBrowserRouter([
   {
     path: "/tutor",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute role="TUTOR">
         <TutorLayout />
       </ProtectedRoute>
     ),
     children: [
-      { index: true, Component: TutorDashboard },
+      { index: true, element: <Navigate to="/tutor/dashboard" replace /> },
+      { path: "dashboard", Component: TutorDashboard },
       { path: "classes", Component: TutorClasses },
       { path: "students", Component: TutorStudents },
       { path: "settings", Component: TutorSettings },
@@ -107,13 +132,13 @@ export const router = createBrowserRouter([
   {
     path: "/frontline",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute role="FRONTLINE">
         <FrontlineLayout />
       </ProtectedRoute>
     ),
     children: [
-      { index: true, Component: FrontlineDashboard },
-      { path: "dashboard", element: <Navigate to="/frontline" replace /> },
+      { index: true, element: <Navigate to="/frontline/dashboard" replace /> },
+      { path: "dashboard", Component: FrontlineDashboard },
       { path: "leads", Component: FrontlineLeads },
       { path: "call-log", Component: FrontlineCallLog },
       { path: "tasks", Component: FrontlineTasks },
@@ -123,13 +148,13 @@ export const router = createBrowserRouter([
   {
     path: "/operations",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute role="OPERATIONS">
         <OperationsLayout />
       </ProtectedRoute>
     ),
     children: [
       { index: true, Component: OperationsDashboard },
-      { path: "dashboard", element: <Navigate to="/operations" replace /> },
+      { path: "dashboard", element: <Navigate to="/operations/dashboard" replace /> },
       { path: "employees", Component: OperationsEmployees },
       { path: "tutors", Component: OperationsTutors },
       { path: "frontline-team", Component: OperationsFrontlineTeam },
@@ -146,13 +171,13 @@ export const router = createBrowserRouter([
   {
     path: "/user",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute role="STUDENT">
         <UserLayout />
       </ProtectedRoute>
     ),
     children: [
       { index: true, Component: UserDashboard },
-      { path: "dashboard", element: <Navigate to="/user" replace /> },
+      { path: "dashboard", element: <Navigate to="/user/dashboard" replace /> },
       { path: "classes", Component: UserClasses },
       { path: "recordings", Component: UserRecordings },
       { path: "attendance", Component: UserAttendance },

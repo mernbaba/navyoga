@@ -14,9 +14,10 @@ import {
   Settings, 
   Menu, 
   X,
-  LogOut 
+  LogOut
 } from 'lucide-react';
 import { Button } from './ui/button';
+import { clearRoleAuth } from '../lib/auth';
 
 export function OperationsLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -24,8 +25,8 @@ export function OperationsLayout() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    navigate('/login');
+    clearRoleAuth('OPERATIONS');
+    navigate('/login/operations');
   };
 
   const navigation = [
