@@ -56,3 +56,6 @@ tmp/
 
 # Claude Code (keep shared settings, ignore local overrides)
 .claude/settings.local.json
+
+# Local Netlify folder
+.netlify
