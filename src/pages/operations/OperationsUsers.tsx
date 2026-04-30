@@ -1,4 +1,4 @@
-import { Students } from "../Students";
+import { Students } from "../superadmin/Students";
 
 export function OperationsUsers() {
   return <Students />;

@@ -1,8 +1,8 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Users, GraduationCap, Calendar, TrendingUp, IndianRupee, Award, Sparkles, Target, TrendingDown, Clock } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { students, tutors, classes, payments } from "../data/mockData";
-import { Badge } from "../components/ui/badge";
+import { students, tutors, classes, payments } from "../../data/mockData";
+import { Badge } from "../../components/ui/badge";
 
 const revenueData = [
   { month: 'Oct', revenue: 45000 },
