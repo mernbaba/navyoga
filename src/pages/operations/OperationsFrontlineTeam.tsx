@@ -7,9 +7,10 @@ import { Badge } from "../../components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { Phone, Plus, Search, Edit, Trash2, TrendingUp, Users } from "lucide-react";
 import { toast } from "sonner";
+import { registerFrontline } from "../../api/auth";
 
 interface FrontlineAgent {
-  id: number;
+  id: number | string;
   name: string;
   email: string;
   phone: string;
@@ -21,11 +22,23 @@ interface FrontlineAgent {
   performance: number;
 }
 
+const EMPTY_ADD_FORM = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: '',
+  password: '',
+  salary: '',
+  joinDate: new Date().toISOString().slice(0, 10),
+};
+
 export function OperationsFrontlineTeam() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<FrontlineAgent | null>(null);
+  const [addForm, setAddForm] = useState(EMPTY_ADD_FORM);
+  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
 
   const [agents, setAgents] = useState<FrontlineAgent[]>([
     { id: 1, name: 'Sarah Johnson', email: 'sarah.j@navyoga.com', phone: '+91 98765 43230', employeeId: 'FL-001', status: 'Active', callsToday: 45, leadsAssigned: 120, conversions: 15, performance: 92 },
@@ -48,10 +61,54 @@ export function OperationsFrontlineTeam() {
     { title: 'Total Conversions', value: agents.reduce((sum, a) => sum + a.conversions, 0).toString(), icon: TrendingUp, color: '#f59e0b' },
   ];
 
-  const handleAddAgent = (e: React.FormEvent) => {
+  const handleAddAgent = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('Agent added successfully');
-    setIsAddModalOpen(false);
+    if (isSubmittingAdd) return;
+
+    const salaryNum = Number(addForm.salary);
+    if (!Number.isFinite(salaryNum) || salaryNum < 0) {
+      toast.error('Salary must be a non-negative number');
+      return;
+    }
+    if (addForm.password.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+
+    setIsSubmittingAdd(true);
+    try {
+      const user = await registerFrontline({
+        email: addForm.email.trim(),
+        firstName: addForm.firstName.trim(),
+        lastName: addForm.lastName.trim(),
+        phone: addForm.phone.trim(),
+        password: addForm.password,
+        salary: salaryNum,
+        joinDate: addForm.joinDate,
+      });
+
+      const newAgent: FrontlineAgent = {
+        id: user.id,
+        name: `${user.firstName} ${user.lastName}`.trim(),
+        email: user.email,
+        phone: user.phone,
+        employeeId: user.employeeId,
+        status: user.status === 'TERMINATED' ? 'Inactive' : 'Active',
+        callsToday: 0,
+        leadsAssigned: 0,
+        conversions: 0,
+        performance: 0,
+      };
+      setAgents((prev) => [newAgent, ...prev]);
+      toast.success(`Agent ${user.employeeId} added successfully`);
+      setAddForm(EMPTY_ADD_FORM);
+      setIsAddModalOpen(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to add agent';
+      toast.error(message);
+    } finally {
+      setIsSubmittingAdd(false);
+    }
   };
 
   const handleEditAgent = (e: React.FormEvent) => {
@@ -61,7 +118,7 @@ export function OperationsFrontlineTeam() {
     setSelectedAgent(null);
   };
 
-  const handleDeleteAgent = (id: number) => {
+  const handleDeleteAgent = (id: number | string) => {
     if (confirm('Are you sure you want to delete this agent?')) {
       setAgents(agents.filter(a => a.id !== id));
       toast.success('Agent deleted successfully');
@@ -223,48 +280,123 @@ export function OperationsFrontlineTeam() {
         </Card>
       </div>
  
-      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+      <Dialog open={isAddModalOpen} onOpenChange={(open) => {
+        setIsAddModalOpen(open);
+        if (!open) setAddForm(EMPTY_ADD_FORM);
+      }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle style={{ color: '#ff691d' }}>Add New Agent</DialogTitle>
-            <DialogDescription>Fill in the details to add a new frontline agent</DialogDescription>
+            <DialogDescription>Employee ID is auto-assigned (FL-{new Date().getFullYear()}-NNN). Status defaults to Active.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddAgent} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="name" style={{ color: '#ffac96' }}>Full Name</Label>
-                <Input id="name" placeholder="Enter full name" className="mt-1" />
+                <Label htmlFor="firstName" style={{ color: '#ffac96' }}>First Name</Label>
+                <Input
+                  id="firstName"
+                  placeholder="Sarah"
+                  className="mt-1"
+                  required
+                  maxLength={50}
+                  value={addForm.firstName}
+                  onChange={(e) => setAddForm({ ...addForm, firstName: e.target.value })}
+                />
               </div>
               <div>
-                <Label htmlFor="employeeId" style={{ color: '#ffac96' }}>Employee ID</Label>
-                <Input id="employeeId" placeholder="FL-001" className="mt-1" />
+                <Label htmlFor="lastName" style={{ color: '#ffac96' }}>Last Name</Label>
+                <Input
+                  id="lastName"
+                  placeholder="Johnson"
+                  className="mt-1"
+                  required
+                  maxLength={50}
+                  value={addForm.lastName}
+                  onChange={(e) => setAddForm({ ...addForm, lastName: e.target.value })}
+                />
               </div>
               <div>
                 <Label htmlFor="email" style={{ color: '#ffac96' }}>Email</Label>
-                <Input id="email" type="email" placeholder="email@navyoga.com" className="mt-1" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="email@navyoga.com"
+                  className="mt-1"
+                  required
+                  value={addForm.email}
+                  onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+                />
               </div>
               <div>
                 <Label htmlFor="phone" style={{ color: '#ffac96' }}>Phone</Label>
-                <Input id="phone" placeholder="+91 98765 43210" className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="status" style={{ color: '#ffac96' }}>Status</Label>
-                <select id="status" className="w-full mt-1 px-3 py-2 border rounded-md">
-                  <option>Active</option>
-                  <option>Inactive</option>
-                </select>
+                <Input
+                  id="phone"
+                  placeholder="9876543210"
+                  className="mt-1"
+                  required
+                  minLength={7}
+                  maxLength={15}
+                  value={addForm.phone}
+                  onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
+                />
               </div>
               <div>
                 <Label htmlFor="password" style={{ color: '#ffac96' }}>Password</Label>
-                <Input id="password" type="password" placeholder="Enter password" className="mt-1" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Min 8 characters"
+                  className="mt-1"
+                  required
+                  minLength={8}
+                  maxLength={128}
+                  value={addForm.password}
+                  onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="salary" style={{ color: '#ffac96' }}>Salary (₹)</Label>
+                <Input
+                  id="salary"
+                  type="number"
+                  min={0}
+                  placeholder="30000"
+                  className="mt-1"
+                  required
+                  value={addForm.salary}
+                  onChange={(e) => setAddForm({ ...addForm, salary: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="joinDate" style={{ color: '#ffac96' }}>Join Date</Label>
+                <Input
+                  id="joinDate"
+                  type="date"
+                  className="mt-1"
+                  required
+                  value={addForm.joinDate}
+                  onChange={(e) => setAddForm({ ...addForm, joinDate: e.target.value })}
+                />
               </div>
             </div>
             <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsAddModalOpen(false);
+                  setAddForm(EMPTY_ADD_FORM);
+                }}
+                disabled={isSubmittingAdd}
+              >
                 Cancel
               </Button>
-              <Button type="submit" style={{ backgroundColor: '#610981' }}>
-                Add Agent
+              <Button
+                type="submit"
+                style={{ backgroundColor: '#610981' }}
+                disabled={isSubmittingAdd}
+              >
+                {isSubmittingAdd ? 'Adding…' : 'Add Agent'}
               </Button>
             </div>
           </form>

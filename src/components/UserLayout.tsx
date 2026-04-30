@@ -17,12 +17,11 @@ import {
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Badge } from "./ui/badge";
-import { clearRoleAuth } from "../lib/auth";
+import { performLogout, useRoleSession } from "../lib/session";
 
 const navigation = [
-  { name: 'Dashboard', href: '/user', icon: LayoutDashboard },
+  { name: 'Dashboard', href: '/user/dashboard', icon: LayoutDashboard },
   { name: 'My Classes', href: '/user/classes', icon: BookOpen },
   { name: 'Self-Paced', href: '/user/self-paced', icon: GraduationCap },
   { name: 'Recordings', href: '/user/recordings', icon: Video },
@@ -38,11 +37,11 @@ export function UserLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  useRoleSession("STUDENT");
 
-  const handleLogout = () => {
-    clearRoleAuth('STUDENT');
-    toast.success('Logged out successfully');
-    navigate('/login');
+  const handleLogout = async () => {
+    await performLogout("STUDENT");
+    navigate("/login");
   };
 
   const NavContent = () => (

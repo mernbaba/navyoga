@@ -1,8 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router";
 import { Phone, Users, ClipboardList, Settings, LogOut, LayoutDashboard, PhoneCall } from "lucide-react";
 import { Button } from "./ui/button";
-import { toast } from "sonner";
-import { clearRoleAuth } from "../lib/auth";
+import { performLogout, useRoleSession } from "../lib/session";
 
 const navigation = [
   { name: "Dashboard", href: "/frontline/dashboard", icon: LayoutDashboard, end: true},
@@ -14,10 +13,10 @@ const navigation = [
 
 export function FrontlineLayout() {
   const navigate = useNavigate();
+  useRoleSession("FRONTLINE");
 
-  const handleLogout = () => {
-    clearRoleAuth("FRONTLINE");
-    toast.success("Logged out successfully");
+  const handleLogout = async () => {
+    await performLogout("FRONTLINE");
     navigate("/login/frontline");
   };
 

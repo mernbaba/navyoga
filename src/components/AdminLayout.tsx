@@ -16,9 +16,8 @@ import {
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Badge } from "./ui/badge";
-import { clearRoleAuth } from "../lib/auth";
+import { performLogout, useRoleSession } from "../lib/session";
 
 const navigation = [
   { name: "Dashboard", href: "/superadmin/dashboard", icon: LayoutDashboard },
@@ -36,6 +35,7 @@ export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  useRoleSession("SUPERADMIN");
 
   const NavContent = () => (
     <nav className="space-y-1">
@@ -65,9 +65,8 @@ export function AdminLayout() {
     </nav>
   );
 
-  const handleLogout = () => {
-    clearRoleAuth("SUPERADMIN");
-    toast.success("Logged out successfully!");
+  const handleLogout = async () => {
+    await performLogout("SUPERADMIN");
     navigate("/login/superadmin");
   };
 

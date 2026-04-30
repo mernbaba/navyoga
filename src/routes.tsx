@@ -16,6 +16,7 @@ import { Attendance } from "./pages/superadmin/Attendance";
 import { Financials } from "./pages/superadmin/Financials";
 import { Settings } from "./pages/superadmin/Settings";
 import { UserLogin } from "./pages/auth/UserLogin";
+import { UserRegister } from "./pages/auth/UserRegister";
 import { SuperAdminLogin } from "./pages/auth/SuperAdminLogin";
 import { TutorLogin } from "./pages/auth/TutorLogin";
 import { OperationsLogin } from "./pages/auth/OperationsLogin";
@@ -68,6 +69,10 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     element: <UserLogin />,
+  },
+  {
+    path: "/register",
+    element: <UserRegister />,
   },
   {
     path: "/login-minimal",
@@ -153,8 +158,8 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, Component: OperationsDashboard },
-      { path: "dashboard", element: <Navigate to="/operations/dashboard" replace /> },
+      { index: true, element: <Navigate to="/operations/dashboard" replace /> },
+      { path: "dashboard", Component: OperationsDashboard },
       { path: "employees", Component: OperationsEmployees },
       { path: "tutors", Component: OperationsTutors },
       { path: "frontline-team", Component: OperationsFrontlineTeam },
@@ -176,8 +181,8 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, Component: UserDashboard },
-      { path: "dashboard", element: <Navigate to="/user/dashboard" replace /> },
+      { index: true, element: <Navigate to="/user/dashboard" replace /> },
+      { path: "dashboard", Component: UserDashboard },
       { path: "classes", Component: UserClasses },
       { path: "recordings", Component: UserRecordings },
       { path: "attendance", Component: UserAttendance },

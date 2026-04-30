@@ -1,78 +1,148 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { Textarea } from "../../components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Badge } from "../../components/ui/badge";
-import { Plus, Search, Edit, Trash2, Mail, Phone, Star, Award } from "lucide-react";
-import { tutors as initialTutors, type Tutor } from "../../data/mockData";
+import { Plus, Search, Edit, Trash2, Mail, Phone, Award } from "lucide-react";
 import { toast } from "sonner";
+import { listTutors, createTutor, updateTutor, deleteTutor } from "../../api/tutors";
+import type { StaffStatus, Tutor } from "../../api/types";
+
+const STATUSES: StaffStatus[] = ["ACTIVE", "ON_LEAVE", "TERMINATED"];
+
+function statusBadgeVariant(status: StaffStatus): "default" | "secondary" | "outline" {
+  if (status === "ACTIVE") return "default";
+  if (status === "ON_LEAVE") return "secondary";
+  return "outline";
+}
 
 export function Tutors() {
-  const [tutors, setTutors] = useState(initialTutors);
+  const [tutors, setTutors] = useState<Tutor[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StaffStatus | "ALL">("ALL");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [addForm, setAddForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    experience: "",
+    specializations: "",
+    bio: "",
+  });
+
   const [editingTutor, setEditingTutor] = useState<Tutor | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const filteredTutors = tutors.filter(tutor => 
-    tutor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tutor.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tutor.specialization.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  useEffect(() => {
+    const handle = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
+    return () => clearTimeout(handle);
+  }, [searchQuery]);
 
-  const handleAddTutor = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const newTutor: Tutor = {
-      id: `T${String(tutors.length + 1).padStart(3, '0')}`,
-      name: formData.get('name') as string,
-      email: formData.get('email') as string,
-      phone: formData.get('phone') as string,
-      specialization: (formData.get('specialization') as string).split(',').map(s => s.trim()),
-      experience: parseInt(formData.get('experience') as string),
-      rating: 4.5,
-      status: 'active',
-      assignedClasses: [],
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    listTutors("SUPERADMIN", {
+      q: debouncedQuery || undefined,
+      status: statusFilter === "ALL" ? undefined : statusFilter,
+      page,
+      limit: 20,
+    })
+      .then((res) => {
+        if (cancelled) return;
+        setTutors(res.items);
+        setTotal(res.total);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load tutors.");
+      })
+      .finally(() => !cancelled && setIsLoading(false));
+    return () => {
+      cancelled = true;
     };
-    setTutors([...tutors, newTutor]);
-    setIsAddOpen(false);
-    toast.success('Tutor added successfully');
+  }, [debouncedQuery, statusFilter, page, refreshKey]);
+
+  const refetch = () => setRefreshKey((k) => k + 1);
+
+  const activeCount = tutors.filter((t) => t.status === "ACTIVE").length;
+  const onLeaveCount = tutors.filter((t) => t.status === "ON_LEAVE").length;
+
+  const handleAdd = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isAdding) return;
+    setIsAdding(true);
+    try {
+      await createTutor("SUPERADMIN", {
+        name: addForm.name,
+        email: addForm.email,
+        phone: addForm.phone,
+        password: addForm.password,
+        experience: Number(addForm.experience) || 0,
+        specializations: addForm.specializations
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        bio: addForm.bio || undefined,
+      });
+      toast.success("Tutor added successfully.");
+      setIsAddOpen(false);
+      setAddForm({ name: "", email: "", phone: "", password: "", experience: "", specializations: "", bio: "" });
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to add tutor.");
+    } finally {
+      setIsAdding(false);
+    }
   };
 
-  const handleEditTutor = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!editingTutor) return;
-    
-    const formData = new FormData(e.currentTarget);
-    const updatedTutor: Tutor = {
-      ...editingTutor,
-      name: formData.get('name') as string,
-      email: formData.get('email') as string,
-      phone: formData.get('phone') as string,
-      specialization: (formData.get('specialization') as string).split(',').map(s => s.trim()),
-      experience: parseInt(formData.get('experience') as string),
-      status: formData.get('status') as 'active' | 'on-leave' | 'inactive',
-    };
-    
-    setTutors(tutors.map(t => t.id === editingTutor.id ? updatedTutor : t));
-    setEditingTutor(null);
-    toast.success('Tutor updated successfully');
+  const handleEdit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingTutor || isUpdating) return;
+    setIsUpdating(true);
+    const formData = new FormData(event.currentTarget);
+    try {
+      await updateTutor("SUPERADMIN", editingTutor.id, {
+        name: String(formData.get("name") || ""),
+        email: String(formData.get("email") || ""),
+        phone: String(formData.get("phone") || ""),
+        experience: Number(formData.get("experience") || 0),
+        specializations: String(formData.get("specializations") || "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        bio: String(formData.get("bio") || "") || null,
+        status: formData.get("status") as StaffStatus,
+      });
+      toast.success("Tutor updated successfully.");
+      setEditingTutor(null);
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update tutor.");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
-  const handleDeleteTutor = (id: string) => {
-    setTutors(tutors.filter(t => t.id !== id));
-    toast.success('Tutor removed successfully');
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'default';
-      case 'on-leave': return 'secondary';
-      case 'inactive': return 'outline';
-      default: return 'outline';
+  const handleDelete = async (tutor: Tutor) => {
+    if (!confirm(`Remove ${tutor.name}? This cannot be undone.`)) return;
+    try {
+      await deleteTutor("SUPERADMIN", tutor.id);
+      toast.success("Tutor removed.");
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to remove tutor.");
     }
   };
 
@@ -91,110 +161,93 @@ export function Tutors() {
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <form onSubmit={handleAddTutor}>
+            <form onSubmit={handleAdd}>
               <DialogHeader>
                 <DialogTitle>Add New Yoga Shikshak</DialogTitle>
-                <DialogDescription>
-                  Enter the details of the new yoga shikshak
-                </DialogDescription>
+                <DialogDescription>Enter the details of the new yoga shikshak</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" name="name" placeholder="Enter yoga shikshak name" />
+                  <Input id="name" value={addForm.name} onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} required maxLength={100} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" name="email" type="email" placeholder="tutor@yogacenter.com" />
+                  <Input id="email" type="email" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} required />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" name="phone" placeholder="+91 98765 43210" />
+                  <Input id="phone" value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })} required minLength={7} maxLength={15} />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="specialization">Specialization</Label>
-                  <Input id="specialization" name="specialization" placeholder="Hatha, Vinyasa, Yin (comma separated)" />
+                  <Label htmlFor="password">Password</Label>
+                  <Input id="password" type="password" value={addForm.password} onChange={(e) => setAddForm({ ...addForm, password: e.target.value })} required minLength={8} maxLength={128} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="specializations">Specializations</Label>
+                  <Input id="specializations" placeholder="Hatha, Vinyasa, Yin (comma separated)" value={addForm.specializations} onChange={(e) => setAddForm({ ...addForm, specializations: e.target.value })} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="experience">Years of Experience</Label>
-                  <Input id="experience" name="experience" type="number" min="0" placeholder="5" />
+                  <Input id="experience" type="number" min={0} max={80} value={addForm.experience} onChange={(e) => setAddForm({ ...addForm, experience: e.target.value })} required />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="bio">Bio</Label>
+                  <Textarea id="bio" value={addForm.bio} onChange={(e) => setAddForm({ ...addForm, bio: e.target.value })} maxLength={2000} rows={3} />
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Add Yoga Shikshak</Button>
+                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={isAdding}>{isAdding ? "Adding..." : "Add Yoga Shikshak"}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       </div>
- 
-      <div className="grid gap-4 md:grid-cols-4">
+
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardHeader>
-            <CardTitle>Total Yoga Shikshaks</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">{tutors.length}</div>
-          </CardContent>
+          <CardHeader><CardTitle>Total Yoga Shikshaks</CardTitle></CardHeader>
+          <CardContent><div className="text-3xl font-semibold">{total}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle>Active Yoga Shikshaks</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold text-green-500">
-              {tutors.filter(t => t.status === 'active').length}
-            </div>
-          </CardContent>
+          <CardHeader><CardTitle>Active (this page)</CardTitle></CardHeader>
+          <CardContent><div className="text-3xl font-semibold text-green-500">{activeCount}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle>On Leave</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold text-yellow-500">
-              {tutors.filter(t => t.status === 'on-leave').length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Avg Rating</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold flex items-center gap-2">
-              {(tutors.reduce((sum, t) => sum + t.rating, 0) / tutors.length).toFixed(1)}
-              <Star className="w-5 h-5 fill-yellow-500 text-yellow-500" />
-            </div>
-          </CardContent>
+          <CardHeader><CardTitle>On Leave (this page)</CardTitle></CardHeader>
+          <CardContent><div className="text-3xl font-semibold text-yellow-500">{onLeaveCount}</div></CardContent>
         </Card>
       </div>
- 
+
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <div>
             <CardTitle>All Yoga Shikshaks</CardTitle>
             <CardDescription>View and manage yoga shikshak information</CardDescription>
           </div>
-
-          <Button className="bg-[#610981] hover:bg-[#7a0a9f] text-white">
-            Export
-          </Button>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-            <div className="relative">
+          <div className="mb-4 flex flex-col md:flex-row gap-3">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
-                placeholder="Search by name, email, or specialization..."
+                placeholder="Search by name, email, or tutor ID..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
                 className="pl-10"
               />
             </div>
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as StaffStatus | "ALL"); setPage(1); }}>
+              <SelectTrigger className="md:w-48"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All statuses</SelectItem>
+                {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace("_", " ")}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="border rounded-lg overflow-hidden">
@@ -206,162 +259,116 @@ export function Tutors() {
                   <TableHead>Contact</TableHead>
                   <TableHead>Specialization</TableHead>
                   <TableHead>Experience</TableHead>
-                  <TableHead>Rating</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Classes</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTutors.map((tutor) => (
-                  <TableRow key={tutor.id}>
-                    <TableCell className="font-medium">{tutor.id}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-semibold">
-                          {tutor.name.charAt(0)}
+                {isLoading && tutors.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                ) : tutors.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No tutors found.</TableCell></TableRow>
+                ) : (
+                  tutors.map((tutor) => (
+                    <TableRow key={tutor.id}>
+                      <TableCell className="font-medium">{tutor.tutorId}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-semibold">
+                            {tutor.name.charAt(0)}
+                          </div>
+                          {tutor.name}
                         </div>
-                        {tutor.name}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Mail className="w-3 h-3 text-muted-foreground" />
-                          {tutor.email}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2 text-sm"><Mail className="w-3 h-3 text-muted-foreground" />{tutor.email}</div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground"><Phone className="w-3 h-3" />{tutor.phone}</div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Phone className="w-3 h-3" />
-                          {tutor.phone}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {tutor.specializations.map((spec) => <Badge key={spec} variant="secondary" className="text-xs">{spec}</Badge>)}
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {tutor.specialization.map((spec, idx) => (
-                          <Badge key={idx} variant="secondary" className="text-xs">
-                            {spec}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Award className="w-4 h-4 text-muted-foreground" />
-                        {tutor.experience} years
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                        {tutor.rating}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusColor(tutor.status)}>
-                        {tutor.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{tutor.assignedClasses.length}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setEditingTutor(tutor)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteTutor(tutor.id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1"><Award className="w-4 h-4 text-muted-foreground" />{tutor.experience} years</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={statusBadgeVariant(tutor.status)}>{tutor.status.replace("_", " ")}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => setEditingTutor(tutor)}><Edit className="w-4 h-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(tutor)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
+
+          {total > 20 && (
+            <div className="mt-4 flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">Page {page} of {Math.ceil(total / 20)} • {total} total</p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+                <Button variant="outline" size="sm" disabled={page >= Math.ceil(total / 20)} onClick={() => setPage((p) => p + 1)}>Next</Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
- 
+
       <Dialog open={!!editingTutor} onOpenChange={() => setEditingTutor(null)}>
         <DialogContent>
-          <form onSubmit={handleEditTutor}>
+          <form onSubmit={handleEdit}>
             <DialogHeader>
               <DialogTitle>Edit Yoga Shikshak</DialogTitle>
-              <DialogDescription>
-                Update yoga shikshak information
-              </DialogDescription>
+              <DialogDescription>Update yoga shikshak information</DialogDescription>
             </DialogHeader>
             {editingTutor && (
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="edit-name">Full Name</Label>
-                  <Input
-                    id="edit-name"
-                    name="name"
-                    defaultValue={editingTutor.name}
-                  />
+                  <Input id="edit-name" name="name" defaultValue={editingTutor.name} required maxLength={100} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-email">Email</Label>
-                  <Input
-                    id="edit-email"
-                    name="email"
-                    type="email"
-                    defaultValue={editingTutor.email}
-                  />
+                  <Input id="edit-email" name="email" type="email" defaultValue={editingTutor.email} required />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-phone">Phone</Label>
-                  <Input
-                    id="edit-phone"
-                    name="phone"
-                    defaultValue={editingTutor.phone}
-                  />
+                  <Input id="edit-phone" name="phone" defaultValue={editingTutor.phone} required minLength={7} maxLength={15} />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-specialization">Specialization</Label>
-                  <Input
-                    id="edit-specialization"
-                    name="specialization"
-                    defaultValue={editingTutor.specialization.join(', ')}
-                  />
+                  <Label htmlFor="edit-specializations">Specializations</Label>
+                  <Input id="edit-specializations" name="specializations" defaultValue={editingTutor.specializations.join(", ")} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-experience">Years of Experience</Label>
-                  <Input
-                    id="edit-experience"
-                    name="experience"
-                    type="number"
-                    defaultValue={editingTutor.experience}
-                  />
+                  <Input id="edit-experience" name="experience" type="number" min={0} max={80} defaultValue={editingTutor.experience} required />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-bio">Bio</Label>
+                  <Textarea id="edit-bio" name="bio" defaultValue={editingTutor.bio ?? ""} maxLength={2000} rows={3} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-status">Status</Label>
                   <Select name="status" defaultValue={editingTutor.status}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="on-leave">On Leave</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
+                      {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace("_", " ")}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
             )}
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditingTutor(null)}>
-                Cancel
-              </Button>
-              <Button type="submit">Save Changes</Button>
+              <Button type="button" variant="outline" onClick={() => setEditingTutor(null)}>Cancel</Button>
+              <Button type="submit" disabled={isUpdating}>{isUpdating ? "Saving..." : "Save Changes"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

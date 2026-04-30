@@ -11,9 +11,8 @@ import {
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Badge } from "./ui/badge";
-import { clearRoleAuth } from "../lib/auth";
+import { performLogout, useRoleSession } from "../lib/session";
 
 const navigation = [
   { name: 'Dashboard', href: '/tutor/dashboard', icon: LayoutDashboard },
@@ -26,11 +25,11 @@ export function TutorLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  useRoleSession("TUTOR");
 
-  const handleLogout = () => {
-    clearRoleAuth("TUTOR");
-    toast.success('Logged out successfully');
-    navigate('/login/tutor');
+  const handleLogout = async () => {
+    await performLogout("TUTOR");
+    navigate("/login/tutor");
   };
 
   const NavContent = () => (

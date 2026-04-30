@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -8,61 +8,125 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Badge } from "../../components/ui/badge";
 import { Plus, Search, Edit, Trash2, Mail, Phone } from "lucide-react";
-import { students as initialStudents, type Student } from "../../data/mockData";
 import { toast } from "sonner";
+import { listStudents, createStudent, updateStudent, deleteStudent } from "../../api/students";
+import type { Student, StudentStatus } from "../../api/types";
 
-export function Students() {
-  const [students, setStudents] = useState(initialStudents);
+const STATUSES: StudentStatus[] = ["ACTIVE", "INACTIVE"];
+
+type StudentsAdminRole = "SUPERADMIN" | "OPERATIONS";
+
+export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } = {}) {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StudentStatus | "ALL">("ALL");
+  const [isLoading, setIsLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [addForm, setAddForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    age: "",
+    address: "",
+    referredByCode: "",
+  });
 
-  const filteredStudents = students.filter(student => 
-    student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const [editing, setEditing] = useState<Student | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const handleAddStudent = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const newStudent: Student = {
-      id: `S${String(students.length + 1).padStart(3, '0')}`,
-      name: formData.get('name') as string,
-      email: formData.get('email') as string,
-      phone: formData.get('phone') as string,
-      joinDate: new Date().toISOString().split('T')[0],
-      status: 'active',
-      membershipType: formData.get('membershipType') as 'monthly' | 'quarterly' | 'yearly',
-      enrolledClasses: [],
+  useEffect(() => {
+    const handle = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
+    return () => clearTimeout(handle);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    listStudents(role, {
+      q: debouncedQuery || undefined,
+      status: statusFilter === "ALL" ? undefined : statusFilter,
+      page,
+      limit: 20,
+    })
+      .then((res) => {
+        if (cancelled) return;
+        setStudents(res.items);
+        setTotal(res.total);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load students.");
+      })
+      .finally(() => !cancelled && setIsLoading(false));
+    return () => {
+      cancelled = true;
     };
-    setStudents([...students, newStudent]);
-    setIsAddOpen(false);
-    toast.success('Student added successfully');
+  }, [debouncedQuery, statusFilter, page, refreshKey, role]);
+
+  const refetch = () => setRefreshKey((k) => k + 1);
+
+  const handleAdd = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isAdding) return;
+    setIsAdding(true);
+    try {
+      await createStudent(role, {
+        name: addForm.name,
+        email: addForm.email,
+        phone: addForm.phone,
+        password: addForm.password,
+        age: addForm.age ? Number(addForm.age) : undefined,
+        address: addForm.address || undefined,
+        referredByCode: addForm.referredByCode || undefined,
+      });
+      toast.success("Sādhaka added successfully");
+      setIsAddOpen(false);
+      setAddForm({ name: "", email: "", phone: "", password: "", age: "", address: "", referredByCode: "" });
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to add sādhaka.");
+    } finally {
+      setIsAdding(false);
+    }
   };
 
-  const handleEditStudent = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!editingStudent) return;
-    
-    const formData = new FormData(e.currentTarget);
-    const updatedStudent: Student = {
-      ...editingStudent,
-      name: formData.get('name') as string,
-      email: formData.get('email') as string,
-      phone: formData.get('phone') as string,
-      membershipType: formData.get('membershipType') as 'monthly' | 'quarterly' | 'yearly',
-      status: formData.get('status') as 'active' | 'inactive',
-    };
-    
-    setStudents(students.map(s => s.id === editingStudent.id ? updatedStudent : s));
-    setEditingStudent(null);
-    toast.success('Student updated successfully');
+  const handleEdit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editing || isUpdating) return;
+    setIsUpdating(true);
+    const fd = new FormData(event.currentTarget);
+    try {
+      await updateStudent(role, editing.id, {
+        name: String(fd.get("name") || ""),
+        email: String(fd.get("email") || ""),
+        phone: String(fd.get("phone") || ""),
+        status: fd.get("status") as StudentStatus,
+      });
+      toast.success("Sādhaka updated successfully");
+      setEditing(null);
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update sādhaka.");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
-  const handleDeleteStudent = (id: string) => {
-    setStudents(students.filter(s => s.id !== id));
-    toast.success('Student deleted successfully');
+  const handleDelete = async (student: Student) => {
+    if (!confirm(`Remove ${student.name}? Consider PATCH→INACTIVE to preserve history.`)) return;
+    try {
+      await deleteStudent(role, student.id);
+      toast.success("Sādhaka deleted successfully");
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete sādhaka.");
+    }
   };
 
   return (
@@ -75,109 +139,94 @@ export function Students() {
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Sādhaka
+              <Plus className="w-4 h-4 mr-2" />Add Sādhaka
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <form onSubmit={handleAddStudent}>
+            <form onSubmit={handleAdd}>
               <DialogHeader>
                 <DialogTitle>Add New Sādhaka</DialogTitle>
-                <DialogDescription>
-                  Enter the details of the new sādhaka
-                </DialogDescription>
+                <DialogDescription>Enter the details of the new sādhaka</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" name="name" placeholder="Enter sādhaka name" />
+                  <Input id="name" value={addForm.name} onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} required maxLength={100} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" name="email" type="email" placeholder="sādhaka@email.com" />
+                  <Input id="email" type="email" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} required />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" name="phone" placeholder="+91 98765 43210" />
+                  <Input id="phone" value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })} required minLength={7} maxLength={15} />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="membershipType">Membership Type</Label>
-                  <Select name="membershipType">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select membership" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                      <SelectItem value="quarterly">Quarterly</SelectItem>
-                      <SelectItem value="yearly">Yearly</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="password">Password</Label>
+                  <Input id="password" type="password" value={addForm.password} onChange={(e) => setAddForm({ ...addForm, password: e.target.value })} required minLength={8} maxLength={128} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="age">Age</Label>
+                  <Input id="age" type="number" min={1} max={120} value={addForm.age} onChange={(e) => setAddForm({ ...addForm, age: e.target.value })} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input id="address" value={addForm.address} onChange={(e) => setAddForm({ ...addForm, address: e.target.value })} maxLength={500} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="referredByCode">Referral Code (optional)</Label>
+                  <Input id="referredByCode" value={addForm.referredByCode} onChange={(e) => setAddForm({ ...addForm, referredByCode: e.target.value })} maxLength={50} />
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Add Sādhaka</Button>
+                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={isAdding}>{isAdding ? "Adding..." : "Add Sādhaka"}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       </div>
- 
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardHeader>
-            <CardTitle>Total Sādhakas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">{students.length}</div>
-          </CardContent>
+          <CardHeader><CardTitle>Total Sādhakas</CardTitle></CardHeader>
+          <CardContent><div className="text-3xl font-semibold">{total}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle>Active Members</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold text-green-500">
-              {students.filter(s => s.status === 'active').length}
-            </div>
-          </CardContent>
+          <CardHeader><CardTitle>Active (page)</CardTitle></CardHeader>
+          <CardContent><div className="text-3xl font-semibold text-green-500">{students.filter((s) => s.status === "ACTIVE").length}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle>Inactive Members</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold text-muted-foreground">
-              {students.filter(s => s.status === 'inactive').length}
-            </div>
-          </CardContent>
+          <CardHeader><CardTitle>Inactive (page)</CardTitle></CardHeader>
+          <CardContent><div className="text-3xl font-semibold text-muted-foreground">{students.filter((s) => s.status === "INACTIVE").length}</div></CardContent>
         </Card>
       </div>
- 
+
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <div>
             <CardTitle>All Sādhakas</CardTitle>
             <CardDescription>View and manage sādhaka information</CardDescription>
           </div>
-
-          <Button className="bg-[#610981] hover:bg-[#7a0a9f] text-white">
-            Export
-          </Button>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-            <div className="relative">
+          <div className="mb-4 flex flex-col md:flex-row gap-3">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
-                placeholder="Search by name, email, or ID..."
+                placeholder="Search by name, email, or student ID..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
                 className="pl-10"
               />
             </div>
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as StudentStatus | "ALL"); setPage(1); }}>
+              <SelectTrigger className="md:w-48"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All statuses</SelectItem>
+                {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="border rounded-lg overflow-hidden">
@@ -188,137 +237,94 @@ export function Students() {
                   <TableHead>Name</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Join Date</TableHead>
-                  <TableHead>Membership</TableHead>
+                  <TableHead>Referral Code</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Classes</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredStudents.map((student) => (
-                  <TableRow key={student.id}>
-                    <TableCell className="font-medium">{student.id}</TableCell>
-                    <TableCell>{student.name}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Mail className="w-3 h-3 text-muted-foreground" />
-                          {student.email}
+                {isLoading && students.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                ) : students.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No sādhakas found.</TableCell></TableRow>
+                ) : (
+                  students.map((student) => (
+                    <TableRow key={student.id}>
+                      <TableCell className="font-medium">{student.studentId}</TableCell>
+                      <TableCell>{student.name}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2 text-sm"><Mail className="w-3 h-3 text-muted-foreground" />{student.email}</div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground"><Phone className="w-3 h-3" />{student.phone}</div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Phone className="w-3 h-3" />
-                          {student.phone}
+                      </TableCell>
+                      <TableCell>{new Date(student.joinDate).toLocaleDateString()}</TableCell>
+                      <TableCell><code className="text-xs">{student.referralCode}</code></TableCell>
+                      <TableCell>
+                        <Badge variant={student.status === "ACTIVE" ? "default" : "secondary"}>{student.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => setEditing(student)}><Edit className="w-4 h-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(student)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{new Date(student.joinDate).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {student.membershipType}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={student.status === 'active' ? 'default' : 'secondary'}>
-                        {student.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{student.enrolledClasses.length}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setEditingStudent(student)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteStudent(student.id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
+
+          {total > 20 && (
+            <div className="mt-4 flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">Page {page} of {Math.ceil(total / 20)} • {total} total</p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+                <Button variant="outline" size="sm" disabled={page >= Math.ceil(total / 20)} onClick={() => setPage((p) => p + 1)}>Next</Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
- 
-      <Dialog open={!!editingStudent} onOpenChange={() => setEditingStudent(null)}>
+
+      <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent>
-          <form onSubmit={handleEditStudent}>
-            <DialogHeader>
-              <DialogTitle>Edit Sādhaka</DialogTitle>
-              <DialogDescription>
-                Update sādhaka information
-              </DialogDescription>
-            </DialogHeader>
-            {editingStudent && (
+          {editing && (
+            <form onSubmit={handleEdit}>
+              <DialogHeader>
+                <DialogTitle>Edit Sādhaka</DialogTitle>
+                <DialogDescription>Update sādhaka information</DialogDescription>
+              </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="edit-name">Full Name</Label>
-                  <Input
-                    id="edit-name"
-                    name="name"
-                    defaultValue={editingStudent.name}
-                  />
+                  <Input id="edit-name" name="name" defaultValue={editing.name} required maxLength={100} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-email">Email</Label>
-                  <Input
-                    id="edit-email"
-                    name="email"
-                    type="email"
-                    defaultValue={editingStudent.email}
-                  />
+                  <Input id="edit-email" name="email" type="email" defaultValue={editing.email} required />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-phone">Phone</Label>
-                  <Input
-                    id="edit-phone"
-                    name="phone"
-                    defaultValue={editingStudent.phone}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-membershipType">Membership Type</Label>
-                  <Select name="membershipType" defaultValue={editingStudent.membershipType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                      <SelectItem value="quarterly">Quarterly</SelectItem>
-                      <SelectItem value="yearly">Yearly</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input id="edit-phone" name="phone" defaultValue={editing.phone} required minLength={7} maxLength={15} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-status">Status</Label>
-                  <Select name="status" defaultValue={editingStudent.status}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                  <Select name="status" defaultValue={editing.status}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
+                      {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-            )}
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditingStudent(null)}>
-                Cancel
-              </Button>
-              <Button type="submit">Save Changes</Button>
-            </DialogFooter>
-          </form>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+                <Button type="submit" disabled={isUpdating}>{isUpdating ? "Saving..." : "Save Changes"}</Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

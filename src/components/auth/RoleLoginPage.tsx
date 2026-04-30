@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { ArrowRight, Eye, EyeOff, Lock, Mail, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
@@ -186,12 +186,21 @@ export function RoleLoginPage({ role }: { role: LoginRole }) {
           transition={{ delay: 0.4, duration: 0.5 }}
           className="text-center mt-8"
         >
-          <p className="text-sm text-gray-600">
-            Need help with access?{" "}
-            <a href="#" className="font-semibold hover:underline" style={{ color: "#610981" }}>
-              Contact support
-            </a>
-          </p>
+          {role === "STUDENT" ? (
+            <p className="text-sm text-gray-600">
+              Don't have an account?{" "}
+              <Link to="/register" className="font-semibold hover:underline" style={{ color: "#610981" }}>
+                Sign up
+              </Link>
+            </p>
+          ) : (
+            <p className="text-sm text-gray-600">
+              Need help with access?{" "}
+              <a href="#" className="font-semibold hover:underline" style={{ color: "#610981" }}>
+                Contact support
+              </a>
+            </p>
+          )}
         </motion.div>
 
         <motion.div

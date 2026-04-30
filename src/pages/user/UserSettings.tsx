@@ -1,10 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Switch } from "../../components/ui/switch";
-import { Bell, Lock, CreditCard, Shield } from "lucide-react";
+import { Bell, CreditCard, Shield } from "lucide-react";
 import { Link } from "react-router";
+import { PasswordChangeCard } from "../../components/settings/PasswordChangeCard";
 
 export function UserSettings() {
   return (
@@ -53,50 +53,7 @@ export function UserSettings() {
           </CardContent>
         </Card>
  
-        <Card className="relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[#610981]/5 rounded-full blur-3xl" />
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Lock className="w-5 h-5" style={{ color: '#ff691d' }} />
-              <CardTitle style={{ color: '#ff691d' }}>Security Settings</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <h4 className="font-medium">Change Password</h4>
-                <div className="space-y-2">
-                  <Label htmlFor="current-password">Current Password</Label>
-                  <Input id="current-password" type="password" placeholder="Enter current password" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
-                  <Input id="new-password" type="password" placeholder="Enter new password" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm New Password</Label>
-                  <Input id="confirm-password" type="password" placeholder="Confirm new password" />
-                </div>
-                <Button style={{ backgroundColor: '#610981', color: 'white' }}>
-                  Update Password
-                </Button>
-              </div>
-
-              <div className="pt-4 border-t">
-                <div className="flex items-center justify-between p-3 rounded-lg border">
-                  <div className="flex items-center gap-3">
-                    <Shield className="w-5 h-5 text-muted-foreground" />
-                    <div className="space-y-0.5">
-                      <Label className="text-base">Two-Factor Authentication</Label>
-                      <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
-                    </div>
-                  </div>
-                  <Switch />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <PasswordChangeCard role="STUDENT" />
  
         <Card className="relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-[#10b981]/5 rounded-full blur-3xl" />

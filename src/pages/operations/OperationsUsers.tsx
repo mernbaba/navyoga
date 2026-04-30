@@ -1,5 +1,5 @@
 import { Students } from "../superadmin/Students";
 
 export function OperationsUsers() {
-  return <Students />;
+  return <Students role="OPERATIONS" />;
 }

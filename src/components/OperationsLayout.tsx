@@ -17,20 +17,21 @@ import {
   LogOut
 } from 'lucide-react';
 import { Button } from './ui/button';
-import { clearRoleAuth } from '../lib/auth';
+import { performLogout, useRoleSession } from '../lib/session';
 
 export function OperationsLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  useRoleSession("OPERATIONS");
 
-  const handleLogout = () => {
-    clearRoleAuth('OPERATIONS');
-    navigate('/login/operations');
+  const handleLogout = async () => {
+    await performLogout("OPERATIONS");
+    navigate("/login/operations");
   };
 
   const navigation = [
-    { name: 'Dashboard', href: '/operations', icon: LayoutDashboard },
+    { name: 'Dashboard', href: '/operations/dashboard', icon: LayoutDashboard },
     { name: 'Employees', href: '/operations/employees', icon: Users },
     { name: 'Tutors', href: '/operations/tutors', icon: GraduationCap },
     { name: 'Frontline Team', href: '/operations/frontline-team', icon: Phone },
@@ -45,10 +46,7 @@ export function OperationsLayout() {
   ];
 
   const isActive = (path: string) => {
-    if (path === '/operations') {
-      return location.pathname === '/operations';
-    }
-    return location.pathname.startsWith(path);
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
   return (
