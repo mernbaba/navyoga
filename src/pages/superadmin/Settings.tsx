@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card";
 import { Label } from "../../components/ui/label";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
@@ -41,7 +47,10 @@ export function Settings() {
         setProfilePhone(fresh.phone);
       })
       .catch((err: unknown) => {
-        if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load profile.");
+        if (!cancelled)
+          toast.error(
+            err instanceof Error ? err.message : "Failed to load profile.",
+          );
       })
       .finally(() => !cancelled && setIsProfileLoading(false));
 
@@ -58,7 +67,12 @@ export function Settings() {
         setLanguage(fresh.language);
       })
       .catch((err: unknown) => {
-        if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load business settings.");
+        if (!cancelled)
+          toast.error(
+            err instanceof Error
+              ? err.message
+              : "Failed to load business settings.",
+          );
       })
       .finally(() => !cancelled && setIsPlatformLoading(false));
 
@@ -81,13 +95,17 @@ export function Settings() {
       setCachedUser("SUPERADMIN", updated);
       toast.success("Profile updated successfully.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update profile.");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update profile.",
+      );
     } finally {
       setIsProfileSaving(false);
     }
   };
 
-  const handleSavePlatform = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSavePlatform = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
     if (isPlatformSaving) return;
     setIsPlatformSaving(true);
@@ -104,7 +122,9 @@ export function Settings() {
       setPlatform(updated);
       toast.success("Business settings saved.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save settings.");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save settings.",
+      );
     } finally {
       setIsPlatformSaving(false);
     }
@@ -114,7 +134,9 @@ export function Settings() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-semibold">Settings</h1>
-        <p className="text-muted-foreground mt-1">Manage your yoga center configuration</p>
+        <p className="text-muted-foreground mt-1">
+          Manage your yoga center configuration
+        </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -161,10 +183,14 @@ export function Settings() {
               </div>
               {profile && (
                 <p className="text-xs text-muted-foreground">
-                  Account created {new Date(profile.createdAt).toLocaleDateString()}
+                  Account created{" "}
+                  {new Date(profile.createdAt).toLocaleDateString()}
                 </p>
               )}
-              <Button type="submit" disabled={isProfileLoading || isProfileSaving}>
+              <Button
+                type="submit"
+                disabled={isProfileLoading || isProfileSaving}
+              >
                 {isProfileSaving ? "Saving..." : "Save Profile"}
               </Button>
             </form>
@@ -183,7 +209,10 @@ export function Settings() {
           <CardDescription>Update your yoga center details</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSavePlatform} className="grid gap-4 md:grid-cols-2">
+          <form
+            onSubmit={handleSavePlatform}
+            className="grid gap-4 md:grid-cols-2"
+          >
             <div className="grid gap-2">
               <Label htmlFor="centerName">Center Name</Label>
               <Input
@@ -221,7 +250,7 @@ export function Settings() {
                 disabled={isPlatformLoading}
               />
             </div>
-            <div className="grid gap-2">
+           {/* <div className="grid gap-2">
               <Label htmlFor="timezone">Timezone</Label>
               <Input
                 id="timezone"
@@ -247,9 +276,12 @@ export function Settings() {
                 onChange={(event) => setLanguage(event.target.value)}
                 disabled={isPlatformLoading}
               />
-            </div>
+            </div>*/}
             <div className="md:col-span-2">
-              <Button type="submit" disabled={isPlatformLoading || isPlatformSaving}>
+              <Button
+                type="submit"
+                disabled={isPlatformLoading || isPlatformSaving}
+              >
                 {isPlatformSaving ? "Saving..." : "Save Business Settings"}
               </Button>
             </div>

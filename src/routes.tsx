@@ -14,6 +14,8 @@ import { Tutors } from "./pages/superadmin/Tutors";
 import { Classes } from "./pages/superadmin/Classes";
 import { Attendance } from "./pages/superadmin/Attendance";
 import { Financials } from "./pages/superadmin/Financials";
+import { MarketingAnalytics } from "./pages/superadmin/MarketingAnalytics";
+import { Referrals } from "./pages/superadmin/Referrals";
 import { Settings } from "./pages/superadmin/Settings";
 import { UserLogin } from "./pages/auth/UserLogin";
 import { UserRegister } from "./pages/auth/UserRegister";
@@ -115,6 +117,8 @@ export const router = createBrowserRouter([
       { path: "classes", Component: Classes },
       { path: "attendance", Component: Attendance },
       { path: "financials", Component: Financials },
+      { path: "marketing-analytics", Component: MarketingAnalytics },
+      { path: "referrals", Component: Referrals },
       { path: "settings", Component: Settings },
     ],
   },

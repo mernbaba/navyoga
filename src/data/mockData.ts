@@ -37,12 +37,22 @@ export interface Class {
   price: number;
 }
 
+export type AttendanceCategory = 'users' | 'tutors' | 'frontline' | 'operations';
+
 export interface AttendanceRecord {
   id: string;
   studentId: string;
   classId: string;
   date: string;
   status: 'present' | 'absent' | 'late';
+  time?: string;
+  category?: AttendanceCategory;
+  personName?: string;
+  context?: string;
+  classesConducted?: number;
+  teachingHours?: string;
+  checkIn?: string;
+  checkOut?: string;
 }
 
 export interface Payment {
@@ -371,11 +381,29 @@ export const classes: Class[] = [
 ];
 
 export const attendanceRecords: AttendanceRecord[] = [
-  { id: 'A001', studentId: 'S001', classId: 'C001', date: '2026-03-01', status: 'present' },
-  { id: 'A002', studentId: 'S002', classId: 'C001', date: '2026-03-01', status: 'present' },
-  { id: 'A003', studentId: 'S003', classId: 'C002', date: '2026-03-01', status: 'late' },
-  { id: 'A004', studentId: 'S001', classId: 'C003', date: '2026-03-02', status: 'present' },
-  { id: 'A005', studentId: 'S004', classId: 'C003', date: '2026-03-02', status: 'absent' },
+  { id: 'UA001', studentId: 'S001', classId: 'C001', date: '2026-04-28', time: '6:00 PM', status: 'present', category: 'users' },
+  { id: 'UA002', studentId: 'S002', classId: 'C005', date: '2026-04-28', time: '10:00 AM', status: 'present', category: 'users' },
+  { id: 'UA003', studentId: 'S003', classId: 'C007', date: '2026-04-28', time: '8:00 AM', status: 'absent', category: 'users' },
+  { id: 'UA004', studentId: 'S004', classId: 'C002', date: '2026-04-27', time: '7:00 AM', status: 'present', category: 'users' },
+  { id: 'UA005', studentId: 'S001', classId: 'C006', date: '2026-04-27', time: '6:00 PM', status: 'late', category: 'users' },
+
+  { id: 'TA001', studentId: '', classId: '', date: '2026-04-28', status: 'present', category: 'tutors', personName: 'Priya Sharma', classesConducted: 3, teachingHours: '4.5h' },
+  { id: 'TA002', studentId: '', classId: '', date: '2026-04-28', status: 'present', category: 'tutors', personName: 'Rahul Kumar', classesConducted: 2, teachingHours: '3h' },
+  { id: 'TA003', studentId: '', classId: '', date: '2026-04-28', status: 'present', category: 'tutors', personName: 'Anita Verma', classesConducted: 2, teachingHours: '2.5h' },
+  { id: 'TA004', studentId: '', classId: '', date: '2026-04-27', status: 'present', category: 'tutors', personName: 'Vikram Singh', classesConducted: 1, teachingHours: '1.5h' },
+  { id: 'TA005', studentId: '', classId: '', date: '2026-04-27', status: 'late', category: 'tutors', personName: 'Kavita Singh', classesConducted: 2, teachingHours: '3h' },
+
+  { id: 'FA001', studentId: '', classId: '', date: '2026-04-28', status: 'present', category: 'frontline', personName: 'Sarah Johnson', context: 'Lead Gen Specialist', checkIn: '9:00 AM', checkOut: '6:00 PM' },
+  { id: 'FA002', studentId: '', classId: '', date: '2026-04-28', status: 'present', category: 'frontline', personName: 'Michael Brown', context: 'Sales Executive', checkIn: '9:15 AM', checkOut: '6:00 PM' },
+  { id: 'FA003', studentId: '', classId: '', date: '2026-04-28', status: 'absent', category: 'frontline', personName: 'Emily Davis', context: 'Customer Support' },
+  { id: 'FA004', studentId: '', classId: '', date: '2026-04-27', status: 'present', category: 'frontline', personName: 'David Wilson', context: 'Lead Gen Specialist', checkIn: '9:00 AM', checkOut: '6:15 PM' },
+  { id: 'FA005', studentId: '', classId: '', date: '2026-04-27', status: 'present', category: 'frontline', personName: 'Lisa Anderson', context: 'Sales Manager', checkIn: '8:45 AM', checkOut: '6:00 PM' },
+
+  { id: 'OA001', studentId: '', classId: '', date: '2026-04-28', status: 'present', category: 'operations', personName: 'John Smith', context: 'Operations Manager', checkIn: '9:00 AM', checkOut: '6:00 PM' },
+  { id: 'OA002', studentId: '', classId: '', date: '2026-04-28', status: 'present', category: 'operations', personName: 'Emma Johnson', context: 'HR Coordinator', checkIn: '9:30 AM', checkOut: '6:00 PM' },
+  { id: 'OA003', studentId: '', classId: '', date: '2026-04-28', status: 'late', category: 'operations', personName: 'Robert Lee', context: 'Finance Officer', checkIn: '10:00 AM', checkOut: '6:00 PM' },
+  { id: 'OA004', studentId: '', classId: '', date: '2026-04-27', status: 'present', category: 'operations', personName: 'Sophia Martinez', context: 'Content Manager', checkIn: '9:00 AM', checkOut: '6:00 PM' },
+  { id: 'OA005', studentId: '', classId: '', date: '2026-04-27', status: 'present', category: 'operations', personName: 'James Taylor', context: 'IT Support', checkIn: '8:30 AM', checkOut: '5:30 PM' },
 ];
 
 export const payments: Payment[] = [

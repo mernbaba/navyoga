@@ -6,6 +6,8 @@ import {
   Calendar,
   ClipboardCheck,
   CreditCard,
+  BarChart3,
+  Gift,
   Settings as SettingsIcon,
   Menu,
   UserPlus,
@@ -28,6 +30,8 @@ const navigation = [
   { name: "Classes", href: "/superadmin/classes", icon: Calendar },
   { name: "Attendance", href: "/superadmin/attendance", icon: ClipboardCheck },
   { name: "Financials", href: "/superadmin/financials", icon: CreditCard },
+  { name: "Marketing Analytics", href: "/superadmin/marketing-analytics", icon: BarChart3 },
+  { name: "Referrals", href: "/superadmin/referrals", icon: Gift },
   { name: "Settings", href: "/superadmin/settings", icon: SettingsIcon },
 ];
 

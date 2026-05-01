@@ -7,3 +7,5 @@ export * as studentsApi from "./students";
 export * as couponsApi from "./coupons";
 export * as notificationsApi from "./notifications";
 export * as platformApi from "./platform";
+export * as attendanceApi from "./attendance";
+export * as dashboardApi from "./dashboard";

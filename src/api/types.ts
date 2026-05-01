@@ -214,6 +214,86 @@ export type Notification = {
   updatedAt: string;
 };
 
+export type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE";
+
+export type AttendanceSummary = {
+  total: number;
+  present: number;
+  absent: number;
+  late: number;
+  attendanceRate: number;
+};
+
+export type PaginatedAttendance<T> = {
+  summary: AttendanceSummary;
+  items: T[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+
+export type StudentAttendance = {
+  id: string;
+  date: string;
+  status: AttendanceStatus;
+  createdAt: string;
+  updatedAt: string;
+  student: { id: string; studentId: string; name: string };
+  subscriptionClass: {
+    id: string;
+    classId: string;
+    title: string;
+    yogaType: string;
+    scheduledAt: string;
+  };
+};
+
+export type TutorAttendance = {
+  id: string;
+  date: string;
+  classesConducted: number;
+  teachingHours: number;
+  status: AttendanceStatus;
+  createdAt: string;
+  updatedAt: string;
+  tutor: { id: string; tutorId: string; name: string };
+};
+
+export type FrontlineAttendance = {
+  id: string;
+  date: string;
+  checkIn: string | null;
+  checkOut: string | null;
+  status: AttendanceStatus;
+  createdAt: string;
+  updatedAt: string;
+  staff: {
+    id: string;
+    employeeId: string;
+    firstName: string;
+    lastName: string;
+    designation: string;
+  };
+};
+
+export type OperationsAttendance = {
+  id: string;
+  date: string;
+  checkIn: string | null;
+  checkOut: string | null;
+  status: AttendanceStatus;
+  createdAt: string;
+  updatedAt: string;
+  staff: {
+    id: string;
+    employeeId: string;
+    firstName: string;
+    lastName: string;
+    department: string;
+  };
+};
+
 export type BusinessSettings = {
   id: string;
   centerName: string;

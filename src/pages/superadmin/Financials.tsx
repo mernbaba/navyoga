@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -8,10 +8,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Badge } from "../../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
-import { Plus, Search, IndianRupee, Download, TrendingUp, CreditCard, Banknote, Ticket, Copy, Trash2, Edit, Percent, Users, Zap, Heart, GraduationCap, Crown } from "lucide-react";
+import { Plus, Search, IndianRupee, Download, TrendingUp, CreditCard, Banknote, Ticket, Copy, Trash2, Edit, Percent, Users, Zap, Heart, GraduationCap, Crown, Loader2 } from "lucide-react";
 import { payments as initialPayments, students, type Payment } from "../../data/mockData";
 import { toast } from "sonner";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import { listCoupons, createCoupon, updateCoupon, deleteCoupon } from "../../api/coupons";
+import type { Coupon, CouponStatus, DiscountType } from "../../api/types";
 
 const monthlyData = [
   { month: 'Oct', revenue: 145000, subscriptions: 289 },
@@ -38,101 +40,40 @@ const planDistribution = [
   { name: 'Yearly', value: 35, color: '#8b2fb8' },
 ];
 
-export interface Coupon {
-  id: string;
-  code: string;
-  discountType: 'percentage' | 'fixed';
-  discountValue: number;
-  minPurchase: number;
-  maxDiscount?: number;
-  expiryDate: string;
-  status: 'active' | 'expired' | 'disabled';
-  usageLimit: number;
-  usedCount: number;
-  createdDate: string;
-  applicableTo?: string[];
-}
-
-const initialCoupons: Coupon[] = [
-  {
-    id: 'C001',
-    code: 'WELCOME50',
-    discountType: 'percentage',
-    discountValue: 50,
-    minPurchase: 1000,
-    maxDiscount: 500,
-    expiryDate: '2026-12-31',
-    status: 'active',
-    usageLimit: 200,
-    usedCount: 87,
-    createdDate: '2026-01-01',
-    applicableTo: ['Live Yoga - Inaugural', 'Live Yoga - Regular'],
-  },
-  {
-    id: 'C002',
-    code: 'YOGAINAUGURAL',
-    discountType: 'percentage',
-    discountValue: 30,
-    minPurchase: 1500,
-    maxDiscount: 750,
-    expiryDate: '2026-06-30',
-    status: 'active',
-    usageLimit: 100,
-    usedCount: 34,
-    createdDate: '2026-01-15',
-    applicableTo: ['Live Yoga - Inaugural'],
-  },
-  {
-    id: 'C003',
-    code: 'SELFPACED20',
-    discountType: 'percentage',
-    discountValue: 20,
-    minPurchase: 500,
-    maxDiscount: 300,
-    expiryDate: '2026-08-31',
-    status: 'active',
-    usageLimit: 150,
-    usedCount: 56,
-    createdDate: '2026-02-01',
-    applicableTo: ['Self-Paced'],
-  },
-  {
-    id: 'C004',
-    code: 'YTT1000',
-    discountType: 'fixed',
-    discountValue: 1000,
-    minPurchase: 8000,
-    expiryDate: '2026-09-30',
-    status: 'active',
-    usageLimit: 50,
-    usedCount: 12,
-    createdDate: '2026-02-15',
-    applicableTo: ['YTT Self-Paced', 'YTT Live'],
-  },
-  {
-    id: 'C005',
-    code: 'EARLYBIRD',
-    discountType: 'percentage',
-    discountValue: 25,
-    minPurchase: 2000,
-    maxDiscount: 1000,
-    expiryDate: '2026-04-30',
-    status: 'active',
-    usageLimit: 75,
-    usedCount: 45,
-    createdDate: '2026-01-01',
-    applicableTo: ['Live Yoga - Regular', 'YTT Live'],
-  },
-];
-
 export function Financials() {
   const [payments, setPayments] = useState(initialPayments);
-  const [coupons, setCoupons] = useState(initialCoupons);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [couponsLoading, setCouponsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [couponSearchQuery, setCouponSearchQuery] = useState("");
   const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
   const [isAddCouponOpen, setIsAddCouponOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCouponsLoading(true);
+    const params = couponSearchQuery
+      ? { q: couponSearchQuery, limit: 100 }
+      : { limit: 100 };
+    listCoupons("SUPERADMIN", params)
+      .then((res) => {
+        if (!cancelled) setCoupons(res.items);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : "Failed to load coupons";
+          toast.error(message);
+          setCoupons([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCouponsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [couponSearchQuery]);
 
   const filteredPayments = payments.filter(payment => {
     const student = students.find(s => s.id === payment.studentId);
@@ -140,11 +81,6 @@ export function Financials() {
            payment.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
            payment.status.toLowerCase().includes(searchQuery.toLowerCase());
   });
-
-  const filteredCoupons = coupons.filter(coupon =>
-    coupon.code.toLowerCase().includes(couponSearchQuery.toLowerCase()) ||
-    coupon.status.toLowerCase().includes(couponSearchQuery.toLowerCase())
-  );
 
   const handleAddPayment = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -163,38 +99,51 @@ export function Financials() {
     toast.success('Payment recorded successfully');
   };
 
-  const handleAddCoupon = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddCoupon = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const newCoupon: Coupon = {
-      id: editingCoupon ? editingCoupon.id : `C${String(coupons.length + 1).padStart(3, '0')}`,
-      code: (formData.get('code') as string).toUpperCase(),
-      discountType: formData.get('discountType') as 'percentage' | 'fixed',
-      discountValue: parseInt(formData.get('discountValue') as string),
-      minPurchase: parseInt(formData.get('minPurchase') as string),
-      maxDiscount: formData.get('maxDiscount') ? parseInt(formData.get('maxDiscount') as string) : undefined,
-      expiryDate: formData.get('expiryDate') as string,
-      status: formData.get('status') as 'active' | 'expired' | 'disabled',
-      usageLimit: parseInt(formData.get('usageLimit') as string),
-      usedCount: editingCoupon ? editingCoupon.usedCount : 0,
-      createdDate: editingCoupon ? editingCoupon.createdDate : new Date().toISOString().split('T')[0],
+    const fd = new FormData(e.currentTarget);
+    const description = (fd.get("description") as string)?.trim();
+    const maxDiscountRaw = fd.get("maxDiscount") as string;
+    const body = {
+      code: String(fd.get("code") ?? "").toUpperCase(),
+      description: description ? description : undefined,
+      discountType: fd.get("discountType") as DiscountType,
+      discountValue: Number(fd.get("discountValue") ?? 0),
+      minPurchaseAmount: Number(fd.get("minPurchase") ?? 0),
+      maxDiscount: maxDiscountRaw ? Number(maxDiscountRaw) : null,
+      usageLimit: Number(fd.get("usageLimit") ?? 0),
+      validFrom: String(fd.get("validFrom") ?? ""),
+      expiryDate: String(fd.get("expiryDate") ?? ""),
+      status: fd.get("status") as CouponStatus,
     };
 
-    if (editingCoupon) {
-      setCoupons(coupons.map(c => c.id === editingCoupon.id ? newCoupon : c));
-      toast.success('Coupon updated successfully');
-    } else {
-      setCoupons([...coupons, newCoupon]);
-      toast.success('Coupon created successfully');
+    try {
+      if (editingCoupon) {
+        const updated = await updateCoupon("SUPERADMIN", editingCoupon.id, body);
+        setCoupons((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+        toast.success("Coupon updated successfully");
+      } else {
+        const created = await createCoupon("SUPERADMIN", body);
+        setCoupons((prev) => [created, ...prev]);
+        toast.success("Coupon created successfully");
+      }
+      setIsAddCouponOpen(false);
+      setEditingCoupon(null);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to save coupon";
+      toast.error(message);
     }
-    
-    setIsAddCouponOpen(false);
-    setEditingCoupon(null);
   };
 
-  const handleDeleteCoupon = (id: string) => {
-    setCoupons(coupons.filter(c => c.id !== id));
-    toast.success('Coupon deleted successfully');
+  const handleDeleteCoupon = async (id: string) => {
+    try {
+      await deleteCoupon("SUPERADMIN", id);
+      setCoupons((prev) => prev.filter((c) => c.id !== id));
+      toast.success("Coupon deleted successfully");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to delete coupon";
+      toast.error(message);
+    }
   };
 
   const handleCopyCouponCode = (code: string) => {
@@ -212,9 +161,15 @@ export function Financials() {
       case 'paid': return 'default';
       case 'pending': return 'secondary';
       case 'overdue': return 'destructive';
-      case 'active': return 'default';
-      case 'expired': return 'secondary';
-      case 'disabled': return 'destructive';
+      case 'active':
+      case 'ACTIVE':
+        return 'default';
+      case 'expired':
+      case 'EXPIRED':
+        return 'secondary';
+      case 'disabled':
+      case 'DISABLED':
+        return 'destructive';
       default: return 'outline';
     }
   };
@@ -233,10 +188,10 @@ export function Financials() {
   const pendingAmount = payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0);
   const paidCount = payments.filter(p => p.status === 'paid').length;
 
-  const activeCoupons = coupons.filter(c => c.status === 'active').length;
   const totalCoupons = coupons.length;
-  const totalUsage = coupons.reduce((sum, c) => sum + c.usedCount, 0);
-  const expiredCoupons = coupons.filter(c => c.status === 'expired').length;
+  const activeCoupons = coupons.filter(c => c.status === 'ACTIVE').length;
+  const expiredCoupons = coupons.filter(c => c.status === 'EXPIRED').length;
+  const totalUsage = coupons.reduce((sum, c) => sum + (c.usageCount ?? 0), 0);
 
   // Calculate subscription metrics
   const totalSubscriptions = subscriptionBreakdown.reduce((sum, s) => sum + s.value, 0);
@@ -704,29 +659,39 @@ export function Financials() {
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="status">Status</Label>
-                        <Select name="status" defaultValue={editingCoupon?.status || 'active'}>
+                        <Select name="status" defaultValue={editingCoupon?.status || 'ACTIVE'}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="disabled">Disabled</SelectItem>
-                            <SelectItem value="expired">Expired</SelectItem>
+                            <SelectItem value="ACTIVE">Active</SelectItem>
+                            <SelectItem value="DISABLED">Disabled</SelectItem>
+                            <SelectItem value="EXPIRED">Expired</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
 
+                    <div className="grid gap-2">
+                      <Label htmlFor="description">Description (optional)</Label>
+                      <Input
+                        id="description"
+                        name="description"
+                        placeholder="10% off your first order"
+                        defaultValue={editingCoupon?.description ?? ""}
+                      />
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="discountType">Discount Type</Label>
-                        <Select name="discountType" defaultValue={editingCoupon?.discountType || 'percentage'}>
+                        <Select name="discountType" defaultValue={editingCoupon?.discountType || 'PERCENTAGE'}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="percentage">Percentage (%)</SelectItem>
-                            <SelectItem value="fixed">Fixed Amount (₹)</SelectItem>
+                            <SelectItem value="PERCENTAGE">Percentage (%)</SelectItem>
+                            <SelectItem value="FLAT">Fixed Amount (₹)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -737,6 +702,7 @@ export function Financials() {
                           name="discountValue"
                           type="number"
                           min="0"
+                          step="0.01"
                           placeholder="50"
                           defaultValue={editingCoupon?.discountValue}
                         />
@@ -751,8 +717,9 @@ export function Financials() {
                           name="minPurchase"
                           type="number"
                           min="0"
+                          step="0.01"
                           placeholder="1000"
-                          defaultValue={editingCoupon?.minPurchase}
+                          defaultValue={editingCoupon?.minPurchaseAmount}
                         />
                       </div>
                       <div className="grid gap-2">
@@ -762,8 +729,9 @@ export function Financials() {
                           name="maxDiscount"
                           type="number"
                           min="0"
+                          step="0.01"
                           placeholder="500"
-                          defaultValue={editingCoupon?.maxDiscount}
+                          defaultValue={editingCoupon?.maxDiscount ?? ""}
                         />
                       </div>
                     </div>
@@ -781,14 +749,24 @@ export function Financials() {
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="expiryDate">Expiry Date</Label>
+                        <Label htmlFor="validFrom">Valid From</Label>
                         <Input
-                          id="expiryDate"
-                          name="expiryDate"
+                          id="validFrom"
+                          name="validFrom"
                           type="date"
-                          defaultValue={editingCoupon?.expiryDate}
+                          defaultValue={editingCoupon?.validFrom?.slice(0, 10) ?? new Date().toISOString().slice(0, 10)}
                         />
                       </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="expiryDate">Expiry Date</Label>
+                      <Input
+                        id="expiryDate"
+                        name="expiryDate"
+                        type="date"
+                        defaultValue={editingCoupon?.expiryDate?.slice(0, 10)}
+                      />
                     </div>
                   </div>
                   <DialogFooter>
@@ -878,7 +856,7 @@ export function Financials() {
                       <TableHead>Code</TableHead>
                       <TableHead>Discount</TableHead>
                       <TableHead>Min Purchase</TableHead>
-                      <TableHead>Applicable To</TableHead>
+                      <TableHead>Description</TableHead>
                       <TableHead>Usage</TableHead>
                       <TableHead>Expiry Date</TableHead>
                       <TableHead>Status</TableHead>
@@ -886,7 +864,22 @@ export function Financials() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredCoupons.map((coupon) => (
+                    {couponsLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-10">
+                          <span className="inline-flex items-center gap-2 text-muted-foreground">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Loading coupons…
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ) : coupons.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                          No coupons found
+                        </TableCell>
+                      </TableRow>
+                    ) : coupons.map((coupon) => (
                       <TableRow key={coupon.id}>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -903,20 +896,20 @@ export function Financials() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1 font-semibold">
-                            {coupon.discountType === 'percentage' ? (
+                            {coupon.discountType === 'PERCENTAGE' ? (
                               <>
                                 <Percent className="w-3 h-3" />
-                                {coupon.discountValue}%
+                                {Number(coupon.discountValue)}%
                               </>
                             ) : (
                               <>
                                 <IndianRupee className="w-3 h-3" />
-                                {coupon.discountValue}
+                                {Number(coupon.discountValue)}
                               </>
                             )}
                             {coupon.maxDiscount && (
                               <span className="text-xs text-muted-foreground ml-1">
-                                (max ₹{coupon.maxDiscount})
+                                (max ₹{Number(coupon.maxDiscount)})
                               </span>
                             )}
                           </div>
@@ -924,27 +917,21 @@ export function Financials() {
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <IndianRupee className="w-3 h-3" />
-                            {coupon.minPurchase}
+                            {Number(coupon.minPurchaseAmount)}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {coupon.applicableTo ? (
-                              coupon.applicableTo.slice(0, 2).map((plan, idx) => (
-                                <Badge key={idx} variant="outline" className="text-xs">
-                                  {plan.split(' - ')[0]}
-                                </Badge>
-                              ))
-                            ) : (
-                              <Badge variant="outline" className="text-xs">All Plans</Badge>
-                            )}
-                          </div>
+                        <TableCell className="max-w-[220px]">
+                          <span className="text-sm text-muted-foreground line-clamp-2">
+                            {coupon.description ?? "—"}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
-                            <span className="font-semibold">{coupon.usedCount}</span> / {coupon.usageLimit}
+                            <span className="font-semibold">{coupon.usageCount}</span> / {coupon.usageLimit}
                             <div className="text-xs text-muted-foreground">
-                              {Math.round((coupon.usedCount / coupon.usageLimit) * 100)}% used
+                              {coupon.usageLimit > 0
+                                ? `${Math.round((coupon.usageCount / coupon.usageLimit) * 100)}% used`
+                                : "0% used"}
                             </div>
                           </div>
                         </TableCell>
@@ -952,8 +939,8 @@ export function Financials() {
                           {new Date(coupon.expiryDate).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getStatusColor(coupon.status)}>
-                            {coupon.status}
+                          <Badge variant={getStatusColor(coupon.status)} className="capitalize">
+                            {coupon.status.toLowerCase()}
                           </Badge>
                         </TableCell>
                         <TableCell>

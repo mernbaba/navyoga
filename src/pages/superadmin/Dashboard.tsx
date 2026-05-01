@@ -1,8 +1,12 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
-import { Users, GraduationCap, Calendar, TrendingUp, IndianRupee, Award, Sparkles, Target, TrendingDown, Clock } from "lucide-react";
+import { Users, GraduationCap, Calendar, TrendingUp, IndianRupee, Award, Sparkles, Target, TrendingDown, Clock, BarChart3, Gift, ArrowRight } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { students, tutors, classes, payments } from "../../data/mockData";
 import { Badge } from "../../components/ui/badge";
+import { Link } from "react-router";
+import { getSuperadminDashboard, type SuperadminDashboard } from "../../api/dashboard";
+import { toast } from "sonner";
 
 const revenueData = [
   { month: 'Oct', revenue: 45000 },
@@ -28,55 +32,97 @@ const membershipData = [
 
 const COLORS = ['#610981', '#ff691d', '#ffac96'];
 
+const formatDiff = (diff: number): string => {
+  if (diff === 0) return "0";
+  return diff > 0 ? `+${diff}` : `${diff}`;
+};
+
 export function Dashboard() {
-  const activeStudents = students.filter(s => s.status === 'active').length;
-  const activeTutors = tutors.filter(t => t.status === 'active').length;
-  const activeClasses = classes.filter(c => c.status === 'active').length;
-  const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
-  const monthlyRevenue = 58000; // From latest month
-  const revenueGrowth = ((monthlyRevenue - 55000) / 55000 * 100).toFixed(1);
+  const [data, setData] = useState<SuperadminDashboard | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSuperadminDashboard("SUPERADMIN")
+      .then((res) => {
+        if (!cancelled) setData(res);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : "Failed to load dashboard";
+          toast.error(message);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const mockActiveStudents = students.filter(s => s.status === 'active').length;
+  const mockActiveTutors = tutors.filter(t => t.status === 'active').length;
+  const mockActiveClasses = classes.filter(c => c.status === 'active').length;
+  const mockTotalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
+  const mockMonthlyRevenue = 58000;
+  const mockRevenueGrowth = ((mockMonthlyRevenue - 55000) / 55000 * 100).toFixed(1);
+
+  // Use API values when available; fall back to mocks for fields the backend
+  // hasn't implemented yet (it currently returns 0/empty for classes, revenue, charts).
+  const studentsTotal = data?.cards.students.total ?? mockActiveStudents;
+  const studentsDiff = data?.cards.students.diff ?? 0;
+  const tutorsTotal = data?.cards.tutors.total ?? mockActiveTutors;
+  const tutorsDiff = data?.cards.tutors.diff ?? 0;
+  const classesTotal = data?.cards.classes.total || mockActiveClasses;
+  const classesDiff = data?.cards.classes.diff ?? 0;
+  const revenueTotal = data?.cards.revenue.total || mockMonthlyRevenue;
+  const revenueDiff = data?.cards.revenue.diff ?? 0;
+
+  const avgTutorRating = data?.performance.rating ?? 4.8;
+  const classCapacity = data?.performance.capacity || 78;
+  const attendanceRate = data?.performance.attendance || 92;
 
   const stats = [
     {
       name: 'Total Students',
-      value: activeStudents,
+      value: studentsTotal,
       total: students.length,
       icon: Users,
       color: 'text-blue-500',
       bgColor: 'bg-blue-500/10',
-      change: '+12%',
-      trend: 'up',
+      change: studentsDiff !== 0 ? formatDiff(studentsDiff) : '+12%',
+      trend: studentsDiff >= 0 ? 'up' : 'down',
     },
     {
       name: 'Active Tutors',
-      value: activeTutors,
+      value: tutorsTotal,
       total: tutors.length,
       icon: GraduationCap,
       color: 'text-[#610981]',
       bgColor: 'bg-[#610981]/10',
-      change: '+5%',
-      trend: 'up',
+      change: tutorsDiff !== 0 ? formatDiff(tutorsDiff) : '+5%',
+      trend: tutorsDiff >= 0 ? 'up' : 'down',
     },
     {
       name: 'Active Classes',
-      value: activeClasses,
+      value: classesTotal,
       total: classes.length,
       icon: Calendar,
       color: 'text-[#ff691d]',
       bgColor: 'bg-[#ff691d]/10',
-      change: '+8%',
-      trend: 'up',
+      change: classesDiff !== 0 ? formatDiff(classesDiff) : '+8%',
+      trend: classesDiff >= 0 ? 'up' : 'down',
     },
     {
       name: 'Monthly Revenue',
-      value: `₹${(monthlyRevenue / 1000).toFixed(0)}K`,
+      value: `₹${(revenueTotal / 1000).toFixed(0)}K`,
       icon: IndianRupee,
       color: 'text-green-500',
       bgColor: 'bg-green-500/10',
-      change: `+${revenueGrowth}%`,
-      trend: 'up',
+      change: revenueDiff !== 0 ? formatDiff(revenueDiff) : `+${mockRevenueGrowth}%`,
+      trend: revenueDiff >= 0 ? 'up' : 'down',
     },
   ];
+
+  // Suppress unused-var warnings while we keep these for the future-bound charts/sections.
+  void mockTotalRevenue;
 
   return (
     <div className="space-y-6">
@@ -257,7 +303,7 @@ export function Dashboard() {
                   <p className="text-xs" style={{ color: '#ffac96' }}>Based on student feedback</p>
                 </div>
               </div>
-              <span className="text-2xl font-bold">4.8</span>
+              <span className="text-2xl font-bold">{avgTutorRating ? avgTutorRating.toFixed(1) : "—"}</span>
             </div>
 
             <div className="group relative flex items-center justify-between p-4 border border-border/50 rounded-xl hover:shadow-lg hover:shadow-[#ffac96]/20 transition-all duration-300 hover:border-[#ffac96]/50">
@@ -270,7 +316,7 @@ export function Dashboard() {
                   <p className="text-xs" style={{ color: '#ffac96' }}>Average enrollment rate</p>
                 </div>
               </div>
-              <span className="text-2xl font-bold">78%</span>
+              <span className="text-2xl font-bold">{classCapacity}%</span>
             </div>
 
             <div className="group relative flex items-center justify-between p-4 border border-border/50 rounded-xl hover:shadow-lg hover:shadow-[#ffac96]/20 transition-all duration-300 hover:border-[#ffac96]/50">
@@ -283,12 +329,86 @@ export function Dashboard() {
                   <p className="text-xs" style={{ color: '#ffac96' }}>Last 30 days</p>
                 </div>
               </div>
-              <span className="text-2xl font-bold">92%</span>
+              <span className="text-2xl font-bold">{attendanceRate}%</span>
             </div>
           </CardContent>
         </Card>
       </div>
- 
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-[#610981]/10 rounded-full blur-3xl" />
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-[#610981] shadow-md">
+                <BarChart3 className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold" style={{ color: '#ff691d' }}>Marketing Analytics</h3>
+                <p className="text-sm text-muted-foreground">Comprehensive user insights and engagement metrics</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="rounded-xl bg-[#610981]/5 border border-[#610981]/10 p-3">
+                <p className="text-xs text-muted-foreground">Total Users</p>
+                <p className="text-2xl font-bold mt-1">873</p>
+                <p className="text-xs font-medium text-green-500 mt-1">+2.1%</p>
+              </div>
+              <div className="rounded-xl bg-[#ff691d]/5 border border-[#ff691d]/10 p-3">
+                <p className="text-xs text-muted-foreground">Active Users</p>
+                <p className="text-2xl font-bold mt-1">623</p>
+                <p className="text-xs font-medium text-green-500 mt-1">+5.4%</p>
+              </div>
+            </div>
+
+            <Link
+              to="/superadmin/marketing-analytics"
+              className="flex items-center justify-center gap-2 w-full rounded-xl bg-linear-to-r from-[#610981] to-[#a020c8] hover:from-[#7a0a9f] hover:to-[#b232d6] text-white font-semibold py-3 text-sm shadow-md shadow-[#610981]/30 transition-all"
+            >
+              View Analytics Dashboard
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-[#ff691d]/10 rounded-full blur-3xl" />
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-[#ff691d] shadow-md">
+                <Gift className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold" style={{ color: '#ff691d' }}>Referral Program</h3>
+                <p className="text-sm text-muted-foreground">Track user and tutor referrals and rewards</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="rounded-xl bg-[#610981]/5 border border-[#610981]/10 p-3">
+                <p className="text-xs text-muted-foreground">User Referrals</p>
+                <p className="text-2xl font-bold mt-1">8</p>
+                <p className="text-xs font-medium text-[#610981] mt-1">₹1,500 paid</p>
+              </div>
+              <div className="rounded-xl bg-[#ff691d]/5 border border-[#ff691d]/10 p-3">
+                <p className="text-xs text-muted-foreground">Tutor Referrals</p>
+                <p className="text-2xl font-bold mt-1">5</p>
+                <p className="text-xs font-medium text-[#ff691d] mt-1">₹12,000 paid</p>
+              </div>
+            </div>
+
+            <Link
+              to="/superadmin/referrals"
+              className="flex items-center justify-center gap-2 w-full rounded-xl bg-linear-to-r from-[#ff691d] to-[#ffac96] hover:from-[#ff7e3f] hover:to-[#ffbfa9] text-white font-semibold py-3 text-sm shadow-md shadow-[#ff691d]/30 transition-all"
+            >
+              Manage Referrals
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="md:col-span-2 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-40 h-40 bg-[#ff691d]/5 rounded-full blur-3xl" />
