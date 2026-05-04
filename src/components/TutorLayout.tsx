@@ -1,8 +1,10 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import { 
-  LayoutDashboard, 
-  Users, 
+import {
+  LayoutDashboard,
+  Users,
   Calendar,
+  ClipboardCheck,
+  Gift,
   Settings as SettingsIcon,
   Menu,
   LogOut,
@@ -18,6 +20,8 @@ const navigation = [
   { name: 'Dashboard', href: '/tutor/dashboard', icon: LayoutDashboard },
   { name: 'My Classes', href: '/tutor/classes', icon: Calendar },
   { name: 'My Students', href: '/tutor/students', icon: Users },
+  { name: 'Attendance', href: '/tutor/attendance', icon: ClipboardCheck },
+  { name: 'Referrals', href: '/tutor/referrals', icon: Gift },
   { name: 'Settings', href: '/tutor/settings', icon: SettingsIcon },
 ];
 

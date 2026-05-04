@@ -26,6 +26,8 @@ import { FrontlineLogin } from "./pages/auth/FrontlineLogin";
 import { TutorDashboard } from "./pages/tutor/TutorDashboard";
 import { TutorClasses } from "./pages/tutor/TutorClasses";
 import { TutorStudents } from "./pages/tutor/TutorStudents";
+import { TutorAttendance } from "./pages/tutor/TutorAttendance";
+import { TutorReferrals } from "./pages/tutor/TutorReferrals";
 import { TutorSettings } from "./pages/tutor/TutorSettings";
 import { VideoSession } from "./pages/tutor/VideoSession";
 import { FrontlineDashboard } from "./pages/frontline/FrontlineDashboard";
@@ -134,6 +136,8 @@ export const router = createBrowserRouter([
       { path: "dashboard", Component: TutorDashboard },
       { path: "classes", Component: TutorClasses },
       { path: "students", Component: TutorStudents },
+      { path: "attendance", Component: TutorAttendance },
+      { path: "referrals", Component: TutorReferrals },
       { path: "settings", Component: TutorSettings },
       { path: "video-session", Component: VideoSession },
     ],
