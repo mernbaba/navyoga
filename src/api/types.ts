@@ -294,6 +294,111 @@ export type OperationsAttendance = {
   };
 };
 
+export type ReferralStatus = "PENDING" | "ACTIVE";
+
+export type ReferralOverview = {
+  total: number;
+  active: number;
+  pending: number;
+  totalRewards: string;
+};
+
+export type ReferralReferrer = {
+  id: string;
+  name: string;
+  email: string;
+  type: "student" | "tutor";
+};
+
+export type StudentReferee = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+export type TutorReferee = {
+  id: string;
+  name: string;
+  email: string;
+  specializations: string[];
+  classes: number;
+};
+
+export type ReferralSubscription = {
+  period: string;
+  name: string;
+  status: string;
+} | null;
+
+export type StudentReferralRow = {
+  id: string;
+  referrer: ReferralReferrer;
+  referee: StudentReferee;
+  subscription: ReferralSubscription;
+  status: ReferralStatus;
+  reward: string;
+  date: string;
+};
+
+export type TutorReferralRow = {
+  id: string;
+  referrer: ReferralReferrer;
+  referee: TutorReferee;
+  subscription: ReferralSubscription;
+  status: ReferralStatus;
+  reward: string;
+  date: string;
+};
+
+export type MyReferralOverview = {
+  totalReferred: number;
+  active: number;
+  pending: number;
+  totalEarned: string;
+};
+
+export type MyStudentReferralOverview = {
+  totalReferrals: number;
+  active: number;
+  pending: number;
+  totalEarned: string;
+};
+
+export type MyReferralStudentItem = {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string | null;
+  reward: string;
+  status: ReferralStatus;
+  date: string;
+};
+
+export type MyReferralTutorItem = MyReferralStudentItem & {
+  specializations: string[];
+  classes: number;
+};
+
+export type MyTutorReferralsResponse<T> = {
+  overview: MyReferralOverview;
+  referralCode: string;
+  items: T[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+
+export type MyStudentReferralsResponse = {
+  overview: MyStudentReferralOverview;
+  referralCode: string;
+  items: MyReferralStudentItem[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+
 export type BusinessSettings = {
   id: string;
   centerName: string;

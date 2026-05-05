@@ -33,6 +33,7 @@ export function UserEvents() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'events' | 'workshops'>('events');
 
   const events: Event[] = [
     {
@@ -153,7 +154,11 @@ export function UserEvents() {
 
   const categories = ['All', 'Meditation', 'Pranayama', 'Hatha Yoga', 'Wellness', 'Energy Healing', 'Community'];
 
-  const filteredEvents = events.filter(event => {
+  const tabFilteredEvents = activeTab === 'workshops'
+    ? events.filter(event => event.type === 'Workshop')
+    : events.filter(event => event.type !== 'Workshop');
+
+  const filteredEvents = tabFilteredEvents.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.instructor.toLowerCase().includes(searchTerm.toLowerCase());
@@ -161,7 +166,10 @@ export function UserEvents() {
     return matchesSearch && matchesCategory;
   });
 
-  const featuredEvents = events.filter(event => event.featured);
+  const featuredEvents = tabFilteredEvents.filter(event => event.featured);
+  const isWorkshopsTab = activeTab === 'workshops';
+  const tabNoun = isWorkshopsTab ? 'Workshops' : 'Events';
+  const tabNounSingular = isWorkshopsTab ? 'Workshop' : 'Event';
 
   const handleRegister = (event: Event) => {
     toast.success(`Successfully registered for ${event.title}!`);
@@ -185,9 +193,9 @@ export function UserEvents() {
   };
 
   const stats = [
-    { label: 'Total Events', value: events.length.toString(), icon: Calendar, color: '#ff691d', gradient: 'from-orange-500 to-red-500' },
+    { label: `Total ${tabNoun}`, value: tabFilteredEvents.length.toString(), icon: Calendar, color: '#ff691d', gradient: 'from-orange-500 to-red-500' },
     { label: 'Registered', value: '4', icon: Star, color: '#10b981', gradient: 'from-green-500 to-teal-500' },
-    { label: 'Upcoming', value: events.filter(e => e.status === 'Registering' || e.status === 'Upcoming').length.toString(), icon: TrendingUp, color: '#610981', gradient: 'from-purple-600 to-pink-600' },
+    { label: 'Upcoming', value: tabFilteredEvents.filter(e => e.status === 'Registering' || e.status === 'Upcoming').length.toString(), icon: TrendingUp, color: '#610981', gradient: 'from-purple-600 to-pink-600' },
     { label: 'Featured', value: featuredEvents.length.toString(), icon: Trophy, color: '#f59e0b', gradient: 'from-yellow-500 to-orange-500' },
   ];
 
@@ -213,6 +221,31 @@ export function UserEvents() {
               <h1 className="text-4xl font-bold">Events & Workshops</h1>
             </div>
             <p className="text-white/90 text-lg">Discover and join exclusive yoga events, workshops, and retreats</p>
+
+            <div className="mt-6 inline-flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setActiveTab('events')}
+                className={`px-7 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ${
+                  activeTab === 'events'
+                    ? 'bg-white text-[#610981] shadow-lg'
+                    : 'bg-[#4a0668] text-white hover:bg-[#3a0552] shadow-md'
+                }`}
+              >
+                Events
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('workshops')}
+                className={`px-7 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ${
+                  activeTab === 'workshops'
+                    ? 'bg-white text-[#610981] shadow-lg'
+                    : 'bg-[#4a0668] text-white hover:bg-[#3a0552] shadow-md'
+                }`}
+              >
+                Workshops
+              </button>
+            </div>
           </div>
         </motion.div>
  
@@ -264,7 +297,7 @@ export function UserEvents() {
                   <div className="p-2 rounded-lg bg-gradient-to-br from-[#ff691d] to-[#ff8c4d] shadow-lg">
                     <Star className="w-5 h-5 text-white" />
                   </div>
-                  <CardTitle className="text-xl" style={{ color: '#ff691d' }}>Featured Events</CardTitle>
+                  <CardTitle className="text-xl" style={{ color: '#ff691d' }}>Featured {tabNoun}</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="relative z-10">
@@ -351,7 +384,7 @@ export function UserEvents() {
             <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[#610981]/10 to-transparent rounded-full blur-3xl" />
             <CardHeader className="relative z-10">
               <CardTitle className="text-xl" style={{ color: '#ff691d' }}>
-                All Events ({filteredEvents.length})
+                All {tabNoun} ({filteredEvents.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="relative z-10">
@@ -433,7 +466,7 @@ export function UserEvents() {
                 {filteredEvents.length === 0 && (
                   <div className="text-center py-12">
                     <Calendar className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No events found</h3>
+                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No {tabNounSingular.toLowerCase()}s found</h3>
                     <p className="text-sm text-muted-foreground">
                       Try adjusting your search or filter criteria
                     </p>

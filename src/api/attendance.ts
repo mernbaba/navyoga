@@ -64,3 +64,39 @@ export function listOperationsAttendance(role: Role, params: AttendanceListParam
     }),
   );
 }
+
+export function frontlineCheckIn(role: Role) {
+  return unwrap<FrontlineAttendance>(
+    authedRequest<ApiSuccess<FrontlineAttendance>>(role, {
+      method: "POST",
+      url: "/api/attendance/frontline/checkin",
+    }),
+  );
+}
+
+export function frontlineCheckOut(role: Role) {
+  return unwrap<FrontlineAttendance>(
+    authedRequest<ApiSuccess<FrontlineAttendance>>(role, {
+      method: "POST",
+      url: "/api/attendance/frontline/checkout",
+    }),
+  );
+}
+
+export function operationsCheckIn(role: Role) {
+  return unwrap<OperationsAttendance>(
+    authedRequest<ApiSuccess<OperationsAttendance>>(role, {
+      method: "POST",
+      url: "/api/attendance/operations/checkin",
+    }),
+  );
+}
+
+export function operationsCheckOut(role: Role) {
+  return unwrap<OperationsAttendance>(
+    authedRequest<ApiSuccess<OperationsAttendance>>(role, {
+      method: "POST",
+      url: "/api/attendance/operations/checkout",
+    }),
+  );
+}

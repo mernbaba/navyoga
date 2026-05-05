@@ -27,11 +27,41 @@ export type SuperadminDashboard = {
   stats: unknown[];
 };
 
+export type OperationsDashboard = {
+  cards: {
+    employees: DashboardCardValue;
+    tutors: DashboardCardValue;
+    frontline: DashboardCardValue;
+    students: DashboardCardValue;
+    recorded: DashboardCardValue;
+  };
+  team: {
+    employees: number;
+    tutors: number;
+    frontline: number;
+  };
+  system: {
+    coupons: number;
+    notifications: number;
+    classes: number;
+    recorded: number;
+  };
+};
+
 export function getSuperadminDashboard(role: Role) {
   return unwrap<SuperadminDashboard>(
     authedRequest<ApiSuccess<SuperadminDashboard>>(role, {
       method: "GET",
       url: "/api/dashboard/superadmin",
+    }),
+  );
+}
+
+export function getOperationsDashboard(role: Role) {
+  return unwrap<OperationsDashboard>(
+    authedRequest<ApiSuccess<OperationsDashboard>>(role, {
+      method: "GET",
+      url: "/api/dashboard/operations",
     }),
   );
 }
