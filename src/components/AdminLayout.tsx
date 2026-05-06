@@ -8,6 +8,7 @@ import {
   CreditCard,
   BarChart3,
   Gift,
+  LayoutList,
   Settings as SettingsIcon,
   Menu,
   UserPlus,
@@ -32,6 +33,7 @@ const navigation = [
   { name: "Classes", href: "/superadmin/classes", icon: Calendar, expandable: true },
   { name: "Attendance", href: "/superadmin/attendance", icon: ClipboardCheck },
   { name: "Financials", href: "/superadmin/financials", icon: CreditCard },
+  { name: "Plans", href: "/superadmin/plans", icon: LayoutList },
   { name: "Marketing Analytics", href: "/superadmin/marketing-analytics", icon: BarChart3 },
   { name: "Referrals", href: "/superadmin/referrals", icon: Gift },
   { name: "Settings", href: "/superadmin/settings", icon: SettingsIcon },
@@ -42,6 +44,8 @@ const classesSubNav = [
   { name: "Self Paced", href: "/superadmin/classes/self-paced" },
   { name: "YTT Live", href: "/superadmin/classes/ytt-live" },
   { name: "YTT Recorded", href: "/superadmin/classes/ytt-recorded" },
+  { name: "Batches", href: "/superadmin/classes/batches" },
+  { name: "Events", href: "/superadmin/classes/events" },
 ];
 
 export function AdminLayout() {

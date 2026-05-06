@@ -2,33 +2,10 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Users, GraduationCap, Calendar, TrendingUp, IndianRupee, Award, Sparkles, Target, TrendingDown, Clock, BarChart3, Gift, ArrowRight } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { students, tutors, classes, payments } from "../../data/mockData";
 import { Badge } from "../../components/ui/badge";
 import { Link } from "react-router";
 import { getSuperadminDashboard, type SuperadminDashboard } from "../../api/dashboard";
 import { toast } from "sonner";
-
-const revenueData = [
-  { month: 'Oct', revenue: 45000 },
-  { month: 'Nov', revenue: 52000 },
-  { month: 'Dec', revenue: 48000 },
-  { month: 'Jan', revenue: 61000 },
-  { month: 'Feb', revenue: 55000 },
-  { month: 'Mar', revenue: 58000 },
-];
-
-const classPopularityData = [
-  { name: 'Hatha Yoga', students: 15 },
-  { name: 'Power Yoga', students: 12 },
-  { name: 'Meditation', students: 20 },
-  { name: 'Ashtanga', students: 8 },
-];
-
-const membershipData = [
-  { name: 'Monthly', value: 2 },
-  { name: 'Quarterly', value: 1 },
-  { name: 'Yearly', value: 2 },
-];
 
 const COLORS = ['#610981', '#ff691d', '#ffac96'];
 
@@ -57,80 +34,69 @@ export function Dashboard() {
     };
   }, []);
 
-  const mockActiveStudents = students.filter(s => s.status === 'active').length;
-  const mockActiveTutors = tutors.filter(t => t.status === 'active').length;
-  const mockActiveClasses = classes.filter(c => c.status === 'active').length;
-  const mockTotalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
-  const mockMonthlyRevenue = 58000;
-  const mockRevenueGrowth = ((mockMonthlyRevenue - 55000) / 55000 * 100).toFixed(1);
-
-  // Use API values when available; fall back to mocks for fields the backend
-  // hasn't implemented yet (it currently returns 0/empty for classes, revenue, charts).
-  const studentsTotal = data?.cards.students.total ?? mockActiveStudents;
+  const studentsTotal = data?.cards.students.total ?? 0;
   const studentsDiff = data?.cards.students.diff ?? 0;
-  const tutorsTotal = data?.cards.tutors.total ?? mockActiveTutors;
+  const tutorsTotal = data?.cards.tutors.total ?? 0;
   const tutorsDiff = data?.cards.tutors.diff ?? 0;
-  const classesTotal = data?.cards.classes.total || mockActiveClasses;
+  const classesTotal = data?.cards.classes.total ?? 0;
   const classesDiff = data?.cards.classes.diff ?? 0;
-  const revenueTotal = data?.cards.revenue.total || mockMonthlyRevenue;
+  const revenueTotal = data?.cards.revenue.total ?? 0;
   const revenueDiff = data?.cards.revenue.diff ?? 0;
 
-  const avgTutorRating = data?.performance.rating ?? 4.8;
-  const classCapacity = data?.performance.capacity || 78;
-  const attendanceRate = data?.performance.attendance || 92;
+  const avgTutorRating = data?.performance.rating ?? null;
+  const classCapacity = data?.performance.capacity ?? null;
+  const attendanceRate = data?.performance.attendance ?? null;
+
+  const revenueChartData = data?.revenue ?? [];
+  const popularityChartData = data?.popularity ?? [];
+  const membershipChartData = data?.membership ?? [];
 
   const stats = [
     {
       name: 'Total Students',
       value: studentsTotal,
-      total: students.length,
       icon: Users,
       color: 'text-blue-500',
       bgColor: 'bg-blue-500/10',
-      change: studentsDiff !== 0 ? formatDiff(studentsDiff) : '+12%',
+      change: formatDiff(studentsDiff),
       trend: studentsDiff >= 0 ? 'up' : 'down',
     },
     {
       name: 'Active Tutors',
       value: tutorsTotal,
-      total: tutors.length,
       icon: GraduationCap,
       color: 'text-[#610981]',
       bgColor: 'bg-[#610981]/10',
-      change: tutorsDiff !== 0 ? formatDiff(tutorsDiff) : '+5%',
+      change: formatDiff(tutorsDiff),
       trend: tutorsDiff >= 0 ? 'up' : 'down',
     },
     {
       name: 'Active Classes',
       value: classesTotal,
-      total: classes.length,
       icon: Calendar,
       color: 'text-[#ff691d]',
       bgColor: 'bg-[#ff691d]/10',
-      change: classesDiff !== 0 ? formatDiff(classesDiff) : '+8%',
+      change: formatDiff(classesDiff),
       trend: classesDiff >= 0 ? 'up' : 'down',
     },
     {
       name: 'Monthly Revenue',
-      value: `₹${(revenueTotal / 1000).toFixed(0)}K`,
+      value: revenueTotal > 0 ? `₹${(revenueTotal / 1000).toFixed(0)}K` : '₹0',
       icon: IndianRupee,
       color: 'text-green-500',
       bgColor: 'bg-green-500/10',
-      change: revenueDiff !== 0 ? formatDiff(revenueDiff) : `+${mockRevenueGrowth}%`,
+      change: formatDiff(revenueDiff),
       trend: revenueDiff >= 0 ? 'up' : 'down',
     },
   ];
 
-  // Suppress unused-var warnings while we keep these for the future-bound charts/sections.
-  void mockTotalRevenue;
-
   return (
     <div className="space-y-6">
- 
+
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#610981] to-[#8b0fa8] p-8 text-white shadow-2xl shadow-[#ffac96]/30">
         <div className="absolute top-0 right-0 w-64 h-64 bg-[#ff691d]/20 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#ffac96]/20 rounded-full blur-3xl" />
-        
+
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
@@ -144,12 +110,12 @@ export function Dashboard() {
           <p className="text-white/80 text-lg">Here's what's happening with NavYoga Academy today</p>
         </div>
       </div>
- 
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Card key={stat.name} className="relative overflow-hidden group hover:scale-105 transition-transform duration-300">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#ffac96]/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
-            
+
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium" style={{ color: '#ffac96' }}>
                 {stat.name}
@@ -160,14 +126,9 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{stat.value}</div>
-              <div className="flex items-center justify-between mt-2">
-                {stat.total && (
-                  <p className="text-xs text-muted-foreground">
-                    of {stat.total} total
-                  </p>
-                )}
-                <div className="flex items-center gap-1 text-xs font-medium text-green-500">
-                  <TrendingUp className="w-3 h-3" />
+              <div className="flex items-center justify-end mt-2">
+                <div className={`flex items-center gap-1 text-xs font-medium ${stat.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
+                  {stat.trend === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                   {stat.change}
                 </div>
               </div>
@@ -175,7 +136,7 @@ export function Dashboard() {
           </Card>
         ))}
       </div>
- 
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="relative overflow-hidden">
           <div className="absolute top-0 right-0 w-40 h-40 bg-[#610981]/5 rounded-full blur-3xl" />
@@ -184,32 +145,36 @@ export function Dashboard() {
             <CardDescription>Monthly revenue over the last 6 months</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={revenueData}>
-                <CartesianGrid key="grid" strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />
-                <XAxis key="xaxis" dataKey="month" stroke="#9ca3af" />
-                <YAxis key="yaxis" stroke="#9ca3af" />
-                <Tooltip 
-                  key="tooltip"
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                    border: '1px solid #ffac96',
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 12px rgba(255, 172, 150, 0.2)'
-                  }}
-                  formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Revenue']}
-                />
-                <Line 
-                  key="line" 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="#610981" 
-                  strokeWidth={3} 
-                  dot={{ fill: '#ff691d', strokeWidth: 2, r: 5 }}
-                  activeDot={{ r: 7, fill: '#ff691d' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {revenueChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={revenueChartData}>
+                  <CartesianGrid key="grid" strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />
+                  <XAxis key="xaxis" dataKey="month" stroke="#9ca3af" />
+                  <YAxis key="yaxis" stroke="#9ca3af" />
+                  <Tooltip
+                    key="tooltip"
+                    contentStyle={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      border: '1px solid #ffac96',
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 12px rgba(255, 172, 150, 0.2)'
+                    }}
+                    formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Revenue']}
+                  />
+                  <Line
+                    key="line"
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#610981"
+                    strokeWidth={3}
+                    dot={{ fill: '#ff691d', strokeWidth: 2, r: 5 }}
+                    activeDot={{ r: 7, fill: '#ff691d' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">No data available</div>
+            )}
           </CardContent>
         </Card>
 
@@ -220,33 +185,37 @@ export function Dashboard() {
             <CardDescription>Number of students enrolled by class type</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={classPopularityData}>
-                <CartesianGrid key="grid" strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />
-                <XAxis key="xaxis" dataKey="name" stroke="#9ca3af" />
-                <YAxis key="yaxis" stroke="#9ca3af" />
-                <Tooltip 
-                  key="tooltip"
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                    border: '1px solid #ffac96',
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 12px rgba(255, 172, 150, 0.2)'
-                  }}
-                  formatter={(value: number) => [`${value} students`, 'Enrolled']}
-                />
-                <Bar 
-                  key="bar" 
-                  dataKey="students" 
-                  fill="#610981" 
-                  radius={[8, 8, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            {popularityChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={popularityChartData}>
+                  <CartesianGrid key="grid" strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />
+                  <XAxis key="xaxis" dataKey="name" stroke="#9ca3af" />
+                  <YAxis key="yaxis" stroke="#9ca3af" />
+                  <Tooltip
+                    key="tooltip"
+                    contentStyle={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      border: '1px solid #ffac96',
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 12px rgba(255, 172, 150, 0.2)'
+                    }}
+                    formatter={(value: number) => [`${value} students`, 'Enrolled']}
+                  />
+                  <Bar
+                    key="bar"
+                    dataKey="students"
+                    fill="#610981"
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">No data available</div>
+            )}
           </CardContent>
         </Card>
       </div>
- 
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="relative overflow-hidden">
           <div className="absolute bottom-0 right-0 w-40 h-40 bg-[#ffac96]/10 rounded-full blur-3xl" />
@@ -255,34 +224,38 @@ export function Dashboard() {
             <CardDescription>Active students by membership type</CardDescription>
           </CardHeader>
           <CardContent className="flex items-center justify-center">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  key="pie"
-                  data={membershipData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {membershipData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  key="tooltip"
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                    border: '1px solid #ffac96',
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 12px rgba(255, 172, 150, 0.2)'
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {membershipChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    key="pie"
+                    data={membershipChartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${name}: ${value}`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {membershipChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    key="tooltip"
+                    contentStyle={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      border: '1px solid #ffac96',
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 12px rgba(255, 172, 150, 0.2)'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">No data available</div>
+            )}
           </CardContent>
         </Card>
 
@@ -303,7 +276,7 @@ export function Dashboard() {
                   <p className="text-xs" style={{ color: '#ffac96' }}>Based on student feedback</p>
                 </div>
               </div>
-              <span className="text-2xl font-bold">{avgTutorRating ? avgTutorRating.toFixed(1) : "—"}</span>
+              <span className="text-2xl font-bold">{avgTutorRating != null ? avgTutorRating.toFixed(1) : "—"}</span>
             </div>
 
             <div className="group relative flex items-center justify-between p-4 border border-border/50 rounded-xl hover:shadow-lg hover:shadow-[#ffac96]/20 transition-all duration-300 hover:border-[#ffac96]/50">
@@ -316,7 +289,7 @@ export function Dashboard() {
                   <p className="text-xs" style={{ color: '#ffac96' }}>Average enrollment rate</p>
                 </div>
               </div>
-              <span className="text-2xl font-bold">{classCapacity}%</span>
+              <span className="text-2xl font-bold">{classCapacity != null ? `${classCapacity}%` : "—"}</span>
             </div>
 
             <div className="group relative flex items-center justify-between p-4 border border-border/50 rounded-xl hover:shadow-lg hover:shadow-[#ffac96]/20 transition-all duration-300 hover:border-[#ffac96]/50">
@@ -329,7 +302,7 @@ export function Dashboard() {
                   <p className="text-xs" style={{ color: '#ffac96' }}>Last 30 days</p>
                 </div>
               </div>
-              <span className="text-2xl font-bold">{attendanceRate}%</span>
+              <span className="text-2xl font-bold">{attendanceRate != null ? `${attendanceRate}%` : "—"}</span>
             </div>
           </CardContent>
         </Card>
@@ -346,19 +319,6 @@ export function Dashboard() {
               <div>
                 <h3 className="text-base font-semibold" style={{ color: '#ff691d' }}>Marketing Analytics</h3>
                 <p className="text-sm text-muted-foreground">Comprehensive user insights and engagement metrics</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="rounded-xl bg-[#610981]/5 border border-[#610981]/10 p-3">
-                <p className="text-xs text-muted-foreground">Total Users</p>
-                <p className="text-2xl font-bold mt-1">873</p>
-                <p className="text-xs font-medium text-green-500 mt-1">+2.1%</p>
-              </div>
-              <div className="rounded-xl bg-[#ff691d]/5 border border-[#ff691d]/10 p-3">
-                <p className="text-xs text-muted-foreground">Active Users</p>
-                <p className="text-2xl font-bold mt-1">623</p>
-                <p className="text-xs font-medium text-green-500 mt-1">+5.4%</p>
               </div>
             </div>
 
@@ -385,19 +345,6 @@ export function Dashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="rounded-xl bg-[#610981]/5 border border-[#610981]/10 p-3">
-                <p className="text-xs text-muted-foreground">User Referrals</p>
-                <p className="text-2xl font-bold mt-1">8</p>
-                <p className="text-xs font-medium text-[#610981] mt-1">₹1,500 paid</p>
-              </div>
-              <div className="rounded-xl bg-[#ff691d]/5 border border-[#ff691d]/10 p-3">
-                <p className="text-xs text-muted-foreground">Tutor Referrals</p>
-                <p className="text-2xl font-bold mt-1">5</p>
-                <p className="text-xs font-medium text-[#ff691d] mt-1">₹12,000 paid</p>
-              </div>
-            </div>
-
             <Link
               to="/superadmin/referrals"
               className="flex items-center justify-center gap-2 w-full rounded-xl bg-linear-to-r from-[#ff691d] to-[#ffac96] hover:from-[#ff7e3f] hover:to-[#ffbfa9] text-white font-semibold py-3 text-sm shadow-md shadow-[#ff691d]/30 transition-all"
@@ -417,48 +364,20 @@ export function Dashboard() {
             <CardDescription>Latest updates and notifications</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-start gap-3 p-3 rounded-xl bg-[#610981]/5 border border-[#610981]/10 hover:border-[#610981]/30 transition-colors">
-              <div className="p-2 bg-[#610981] rounded-lg mt-0.5">
-                <Users className="w-4 h-4 text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">New student enrolled</p>
-                <p className="text-xs text-muted-foreground">Priya Sharma joined Hatha Yoga class</p>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  2 hours ago
-                </p>
-              </div>
-              <Badge variant="default">New</Badge>
-            </div>
-
-            <div className="flex items-start gap-3 p-3 rounded-xl bg-[#ff691d]/5 border border-[#ff691d]/10 hover:border-[#ff691d]/30 transition-colors">
-              <div className="p-2 bg-[#ff691d] rounded-lg mt-0.5">
-                <IndianRupee className="w-4 h-4 text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">Payment received</p>
-                <p className="text-xs text-muted-foreground">₹1,500 from Raj Kumar for membership</p>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  5 hours ago
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-3 rounded-xl bg-[#ffac96]/10 border border-[#ffac96]/20 hover:border-[#ffac96]/40 transition-colors">
-              <div className="p-2 bg-[#ffac96] rounded-lg mt-0.5">
-                <Calendar className="w-4 h-4 text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">Class scheduled</p>
-                <p className="text-xs text-muted-foreground">Power Yoga session added for tomorrow</p>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  1 day ago
-                </p>
-              </div>
-            </div>
+            {data?.activity && data.activity.length > 0 ? (
+              data.activity.map((item, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 rounded-xl bg-[#610981]/5 border border-[#610981]/10 hover:border-[#610981]/30 transition-colors">
+                  <div className="p-2 bg-[#610981] rounded-lg mt-0.5">
+                    <Clock className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{String(item)}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex items-center justify-center py-10 text-muted-foreground text-sm">No recent activity</div>
+            )}
           </CardContent>
         </Card>
 
@@ -471,17 +390,17 @@ export function Dashboard() {
           <CardContent className="space-y-4">
             <div className="p-3 rounded-xl bg-gradient-to-br from-[#610981]/10 to-[#ff691d]/5">
               <p className="text-xs font-medium" style={{ color: '#ffac96' }}>Today's Classes</p>
-              <p className="text-2xl font-bold mt-1">8</p>
+              <p className="text-2xl font-bold mt-1">—</p>
             </div>
-            
+
             <div className="p-3 rounded-xl bg-gradient-to-br from-[#ff691d]/10 to-[#ffac96]/10">
               <p className="text-xs font-medium" style={{ color: '#ffac96' }}>Pending Payments</p>
-              <p className="text-2xl font-bold mt-1">₹12K</p>
+              <p className="text-2xl font-bold mt-1">—</p>
             </div>
-            
+
             <div className="p-3 rounded-xl bg-gradient-to-br from-[#ffac96]/20 to-[#610981]/5">
               <p className="text-xs font-medium" style={{ color: '#ffac96' }}>New Leads</p>
-              <p className="text-2xl font-bold mt-1">15</p>
+              <p className="text-2xl font-bold mt-1">—</p>
             </div>
           </CardContent>
         </Card>

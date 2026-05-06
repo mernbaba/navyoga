@@ -13,12 +13,16 @@ import { Employees } from "./pages/superadmin/Employees";
 import { Tutors } from "./pages/superadmin/Tutors";
 import { ClassesLive } from "./pages/superadmin/classes/ClassesLive";
 import { ClassesSelfPaced } from "./pages/superadmin/classes/ClassesSelfPaced";
+import { SelfPacedModules } from "./pages/superadmin/classes/SelfPacedModules";
 import { ClassesYTTLive } from "./pages/superadmin/classes/ClassesYTTLive";
 import { ClassesYTTRecorded } from "./pages/superadmin/classes/ClassesYTTRecorded";
+import { ClassesBatches } from "./pages/superadmin/classes/ClassesBatches";
+import { ClassesEvents } from "./pages/superadmin/classes/ClassesEvents";
 import { Attendance } from "./pages/superadmin/Attendance";
 import { Financials } from "./pages/superadmin/Financials";
 import { MarketingAnalytics } from "./pages/superadmin/MarketingAnalytics";
 import { Referrals } from "./pages/superadmin/Referrals";
+import { Plans } from "./pages/superadmin/Plans";
 import { Settings } from "./pages/superadmin/Settings";
 import { UserLogin } from "./pages/auth/UserLogin";
 import { UserRegister } from "./pages/auth/UserRegister";
@@ -124,15 +128,24 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/superadmin/classes/live" replace /> },
           { path: "live", Component: ClassesLive },
-          { path: "self-paced", Component: ClassesSelfPaced },
+          {
+            path: "self-paced",
+            children: [
+              { index: true, Component: ClassesSelfPaced },
+              { path: "modules", Component: SelfPacedModules },
+            ],
+          },
           { path: "ytt-live", Component: ClassesYTTLive },
           { path: "ytt-recorded", Component: ClassesYTTRecorded },
+          { path: "batches", Component: ClassesBatches },
+          { path: "events", Component: ClassesEvents },
         ],
       },
       { path: "attendance", Component: Attendance },
       { path: "financials", Component: Financials },
       { path: "marketing-analytics", Component: MarketingAnalytics },
       { path: "referrals", Component: Referrals },
+      { path: "plans", Component: Plans },
       { path: "settings", Component: Settings },
     ],
   },

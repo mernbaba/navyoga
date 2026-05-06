@@ -399,6 +399,127 @@ export type MyStudentReferralsResponse = {
   totalPages: number;
 };
 
+export type Batch = {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// ─── SELF-PACED ───────────────────────────────────────────────────────────────
+
+export type SelfPacedClass = {
+  id: string;
+  moduleId: string;
+  title: string;
+  description: string | null;
+  videoUrl: string;
+  thumbnailUrl: string | null;
+  duration: number;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SelfPacedModule = {
+  id: string;
+  title: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  classes?: SelfPacedClass[];
+};
+
+export type SelfPacedPlan = {
+  id: string;
+  name: string;
+  description: string | null;
+  validity: number;
+  price: number;
+  originalPrice: number | null;
+  features: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type YTTPlan = {
+  id: string;
+  courseId: string;
+  name: string;
+  description: string | null;
+  validity: number;
+  price: string;
+  originalPrice: string | null;
+  features: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type YTTCourse = {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  yogaType: string;
+  level: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MembershipPeriod = "MONTHLY" | "QUARTERLY" | "HALF_YEARLY" | "YEARLY";
+
+export type SubscriptionPlan = {
+  id: string;
+  name: string;
+  description: string | null;
+  period: MembershipPeriod;
+  price: string;
+  originalPrice: string | null;
+  features: string[];
+  canAccessLiveClasses: boolean;
+  canAccessRecordings: boolean;
+  isPopular: boolean;
+  isBestValue: boolean;
+  isInaugural: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type EventEnrollmentStudent = {
+  id: string;
+  studentId: string | null;
+  name: string;
+  email: string;
+  phone: string;
+};
+
+export type EventEnrollmentRow = {
+  id: string;
+  enrolledAt: string;
+  student: EventEnrollmentStudent;
+};
+
+export type AppEvent = {
+  id: string;
+  title: string;
+  description: string;
+  thumbnail: string | null;
+  featured: boolean;
+  date: string;
+  duration: string;
+  location: string;
+  capacity: number;
+  occupancy: number;
+  price: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type BusinessSettings = {
   id: string;
   centerName: string;

@@ -10,3 +10,6 @@ export * as platformApi from "./platform";
 export * as attendanceApi from "./attendance";
 export * as dashboardApi from "./dashboard";
 export * as referralsApi from "./referrals";
+export * as batchesApi from "./batches";
+export * as selfPacedApi from "./selfPaced";
+export * as eventsApi from "./events";

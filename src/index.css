@@ -142,6 +142,10 @@
     @apply bg-background text-foreground;
   }
 
+  button {
+    @apply cursor-pointer;
+  }
+
   html {
     font-size: var(--font-size);
   }
