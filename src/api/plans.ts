@@ -1,5 +1,5 @@
 import { authedRequest } from "../lib/apiClient";
-import { unwrap, type ApiSuccess, type MembershipPeriod, type SubscriptionPlan, type SelfPacedPlan, type YTTCourse, type YTTPlan } from "./types";
+import { unwrap, type ApiSuccess, type MembershipPeriod, type SubscriptionPlan, type SelfPacedPlan, type YTTCourse, type YTTPlan, type YTTCourseDetail, type YTTModule, type YTTClass } from "./types";
 
 // ─── SUBSCRIPTION PLANS ───────────────────────────────────────────────────────
 
@@ -163,6 +163,64 @@ export function deleteYTTRecordedPlan(courseId: string, planId: string) {
     authedRequest<ApiSuccess<null>>("SUPERADMIN", {
       method: "DELETE",
       url: `/api/ytt-recorded/${courseId}/plans/${planId}`,
+    }),
+  );
+}
+
+export function getYTTRecordedCourse(courseId: string) {
+  return unwrap<YTTCourseDetail>(
+    authedRequest<ApiSuccess<YTTCourseDetail>>("SUPERADMIN", {
+      method: "GET",
+      url: `/api/ytt-recorded/${courseId}`,
+    }),
+  );
+}
+
+export type YTTModuleBody = { title: string };
+
+export function createYTTRecordedModule(courseId: string, body: YTTModuleBody) {
+  return unwrap<YTTModule>(
+    authedRequest<ApiSuccess<YTTModule>>("SUPERADMIN", {
+      method: "POST",
+      url: `/api/ytt-recorded/${courseId}/modules`,
+      data: body,
+    }),
+  );
+}
+
+export function deleteYTTRecordedModule(courseId: string, moduleId: string) {
+  return unwrap<null>(
+    authedRequest<ApiSuccess<null>>("SUPERADMIN", {
+      method: "DELETE",
+      url: `/api/ytt-recorded/${courseId}/modules/${moduleId}`,
+    }),
+  );
+}
+
+export type YTTClassBody = {
+  title: string;
+  videoUrl: string;
+  duration: number;
+  description?: string;
+  thumbnailUrl?: string;
+  isActive?: boolean;
+};
+
+export function createYTTRecordedClass(courseId: string, moduleId: string, body: YTTClassBody) {
+  return unwrap<YTTClass>(
+    authedRequest<ApiSuccess<YTTClass>>("SUPERADMIN", {
+      method: "POST",
+      url: `/api/ytt-recorded/${courseId}/modules/${moduleId}/classes`,
+      data: body,
+    }),
+  );
+}
+
+export function deleteYTTRecordedClass(courseId: string, moduleId: string, classId: string) {
+  return unwrap<null>(
+    authedRequest<ApiSuccess<null>>("SUPERADMIN", {
+      method: "DELETE",
+      url: `/api/ytt-recorded/${courseId}/modules/${moduleId}/classes/${classId}`,
     }),
   );
 }

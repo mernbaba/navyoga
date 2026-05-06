@@ -406,6 +406,39 @@ export type Batch = {
   updatedAt: string;
 };
 
+// ─── LIVE CLASSES ─────────────────────────────────────────────────────────────
+
+export type LiveClassStatus = "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED";
+export type ClassDifficulty = "EASY" | "MEDIUM" | "HARD";
+
+export type LiveClassTutor = {
+  id: string;
+  tutorId: string;
+  name: string;
+  avatar: string | null;
+  specializations: string[];
+};
+
+export type LiveClass = {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  yogaType: string;
+  difficulty: ClassDifficulty;
+  status: LiveClassStatus;
+  scheduledAt: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  duration: number;
+  link: string | null;
+  recording: string | null;
+  tutor: LiveClassTutor | null;
+  batch: { id: string; name: string } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 // ─── SELF-PACED ───────────────────────────────────────────────────────────────
 
 export type SelfPacedClass = {
@@ -468,6 +501,35 @@ export type YTTCourse = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+export type YTTClass = {
+  id: string;
+  moduleId: string;
+  title: string;
+  description: string | null;
+  videoUrl: string;
+  thumbnailUrl: string | null;
+  duration: number;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type YTTModule = {
+  id: string;
+  courseId: string;
+  title: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  classes: YTTClass[];
+};
+
+export type YTTCourseDetail = YTTCourse & {
+  modules: YTTModule[];
+  plans: YTTPlan[];
 };
 
 export type MembershipPeriod = "MONTHLY" | "QUARTERLY" | "HALF_YEARLY" | "YEARLY";

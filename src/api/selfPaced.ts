@@ -120,6 +120,16 @@ export function deleteClass(role: Role, moduleId: string, id: string) {
   );
 }
 
+export function reorderClasses(role: Role, moduleId: string, items: { id: string; sortOrder: number }[]) {
+  return unwrap<null>(
+    authedRequest<ApiSuccess<null>>(role, {
+      method: "PATCH",
+      url: `${BASE}/modules/${moduleId}/classes/reorder`,
+      data: { items },
+    }),
+  );
+}
+
 // ─── PLANS ───────────────────────────────────────────────────────────────────
 
 export function listPlans(role: Role) {

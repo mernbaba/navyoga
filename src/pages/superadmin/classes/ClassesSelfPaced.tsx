@@ -46,6 +46,8 @@ import {
   ArrowUpDown,
   Clock,
   Video,
+  ListOrdered,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -54,6 +56,7 @@ import {
   createClass,
   updateClass,
   deleteClass,
+  reorderClasses,
 } from "../../../api/selfPaced";
 import type { ClassCreateBody, ClassUpdateBody } from "../../../api/selfPaced";
 import type { SelfPacedModule, SelfPacedClass } from "../../../api/types";
@@ -224,6 +227,57 @@ export function ClassesSelfPaced() {
     }
   };
 
+  // ─── Reorder classes ─────────────────────────────────────────────────────────
+
+  const [reorderOpen, setReorderOpen] = useState(false);
+  const [reorderModuleId, setReorderModuleId] = useState("");
+  const [reorderList, setReorderList] = useState<ClassRow[]>([]);
+  const [reorderSaving, setReorderSaving] = useState(false);
+
+  const openReorder = () => {
+    const firstMod = modules[0]?.id ?? "";
+    setReorderModuleId(firstMod);
+    setReorderList(
+      classes
+        .filter((c) => c.moduleId === firstMod)
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    );
+    setReorderOpen(true);
+  };
+
+  const selectReorderModule = (modId: string) => {
+    setReorderModuleId(modId);
+    setReorderList(
+      classes
+        .filter((c) => c.moduleId === modId)
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    );
+  };
+
+  const moveClass = (index: number, direction: -1 | 1) => {
+    const next = [...reorderList];
+    const swapIdx = index + direction;
+    if (swapIdx < 0 || swapIdx >= next.length) return;
+    [next[index], next[swapIdx]] = [next[swapIdx], next[index]];
+    setReorderList(next);
+  };
+
+  const handleSaveOrder = async () => {
+    if (!reorderModuleId || reorderSaving) return;
+    setReorderSaving(true);
+    try {
+      const items = reorderList.map((c, i) => ({ id: c.id, sortOrder: i + 1 }));
+      await reorderClasses("SUPERADMIN", reorderModuleId, items);
+      toast.success("Order saved");
+      setReorderOpen(false);
+      refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save order");
+    } finally {
+      setReorderSaving(false);
+    }
+  };
+
   // ─── Delete class ────────────────────────────────────────────────────────────
 
   const handleDelete = async (cls: ClassRow) => {
@@ -297,6 +351,11 @@ export function ClassesSelfPaced() {
               </form>
             </DialogContent>
           </Dialog>
+
+          <Button variant="outline" className="gap-2" onClick={openReorder} disabled={classes.length === 0}>
+            <ListOrdered className="w-4 h-4" />
+            Reorder Classes
+          </Button>
 
           <Link to="modules">
             <Button variant="outline" className="gap-2 border-[#610981] text-[#610981] hover:bg-[#610981]/5">
@@ -408,6 +467,79 @@ export function ClassesSelfPaced() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Reorder dialog */}
+      <Dialog open={reorderOpen} onOpenChange={(open) => !open && setReorderOpen(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reorder Classes</DialogTitle>
+            <DialogDescription>Use the arrows to set the playback order within a module.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="grid gap-1.5">
+              <Label>Module</Label>
+              <Select value={reorderModuleId} onValueChange={selectReorderModule}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select module" />
+                </SelectTrigger>
+                <SelectContent>
+                  {modules.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {reorderList.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No classes in this module.</p>
+            ) : (
+              <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                {reorderList.map((cls, idx) => (
+                  <div
+                    key={cls.id}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-muted/30"
+                  >
+                    <span className="text-xs text-muted-foreground w-5 shrink-0 text-center">{idx + 1}</span>
+                    <Video className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-sm flex-1 truncate">{cls.title}</span>
+                    <div className="flex flex-col gap-0.5 shrink-0">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="w-6 h-5"
+                        disabled={idx === 0}
+                        onClick={() => moveClass(idx, -1)}
+                      >
+                        <ArrowUp className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="w-6 h-5"
+                        disabled={idx === reorderList.length - 1}
+                        onClick={() => moveClass(idx, 1)}
+                      >
+                        <ArrowDown className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReorderOpen(false)}>Cancel</Button>
+            <Button
+              disabled={reorderList.length === 0 || reorderSaving}
+              onClick={handleSaveOrder}
+            >
+              {reorderSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : "Save Order"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit dialog */}
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
