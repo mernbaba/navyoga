@@ -1,5 +1,5 @@
 import { authedRequest } from "../lib/apiClient";
-import { unwrap, type ApiSuccess, type MembershipPeriod, type SubscriptionPlan, type SelfPacedPlan, type YTTCourse, type YTTPlan, type YTTCourseDetail, type YTTModule, type YTTClass } from "./types";
+import { unwrap, type ApiSuccess, type MembershipPeriod, type SubscriptionPlan, type SelfPacedPlan, type YTTCourse, type YTTPlan, type YTTCourseDetail, type YTTModule, type YTTClass, type YTTLiveCourseDetail, type YTTCourseBody } from "./types";
 
 // ─── SUBSCRIPTION PLANS ───────────────────────────────────────────────────────
 
@@ -225,13 +225,51 @@ export function deleteYTTRecordedClass(courseId: string, moduleId: string, class
   );
 }
 
-// ─── YTT LIVE PLANS ───────────────────────────────────────────────────────────
+// ─── YTT LIVE COURSES + PLANS ────────────────────────────────────────────────
 
 export function listYTTLiveCourses() {
   return unwrap<YTTCourse[]>(
     authedRequest<ApiSuccess<YTTCourse[]>>("SUPERADMIN", {
       method: "GET",
       url: "/api/ytt-live",
+    }),
+  );
+}
+
+export function getYTTLiveCourse(courseId: string) {
+  return unwrap<YTTLiveCourseDetail>(
+    authedRequest<ApiSuccess<YTTLiveCourseDetail>>("SUPERADMIN", {
+      method: "GET",
+      url: `/api/ytt-live/${courseId}`,
+    }),
+  );
+}
+
+export function createYTTLiveCourse(body: YTTCourseBody) {
+  return unwrap<YTTCourse>(
+    authedRequest<ApiSuccess<YTTCourse>>("SUPERADMIN", {
+      method: "POST",
+      url: "/api/ytt-live",
+      data: body,
+    }),
+  );
+}
+
+export function updateYTTLiveCourse(courseId: string, body: Partial<YTTCourseBody>) {
+  return unwrap<YTTCourse>(
+    authedRequest<ApiSuccess<YTTCourse>>("SUPERADMIN", {
+      method: "PATCH",
+      url: `/api/ytt-live/${courseId}`,
+      data: body,
+    }),
+  );
+}
+
+export function deleteYTTLiveCourse(courseId: string) {
+  return unwrap<null>(
+    authedRequest<ApiSuccess<null>>("SUPERADMIN", {
+      method: "DELETE",
+      url: `/api/ytt-live/${courseId}`,
     }),
   );
 }

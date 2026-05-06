@@ -532,6 +532,21 @@ export type YTTCourseDetail = YTTCourse & {
   plans: YTTPlan[];
 };
 
+export type ClassLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "ALL_LEVELS";
+
+export type YTTCourseBody = {
+  title: string;
+  yogaType: string;
+  description?: string;
+  thumbnailUrl?: string;
+  level?: ClassLevel;
+  isActive?: boolean;
+};
+
+export type YTTLiveCourseDetail = YTTCourse & {
+  plans: YTTPlan[];
+};
+
 export type MembershipPeriod = "MONTHLY" | "QUARTERLY" | "HALF_YEARLY" | "YEARLY";
 
 export type SubscriptionPlan = {
