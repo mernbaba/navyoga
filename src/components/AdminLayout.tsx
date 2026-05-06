@@ -14,10 +14,12 @@ import {
   Briefcase,
   Sparkles,
   LogOut,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "./ui/badge";
 import { performLogout, useRoleSession } from "../lib/session";
 
@@ -27,7 +29,7 @@ const navigation = [
   { name: "Sādhakas", href: "/superadmin/students", icon: Users },
   { name: "Employees", href: "/superadmin/employees", icon: Briefcase },
   { name: "Yoga Shikshaks", href: "/superadmin/tutors", icon: GraduationCap },
-  { name: "Classes", href: "/superadmin/classes", icon: Calendar },
+  { name: "Classes", href: "/superadmin/classes", icon: Calendar, expandable: true },
   { name: "Attendance", href: "/superadmin/attendance", icon: ClipboardCheck },
   { name: "Financials", href: "/superadmin/financials", icon: CreditCard },
   { name: "Marketing Analytics", href: "/superadmin/marketing-analytics", icon: BarChart3 },
@@ -35,15 +37,79 @@ const navigation = [
   { name: "Settings", href: "/superadmin/settings", icon: SettingsIcon },
 ];
 
+const classesSubNav = [
+  { name: "Live", href: "/superadmin/classes/live" },
+  { name: "Self Paced", href: "/superadmin/classes/self-paced" },
+  { name: "YTT Live", href: "/superadmin/classes/ytt-live" },
+  { name: "YTT Recorded", href: "/superadmin/classes/ytt-recorded" },
+];
+
 export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [classesOpen, setClassesOpen] = useState(
+    location.pathname.startsWith("/superadmin/classes")
+  );
   useRoleSession("SUPERADMIN");
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/superadmin/classes")) {
+      setClassesOpen(true);
+    }
+  }, [location.pathname]);
 
   const NavContent = () => (
     <nav className="space-y-1">
       {navigation.map((item) => {
+        if (item.expandable) {
+          const isClassesActive = location.pathname.startsWith("/superadmin/classes");
+          return (
+            <div key={item.name}>
+              <button
+                onClick={() => setClassesOpen((o) => !o)}
+                className={`w-full group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                  isClassesActive
+                    ? "bg-[#610981] text-white shadow-lg shadow-[#ffac96]/40"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-md"
+                }`}
+              >
+                {isClassesActive && (
+                  <div className="absolute inset-0 bg-[#610981] rounded-xl blur-md opacity-50 -z-10" />
+                )}
+                <item.icon className={`w-5 h-5 flex-shrink-0 ${isClassesActive ? "drop-shadow-lg" : ""}`} />
+                <span className="flex-1 text-left">{item.name}</span>
+                {classesOpen
+                  ? <ChevronDown className="w-4 h-4 flex-shrink-0" />
+                  : <ChevronRight className="w-4 h-4 flex-shrink-0" />
+                }
+              </button>
+              {classesOpen && (
+                <div className="mt-1 ml-3 pl-3 border-l-2 border-[#610981]/20 space-y-1">
+                  {classesSubNav.map((child) => {
+                    const isChildActive = location.pathname === child.href;
+                    return (
+                      <Link
+                        key={child.name}
+                        to={child.href}
+                        onClick={() => setOpen(false)}
+                        className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                          isChildActive
+                            ? "bg-[#610981]/12 text-[#610981] font-medium"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isChildActive ? "bg-[#610981]" : "bg-border"}`} />
+                        {child.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        }
+
         const isActive = location.pathname === item.href;
         return (
           <Link

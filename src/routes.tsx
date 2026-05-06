@@ -11,7 +11,10 @@ import { Leads } from "./pages/superadmin/Leads";
 import { Students } from "./pages/superadmin/Students";
 import { Employees } from "./pages/superadmin/Employees";
 import { Tutors } from "./pages/superadmin/Tutors";
-import { Classes } from "./pages/superadmin/Classes";
+import { ClassesLive } from "./pages/superadmin/classes/ClassesLive";
+import { ClassesSelfPaced } from "./pages/superadmin/classes/ClassesSelfPaced";
+import { ClassesYTTLive } from "./pages/superadmin/classes/ClassesYTTLive";
+import { ClassesYTTRecorded } from "./pages/superadmin/classes/ClassesYTTRecorded";
 import { Attendance } from "./pages/superadmin/Attendance";
 import { Financials } from "./pages/superadmin/Financials";
 import { MarketingAnalytics } from "./pages/superadmin/MarketingAnalytics";
@@ -116,7 +119,16 @@ export const router = createBrowserRouter([
       { path: "students", Component: Students },
       { path: "employees", Component: Employees },
       { path: "tutors", Component: Tutors },
-      { path: "classes", Component: Classes },
+      {
+        path: "classes",
+        children: [
+          { index: true, element: <Navigate to="/superadmin/classes/live" replace /> },
+          { path: "live", Component: ClassesLive },
+          { path: "self-paced", Component: ClassesSelfPaced },
+          { path: "ytt-live", Component: ClassesYTTLive },
+          { path: "ytt-recorded", Component: ClassesYTTRecorded },
+        ],
+      },
       { path: "attendance", Component: Attendance },
       { path: "financials", Component: Financials },
       { path: "marketing-analytics", Component: MarketingAnalytics },
