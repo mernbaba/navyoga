@@ -66,6 +66,8 @@ import { UserSelfPaced } from "./pages/user/UserSelfPaced";
 import { UserSelfPacedCourse } from "./pages/user/UserSelfPacedCourse";
 import { UserReferrals } from "./pages/user/UserReferrals";
 import { UserEvents } from "./pages/user/UserEvents";
+import { UserYTTLive } from "./pages/user/UserYTTLive";
+import { UserYTTRecorded } from "./pages/user/UserYTTRecorded";
 
 const ProtectedRoute = ({ role, children }: { role: LoginRole; children: React.ReactNode }) => {
   if (!isRoleAuthenticated(role)) {
@@ -226,6 +228,8 @@ export const router = createBrowserRouter([
       { path: "recording-player/:recordingId", Component: UserRecordingPlayer },
       { path: "self-paced", Component: UserSelfPaced },
       { path: "self-paced-course/:courseId", Component: UserSelfPacedCourse },
+      { path: "ytt-live", Component: UserYTTLive },
+      { path: "ytt-recorded", Component: UserYTTRecorded },
     ],
   },
 ]);

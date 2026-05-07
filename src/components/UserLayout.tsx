@@ -1,17 +1,19 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Video,
+import {
+  LayoutDashboard,
+  BookOpen,
+  Film,
   Calendar,
+  CalendarDays,
   User as UserIcon,
-  CreditCard,
+  Crown,
   Settings as SettingsIcon,
   Menu,
   LogOut,
   GraduationCap,
   Gift,
-  CalendarDays
+  Radio,
+  Video,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
@@ -31,14 +33,16 @@ import { performLogout, useRoleSession } from "../lib/session";
 
 const navigation = [
   { name: 'Dashboard', href: '/user/dashboard', icon: LayoutDashboard },
-  { name: 'My Classes', href: '/user/classes', icon: BookOpen },
-  { name: 'Self-Paced', href: '/user/self-paced', icon: GraduationCap },
-  { name: 'Recordings', href: '/user/recordings', icon: Video },
+  { name: 'Live Classes', href: '/user/classes', icon: BookOpen },
+  { name: 'Self-Paced Classes', href: '/user/self-paced', icon: GraduationCap },
+  { name: 'YTT Live', href: '/user/ytt-live', icon: Radio },
+  { name: 'YTT Recorded', href: '/user/ytt-recorded', icon: Video },
+  { name: 'Recordings', href: '/user/recordings', icon: Film },
   { name: 'Attendance', href: '/user/attendance', icon: Calendar },
   { name: 'Events', href: '/user/events', icon: CalendarDays },
   { name: 'Referrals', href: '/user/referrals', icon: Gift },
   { name: 'Profile', href: '/user/profile', icon: UserIcon },
-  { name: 'Payments', href: '/user/payments', icon: CreditCard },
+  { name: 'Subscriptions', href: '/user/payments', icon: Crown },
   { name: 'Settings', href: '/user/settings', icon: SettingsIcon },
 ];
 

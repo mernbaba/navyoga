@@ -130,6 +130,78 @@ export function reorderClasses(role: Role, moduleId: string, items: { id: string
   );
 }
 
+// ─── MY SUBSCRIPTION (student) ───────────────────────────────────────────────
+
+export type MySelfPacedSubscription = {
+  enrolled: boolean;
+  subscription: {
+    id: string;
+    planId: string;
+    planName: string;
+    startDate: string;
+    expiresAt: string;
+  } | null;
+};
+
+export async function getMySelfPacedSubscription(role: Role = "STUDENT"): Promise<MySelfPacedSubscription> {
+  try {
+    return await unwrap<MySelfPacedSubscription>(
+      authedRequest<ApiSuccess<MySelfPacedSubscription>>(role, {
+        method: "GET",
+        url: `${BASE}/my-subscription`,
+      }),
+    );
+  } catch {
+    // Backend endpoint may not be deployed yet — treat the user as not enrolled
+    // rather than blowing up the page.
+    return { enrolled: false, subscription: null };
+  }
+}
+
+export function enrollInSelfPacedPlan(planId: string, role: Role = "STUDENT") {
+  return unwrap<MySelfPacedSubscription>(
+    authedRequest<ApiSuccess<MySelfPacedSubscription>>(role, {
+      method: "POST",
+      url: `${BASE}/enrollments`,
+      data: { planId },
+    }),
+  );
+}
+
+// ─── PROGRESS ────────────────────────────────────────────────────────────────
+
+export type SelfPacedProgress = {
+  id: string;
+  classId: string;
+  progress: number;
+  isCompleted: boolean;
+  lastWatchedAt: string | null;
+  updatedAt: string;
+};
+
+export function listMySelfPacedProgress(role: Role = "STUDENT") {
+  return unwrap<SelfPacedProgress[]>(
+    authedRequest<ApiSuccess<SelfPacedProgress[]>>(role, {
+      method: "GET",
+      url: `${BASE}/my-progress`,
+    }),
+  );
+}
+
+export function upsertSelfPacedProgress(
+  classId: string,
+  body: { progress?: number; isCompleted?: boolean },
+  role: Role = "STUDENT",
+) {
+  return unwrap<SelfPacedProgress>(
+    authedRequest<ApiSuccess<SelfPacedProgress>>(role, {
+      method: "POST",
+      url: `${BASE}/classes/${classId}/progress`,
+      data: body,
+    }),
+  );
+}
+
 // ─── PLANS ───────────────────────────────────────────────────────────────────
 
 export function listPlans(role: Role) {

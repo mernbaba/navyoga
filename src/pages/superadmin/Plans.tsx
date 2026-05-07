@@ -13,30 +13,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../components/ui/select";
-import { Edit, Trash2, IndianRupee, Clock, Zap, Tag, CheckCircle2, Video, Radio, BookOpen } from "lucide-react";
+import { Edit, IndianRupee, Clock, Zap, Tag, CheckCircle2, Video, Radio, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import {
   listLivePlans,
   updateLivePlan,
-  deleteLivePlan,
   listSelfPacedPlans,
   updateSelfPacedPlan,
-  deleteSelfPacedPlan,
   listYTTRecordedCourses,
   listYTTRecordedPlans,
   updateYTTRecordedPlan,
-  deleteYTTRecordedPlan,
   listYTTLiveCourses,
   listYTTLivePlans,
   updateYTTLivePlan,
-  deleteYTTLivePlan,
 } from "../../api/plans";
 import type { LivePlan, SelfPacedPlan, YTTCourse, YTTPlan } from "../../api/types";
 
@@ -49,22 +38,22 @@ const featuresFromString = (raw: string): string[] =>
     .map((s) => s.trim())
     .filter(Boolean);
 
-// ─── LIVE CLASSES (SUBSCRIPTION) PLANS TAB ───────────────────────────────────
+// ─── LIVE CLASSES PLANS TAB ──────────────────────────────────────────────────
 
-function SubscriptionPlansTab() {
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+function LivePlansTab() {
+  const [plans, setPlans] = useState<LivePlan[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const refetch = () => setRefreshKey((k) => k + 1);
 
-  const [editing, setEditing] = useState<SubscriptionPlan | null>(null);
+  const [editing, setEditing] = useState<LivePlan | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [editFeaturesRaw, setEditFeaturesRaw] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
-    listSubscriptionPlans()
+    listLivePlans("SUPERADMIN")
       .then((res) => { if (!cancelled) setPlans(res); })
       .catch((err: unknown) => {
         if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load plans.");
@@ -73,7 +62,7 @@ function SubscriptionPlansTab() {
     return () => { cancelled = true; };
   }, [refreshKey]);
 
-  const openEdit = (plan: SubscriptionPlan) => {
+  const openEdit = (plan: LivePlan) => {
     setEditing(plan);
     setEditFeaturesRaw(plan.features.join("\n"));
   };
@@ -84,18 +73,14 @@ function SubscriptionPlansTab() {
     setIsUpdating(true);
     const fd = new FormData(e.currentTarget);
     try {
-      await updateSubscriptionPlan(editing.id, {
+      await updateLivePlan(editing.id, {
         name: String(fd.get("name") || ""),
         description: String(fd.get("description") || "") || undefined,
-        period: fd.get("period") as MembershipPeriod,
+        validity: Number(fd.get("validity")),
         price: Number(fd.get("price")),
         originalPrice: fd.get("originalPrice") ? Number(fd.get("originalPrice")) : undefined,
         features: featuresFromString(editFeaturesRaw),
-        canAccessLiveClasses: fd.get("canAccessLiveClasses") === "on",
-        canAccessRecordings: fd.get("canAccessRecordings") === "on",
-        isPopular: fd.get("isPopular") === "on",
-        isBestValue: fd.get("isBestValue") === "on",
-        isInaugural: fd.get("isInaugural") === "on",
+        recordingAccess: Number(fd.get("recordingAccess") || 0),
         isActive: fd.get("isActive") === "on",
       });
       toast.success("Plan updated");
@@ -108,41 +93,26 @@ function SubscriptionPlansTab() {
     }
   };
 
-  const handleDelete = async (plan: SubscriptionPlan) => {
-    if (!confirm(`Delete plan "${plan.name}"? This cannot be undone.`)) return;
-    try {
-      await deleteSubscriptionPlan(plan.id);
-      toast.success("Plan deleted");
-      refetch();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete plan.");
-    }
-  };
-
   return (
     <div className="space-y-6">
-      <p className="text-muted-foreground text-sm">Recurring membership plans for live classes and recordings</p>
+      <p className="text-muted-foreground text-sm">Validity-based access plans for the entire live-class catalog</p>
 
       {isLoading && plans.length === 0 ? (
         <p className="text-center text-muted-foreground py-12">Loading...</p>
       ) : plans.length === 0 ? (
-        <p className="text-center text-muted-foreground py-12">No live class plans found.</p>
+        <p className="text-center text-muted-foreground py-12">No live plans found.</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {plans.map((plan) => (
             <Card key={plan.id} className={`relative ${!plan.isActive ? "opacity-60" : ""}`}>
-              {(plan.isPopular || plan.isBestValue || plan.isInaugural) && (
-                <div className="absolute -top-2.5 left-4 flex gap-1">
-                  {plan.isPopular && <Badge className="bg-[#610981] text-white text-xs">Popular</Badge>}
-                  {plan.isBestValue && <Badge className="bg-green-600 text-white text-xs">Best Value</Badge>}
-                  {plan.isInaugural && <Badge className="bg-[#ff691d] text-white text-xs">Inaugural</Badge>}
-                </div>
-              )}
               <CardContent className="pt-6 pb-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-semibold text-base leading-tight">{plan.name}</p>
-                    <Badge variant="outline" className="mt-1 text-xs">{periodLabel(plan.period)}</Badge>
+                    <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      {plan.validity} days
+                    </div>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-2xl font-bold">{formatINR(plan.price)}</p>
@@ -165,16 +135,14 @@ function SubscriptionPlansTab() {
                   </ul>
                 )}
                 <div className="flex flex-wrap gap-1 pt-1">
-                  {plan.canAccessLiveClasses && <Badge variant="secondary" className="text-xs">Live Classes</Badge>}
-                  {plan.canAccessRecordings && <Badge variant="secondary" className="text-xs">Recordings</Badge>}
+                  {plan.recordingAccess > 0 && (
+                    <Badge variant="secondary" className="text-xs">Recordings: {plan.recordingAccess}d</Badge>
+                  )}
                   {!plan.isActive && <Badge variant="secondary" className="text-xs text-muted-foreground">Archived</Badge>}
                 </div>
                 <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(plan)}>
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => openEdit(plan)}>
                     <Edit className="w-3.5 h-3.5 mr-1" />Edit
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(plan)}>
-                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
                   </Button>
                 </div>
               </CardContent>
@@ -190,7 +158,7 @@ function SubscriptionPlansTab() {
             <form onSubmit={handleEdit}>
               <DialogHeader>
                 <DialogTitle>Edit Plan</DialogTitle>
-                <DialogDescription>Update subscription plan details</DialogDescription>
+                <DialogDescription>Update live plan details</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
@@ -203,22 +171,23 @@ function SubscriptionPlansTab() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="grid gap-2">
-                    <Label>Period</Label>
-                    <Select name="period" defaultValue={editing.period}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {PERIODS.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <Label>Validity (days)</Label>
+                    <Input name="validity" type="number" min={1} defaultValue={editing.validity} required />
                   </div>
                   <div className="grid gap-2">
                     <Label>Price (₹)</Label>
                     <Input name="price" type="number" min={0} defaultValue={Number(editing.price)} required />
                   </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label>Original Price (₹)</Label>
-                  <Input name="originalPrice" type="number" min={0} defaultValue={editing.originalPrice ? Number(editing.originalPrice) : ""} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-2">
+                    <Label>Original Price (₹)</Label>
+                    <Input name="originalPrice" type="number" min={0} defaultValue={editing.originalPrice ? Number(editing.originalPrice) : ""} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Recording Access (days)</Label>
+                    <Input name="recordingAccess" type="number" min={0} defaultValue={editing.recordingAccess} />
+                  </div>
                 </div>
                 <div className="grid gap-2">
                   <Label>Features <span className="text-muted-foreground text-xs">(one per line)</span></Label>
@@ -228,26 +197,13 @@ function SubscriptionPlansTab() {
                     onChange={(e) => setEditFeaturesRaw(e.target.value)}
                   />
                 </div>
-                <div className="space-y-3 pt-1">
-                  {(
-                    [
-                      { name: "canAccessLiveClasses", label: "Access live classes", default: editing.canAccessLiveClasses },
-                      { name: "canAccessRecordings", label: "Access recordings", default: editing.canAccessRecordings },
-                      { name: "isPopular", label: "Mark as Popular", default: editing.isPopular },
-                      { name: "isBestValue", label: "Mark as Best Value", default: editing.isBestValue },
-                      { name: "isInaugural", label: "Inaugural offer", default: editing.isInaugural },
-                      { name: "isActive", label: "Active", default: editing.isActive },
-                    ]
-                  ).map((item) => (
-                    <div key={item.name} className="flex items-center justify-between">
-                      <Label className="font-normal">{item.label}</Label>
-                      <input type="checkbox" name={item.name} defaultChecked={item.default} className="sr-only peer" id={`edit-sub-${item.name}`} />
-                      <label
-                        htmlFor={`edit-sub-${item.name}`}
-                        className="relative inline-flex h-5 w-9 cursor-pointer items-center rounded-full bg-muted peer-checked:bg-primary transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4"
-                      />
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between">
+                  <Label className="font-normal">Active</Label>
+                  <input type="checkbox" name="isActive" defaultChecked={editing.isActive} className="sr-only peer" id="edit-live-isActive" />
+                  <label
+                    htmlFor="edit-live-isActive"
+                    className="relative inline-flex h-5 w-9 cursor-pointer items-center rounded-full bg-muted peer-checked:bg-primary transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4"
+                  />
                 </div>
               </div>
               <DialogFooter>
@@ -316,17 +272,6 @@ function SelfPacedPlansTab() {
     }
   };
 
-  const handleDelete = async (plan: SelfPacedPlan) => {
-    if (!confirm(`Delete plan "${plan.name}"? This cannot be undone.`)) return;
-    try {
-      await deleteSelfPacedPlan(plan.id);
-      toast.success("Plan deleted");
-      refetch();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete plan.");
-    }
-  };
-
   return (
     <div className="space-y-6">
       <p className="text-muted-foreground text-sm">Time-limited access plans for self-paced course content</p>
@@ -372,11 +317,8 @@ function SelfPacedPlansTab() {
                   <Badge variant="secondary" className="text-xs text-muted-foreground">Archived</Badge>
                 )}
                 <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(plan)}>
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => openEdit(plan)}>
                     <Edit className="w-3.5 h-3.5 mr-1" />Edit
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(plan)}>
-                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
                   </Button>
                 </div>
               </CardContent>
@@ -454,12 +396,11 @@ type YTTPlansTabProps = {
   listCoursesFn: () => Promise<YTTCourse[]>;
   listPlansFn: (courseId: string) => Promise<YTTPlan[]>;
   updatePlanFn: (courseId: string, planId: string, body: Partial<YTTPlanBody>) => Promise<YTTPlan>;
-  deletePlanFn: (courseId: string, planId: string) => Promise<null>;
 };
 
 type FlatPlan = { plan: YTTPlan; course: YTTCourse };
 
-function YTTPlansTab({ label, listCoursesFn, listPlansFn, updatePlanFn, deletePlanFn }: YTTPlansTabProps) {
+function YTTPlansTab({ label, listCoursesFn, listPlansFn, updatePlanFn }: YTTPlansTabProps) {
   const [flatPlans, setFlatPlans] = useState<FlatPlan[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -530,17 +471,6 @@ function YTTPlansTab({ label, listCoursesFn, listPlansFn, updatePlanFn, deletePl
     }
   };
 
-  const handleDelete = async (fp: FlatPlan) => {
-    if (!confirm(`Delete plan "${fp.plan.name}"? This cannot be undone.`)) return;
-    try {
-      await deletePlanFn(fp.course.id, fp.plan.id);
-      toast.success("Plan deleted");
-      refetchPlans(fp.course.id, fp.course);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete plan.");
-    }
-  };
-
   return (
     <div className="space-y-6">
       <p className="text-muted-foreground text-sm">Manage {label} plans</p>
@@ -582,11 +512,8 @@ function YTTPlansTab({ label, listCoursesFn, listPlansFn, updatePlanFn, deletePl
                 )}
                 {!fp.plan.isActive && <Badge variant="secondary" className="text-xs">Inactive</Badge>}
                 <div className="flex gap-2 pt-1">
-                  <Button variant="outline" size="sm" className="flex-1 h-7 text-xs" onClick={() => openEdit(fp)}>
+                  <Button variant="outline" size="sm" className="w-full h-7 text-xs" onClick={() => openEdit(fp)}>
                     <Edit className="w-3 h-3 mr-1" />Edit
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleDelete(fp)}>
-                    <Trash2 className="w-3 h-3 text-destructive" />
                   </Button>
                 </div>
               </div>
@@ -664,13 +591,13 @@ export function Plans() {
         </div>
         <div>
           <h1 className="text-3xl font-semibold">Plans</h1>
-          <p className="text-muted-foreground mt-0.5">Manage subscription and self-paced access plans</p>
+          <p className="text-muted-foreground mt-0.5">Manage live, self-paced and YTT access plans</p>
         </div>
       </div>
 
-      <Tabs defaultValue="subscription">
+      <Tabs defaultValue="live">
         <TabsList className="mb-2">
-          <TabsTrigger value="subscription" className="flex items-center gap-2">
+          <TabsTrigger value="live" className="flex items-center gap-2">
             <Zap className="w-4 h-4" />Live Classes
           </TabsTrigger>
           <TabsTrigger value="selfpaced" className="flex items-center gap-2">
@@ -684,8 +611,8 @@ export function Plans() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="subscription">
-          <SubscriptionPlansTab />
+        <TabsContent value="live">
+          <LivePlansTab />
         </TabsContent>
 
         <TabsContent value="selfpaced">
@@ -698,7 +625,6 @@ export function Plans() {
             listCoursesFn={listYTTRecordedCourses}
             listPlansFn={listYTTRecordedPlans}
             updatePlanFn={updateYTTRecordedPlan}
-            deletePlanFn={deleteYTTRecordedPlan}
           />
         </TabsContent>
 
@@ -708,7 +634,6 @@ export function Plans() {
             listCoursesFn={listYTTLiveCourses}
             listPlansFn={listYTTLivePlans}
             updatePlanFn={updateYTTLivePlan}
-            deletePlanFn={deleteYTTLivePlan}
           />
         </TabsContent>
       </Tabs>

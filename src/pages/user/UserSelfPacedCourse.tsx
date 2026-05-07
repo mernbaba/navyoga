@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
-import { 
+import {
   ArrowLeft,
   Play,
   CheckCircle2,
@@ -11,355 +11,459 @@ import {
   Lock,
   Clock,
   BookOpen,
-  Download,
   Share2,
-  Star,
   ChevronRight,
-  Volume2,
-  VolumeX,
-  Maximize,
-  Settings,
   SkipBack,
   SkipForward,
-  Pause
 } from "lucide-react";
 import { motion } from "motion/react";
 import { Progress } from "../../components/ui/progress";
+import { toast } from "sonner";
+import {
+  getModule,
+  listClasses,
+  getMySelfPacedSubscription,
+  listMySelfPacedProgress,
+  upsertSelfPacedProgress,
+} from "../../api/selfPaced";
+import type { SelfPacedClass, SelfPacedModule } from "../../api/types";
 
-interface Lesson {
-  id: string;
-  title: string;
-  duration: string;
-  completed: boolean;
-  locked: boolean;
-  videoUrl: string;
-}
+const FALLBACK_POSTER =
+  "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200&q=80";
 
-interface Module {
-  id: string;
-  title: string;
-  lessons: Lesson[];
-}
+const formatMinutes = (minutes: number) => {
+  if (!minutes) return "0:00";
+  const m = Math.floor(minutes);
+  return `${m}:00`;
+};
 
-const courseData = {
-  id: '1',
-  title: 'Yoga Fundamentals for Beginners',
-  instructor: 'Priya Sharma',
-  description: 'Master the basic yoga poses, breathing techniques, and foundational principles to start your yoga journey with confidence.',
-  rating: 4.9,
-  totalStudents: 1247,
-  level: 'Beginner',
-  totalDuration: '6 hours',
-  completedLessons: 8,
-  totalLessons: 24,
-  progress: 33,
-  modules: [
-    {
-      id: 'm1',
-      title: 'Introduction to Yoga',
-      lessons: [
-        { id: 'l1', title: 'Welcome & What to Expect', duration: '5:30', completed: true, locked: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' },
-        { id: 'l2', title: 'History and Philosophy of Yoga', duration: '12:45', completed: true, locked: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' },
-        { id: 'l3', title: 'Benefits of Regular Practice', duration: '8:20', completed: true, locked: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' },
-        { id: 'l4', title: 'Setting Up Your Practice Space', duration: '6:15', completed: true, locked: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' },
-      ],
-    },
-    {
-      id: 'm2',
-      title: 'Basic Asanas (Poses)',
-      lessons: [
-        { id: 'l5', title: 'Mountain Pose (Tadasana)', duration: '10:30', completed: true, locked: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' },
-        { id: 'l6', title: 'Downward Dog (Adho Mukha Svanasana)', duration: '14:20', completed: true, locked: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4' },
-        { id: 'l7', title: 'Warrior I & II Poses', duration: '18:45', completed: true, locked: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4' },
-        { id: 'l8', title: 'Child\'s Pose (Balasana)', duration: '9:10', completed: true, locked: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4' },
-        { id: 'l9', title: 'Cat-Cow Stretch', duration: '11:30', completed: false, locked: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4' },
-        { id: 'l10', title: 'Triangle Pose (Trikonasana)', duration: '13:50', completed: false, locked: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4' },
-      ],
-    },
-    {
-      id: 'm3',
-      title: 'Breathing Fundamentals',
-      lessons: [
-        { id: 'l11', title: 'Introduction to Pranayama', duration: '8:40', completed: false, locked: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' },
-        { id: 'l12', title: 'Deep Belly Breathing', duration: '10:20', completed: false, locked: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' },
-        { id: 'l13', title: 'Alternate Nostril Breathing', duration: '12:15', completed: false, locked: true, videoUrl: '' },
-        { id: 'l14', title: 'Ujjayi Breath Technique', duration: '11:30', completed: false, locked: true, videoUrl: '' },
-      ],
-    },
-    {
-      id: 'm4',
-      title: 'Building Your Practice',
-      lessons: [
-        { id: 'l15', title: '15-Minute Morning Flow', duration: '16:45', completed: false, locked: true, videoUrl: '' },
-        { id: 'l16', title: '20-Minute Evening Relaxation', duration: '21:30', completed: false, locked: true, videoUrl: '' },
-        { id: 'l17', title: 'Sun Salutation A & B', duration: '18:20', completed: false, locked: true, videoUrl: '' },
-        { id: 'l18', title: 'Creating a Personal Routine', duration: '14:50', completed: false, locked: true, videoUrl: '' },
-      ],
-    },
-  ],
+const formatTotalDuration = (minutes: number) => {
+  if (minutes <= 0) return "—";
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h} hr`;
+  return `${h} hr ${m} min`;
 };
 
 export function UserSelfPacedCourse() {
   const { courseId } = useParams();
   const navigate = useNavigate();
-  const [currentLesson, setCurrentLesson] = useState(courseData.modules[0].lessons[0]);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [showModules, setShowModules] = useState(true);
+  const [module, setModule] = useState<SelfPacedModule | null>(null);
+  const [classes, setClasses] = useState<SelfPacedClass[]>([]);
+  const [enrolled, setEnrolled] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [currentClassId, setCurrentClassId] = useState<string | null>(null);
+  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
+  const [showCurriculum, setShowCurriculum] = useState(true);
 
-  const handleLessonSelect = (lesson: Lesson) => {
-    if (!lesson.locked) {
-      setCurrentLesson(lesson);
-      setIsPlaying(false);
-    }
-  };
+  useEffect(() => {
+    if (!courseId) return;
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const [mod, cls, sub] = await Promise.all([
+          getModule("STUDENT", courseId),
+          listClasses("STUDENT", courseId),
+          getMySelfPacedSubscription("STUDENT"),
+        ]);
+        if (cancelled) return;
+        const active = cls.filter((c) => c.isActive);
+        setModule(mod);
+        setClasses(active);
+        setEnrolled(sub.enrolled);
+        setCurrentClassId(active[0]?.id ?? null);
 
-  const handleMarkComplete = () => {
- 
-    const allLessons = courseData.modules.flatMap(m => m.lessons);
-    const currentIndex = allLessons.findIndex(l => l.id === currentLesson.id);
-    if (currentIndex < allLessons.length - 1) {
-      const nextLesson = allLessons[currentIndex + 1];
-      if (!nextLesson.locked) {
-        setCurrentLesson(nextLesson);
+        if (sub.enrolled) {
+          try {
+            const progress = await listMySelfPacedProgress("STUDENT");
+            if (cancelled) return;
+            setCompletedIds(
+              new Set(progress.filter((p) => p.isCompleted).map((p) => p.classId)),
+            );
+          } catch {
+            // Progress is best-effort; don't fail the page if the endpoint is unavailable.
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          toast.error(err instanceof Error ? err.message : "Failed to load this course.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [courseId]);
+
+  const currentClass = useMemo(
+    () => classes.find((c) => c.id === currentClassId) ?? null,
+    [classes, currentClassId],
+  );
+  const currentIndex = useMemo(
+    () => (currentClass ? classes.findIndex((c) => c.id === currentClass.id) : -1),
+    [classes, currentClass],
+  );
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex >= 0 && currentIndex < classes.length - 1;
+  const totalDurationMin = classes.reduce((sum, c) => sum + (c.duration || 0), 0);
+  const completedCount = completedIds.size;
+  const progressPct =
+    classes.length === 0 ? 0 : Math.round((completedCount / classes.length) * 100);
+
+  const selectClass = (cls: SelfPacedClass) => {
+    if (!enrolled) return;
+    setCurrentClassId(cls.id);
+  };
+
+  const handleMarkComplete = async () => {
+    if (!currentClass) return;
+    const targetId = currentClass.id;
+    setCompletedIds((prev) => {
+      const next = new Set(prev);
+      next.add(targetId);
+      return next;
+    });
+    if (hasNext) {
+      setCurrentClassId(classes[currentIndex + 1].id);
+    }
+    try {
+      await upsertSelfPacedProgress(targetId, { isCompleted: true, progress: 100 });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't save progress.");
+      setCompletedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(targetId);
+        return next;
+      });
     }
   };
 
-  const allLessons = courseData.modules.flatMap(m => m.lessons);
-  const currentIndex = allLessons.findIndex(l => l.id === currentLesson.id);
-  const hasPrevious = currentIndex > 0 && !allLessons[currentIndex - 1].locked;
-  const hasNext = currentIndex < allLessons.length - 1 && !allLessons[currentIndex + 1].locked;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center text-white text-sm">
+        Loading…
+      </div>
+    );
+  }
+
+  if (!module) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 text-white">
+        <p>Course not found.</p>
+        <Button variant="outline" onClick={() => navigate("/user/self-paced")}>
+          Back to Courses
+        </Button>
+      </div>
+    );
+  }
+
+  const showLockOverlay = !enrolled;
 
   return (
     <div className="min-h-screen bg-black">
- 
       <div className="bg-black/95 backdrop-blur-sm border-b border-white/10 sticky top-0 z-50">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/user/self-paced')}
+              onClick={() => navigate("/user/self-paced")}
               className="text-white hover:bg-white/10"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Courses
             </Button>
             <div className="hidden md:block">
-              <h2 className="text-white font-semibold">{courseData.title}</h2>
-              <p className="text-sm text-gray-400">{courseData.instructor}</p>
+              <h2 className="text-white font-semibold">{module.title}</h2>
+              <p className="text-sm text-gray-400">
+                {classes.length} lesson{classes.length === 1 ? "" : "s"} •{" "}
+                {formatTotalDuration(totalDurationMin)}
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <div className="hidden lg:flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
               <BookOpen className="w-4 h-4 text-white" />
-              <span className="text-sm text-white">{courseData.completedLessons}/{courseData.totalLessons} lessons</span>
-              <span className="text-sm font-semibold text-[#ff691d]">{courseData.progress}%</span>
+              <span className="text-sm text-white">
+                {completedCount}/{classes.length} lessons
+              </span>
+              <span className="text-sm font-semibold text-[#ff691d]">{progressPct}%</span>
             </div>
             <Button
               variant="ghost"
               size="sm"
               className="text-white hover:bg-white/10"
-              onClick={() => setShowModules(!showModules)}
+              onClick={() => setShowCurriculum(!showCurriculum)}
             >
-              {showModules ? 'Hide' : 'Show'} Curriculum
+              {showCurriculum ? "Hide" : "Show"} Curriculum
             </Button>
           </div>
         </div>
       </div>
 
       <div className="flex">
- 
-        <div className={`flex-1 ${showModules ? 'lg:mr-96' : ''}`}>
- 
+        <div className={`flex-1 ${showCurriculum ? "lg:mr-96" : ""}`}>
           <div className="relative bg-black aspect-video">
-            <video
-              className="w-full h-full"
-              src={currentLesson.videoUrl}
-              poster="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200&q=80"
-              controls
-            />
+            {currentClass && enrolled ? (
+              <video
+                key={currentClass.id}
+                className="w-full h-full"
+                src={currentClass.videoUrl}
+                poster={currentClass.thumbnailUrl ?? FALLBACK_POSTER}
+                controls
+              />
+            ) : (
+              <div
+                className="w-full h-full bg-cover bg-center flex items-center justify-center"
+                style={{
+                  backgroundImage: `url(${currentClass?.thumbnailUrl ?? FALLBACK_POSTER})`,
+                }}
+              >
+                <div className="absolute inset-0 bg-black/70" />
+                <div className="relative z-10 text-center px-6">
+                  {showLockOverlay ? (
+                    <>
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm mb-4">
+                        <Lock className="w-8 h-8 text-white" />
+                      </div>
+                      <h2 className="text-2xl font-semibold text-white mb-2">
+                        Subscribe to start watching
+                      </h2>
+                      <p className="text-white/70 mb-6">
+                        Enroll in a self-paced plan to unlock every lesson in this course.
+                      </p>
+                      <Button
+                        onClick={() => navigate("/user/payments")}
+                        style={{ backgroundColor: "#ff691d", color: "white" }}
+                      >
+                        View Plans
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-white/80">No lessons available yet.</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
- 
+
           <div className="bg-gradient-to-br from-gray-900 to-black text-white p-6 lg:p-8">
- 
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <Badge className="bg-[#ff691d] text-white">
-                    Lesson {currentIndex + 1}
-                  </Badge>
-                  {currentLesson.completed && (
+            <div className="flex items-start justify-between mb-6 gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
+                  {currentClass && (
+                    <Badge className="bg-[#ff691d] text-white">
+                      Lesson {currentIndex + 1}
+                    </Badge>
+                  )}
+                  {currentClass && completedIds.has(currentClass.id) && (
                     <Badge className="bg-green-500 text-white">
                       <CheckCircle2 className="w-3 h-3 mr-1" />
                       Completed
                     </Badge>
                   )}
+                  {showLockOverlay && (
+                    <Badge className="bg-black/60 text-white border border-white/20">
+                      <Lock className="w-3 h-3 mr-1" />
+                      Locked
+                    </Badge>
+                  )}
                 </div>
-                <h1 className="text-2xl lg:text-3xl font-bold mb-2">{currentLesson.title}</h1>
-                <div className="flex items-center gap-4 text-sm text-gray-400">
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    {currentLesson.duration}
+                <h1 className="text-2xl lg:text-3xl font-bold mb-2 break-words">
+                  {currentClass?.title ?? module.title}
+                </h1>
+                {currentClass && (
+                  <div className="flex items-center gap-4 text-sm text-gray-400">
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      {formatMinutes(currentClass.duration)}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    {courseData.rating}
-                  </div>
-                </div>
+                )}
+                {currentClass?.description && (
+                  <p className="mt-3 text-gray-300 text-sm leading-relaxed max-w-2xl">
+                    {currentClass.description}
+                  </p>
+                )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <Button
                   variant="outline"
                   size="sm"
                   className="text-white border-white/20 hover:bg-white/10"
+                  onClick={() => {
+                    const url = `${window.location.origin}/user/self-paced-course/${module.id}`;
+                    if (navigator.share) {
+                      navigator.share({ title: module.title, url });
+                    } else {
+                      navigator.clipboard.writeText(url);
+                      toast.success("Link copied!");
+                    }
+                  }}
                 >
                   <Share2 className="w-4 h-4 mr-2" />
                   Share
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-white border-white/20 hover:bg-white/10"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Resources
-                </Button>
               </div>
             </div>
- 
-            <div className="flex items-center gap-3 mb-6">
-              <Button
-                disabled={!hasPrevious}
-                onClick={() => handleLessonSelect(allLessons[currentIndex - 1])}
-                className="flex-1 bg-white/10 hover:bg-white/20 text-white border border-white/20"
-                style={{ opacity: hasPrevious ? 1 : 0.5 }}
-              >
-                <SkipBack className="w-4 h-4 mr-2" />
-                Previous Lesson
-              </Button>
 
-              {!currentLesson.completed && (
+            {enrolled && currentClass && (
+              <div className="flex items-center gap-3 mb-6">
                 <Button
-                  onClick={handleMarkComplete}
-                  className="flex-1"
-                  style={{ backgroundColor: '#610981', color: 'white' }}
+                  disabled={!hasPrevious}
+                  onClick={() => selectClass(classes[currentIndex - 1])}
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                  style={{ opacity: hasPrevious ? 1 : 0.5 }}
                 >
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Mark as Complete
+                  <SkipBack className="w-4 h-4 mr-2" />
+                  Previous Lesson
                 </Button>
-              )}
 
-              <Button
-                disabled={!hasNext}
-                onClick={() => handleLessonSelect(allLessons[currentIndex + 1])}
-                className="flex-1"
-                style={{ 
-                  backgroundColor: hasNext ? '#ff691d' : '#666',
-                  color: 'white',
-                  opacity: hasNext ? 1 : 0.5
-                }}
-              >
-                Next Lesson
-                <SkipForward className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
- 
+                {!completedIds.has(currentClass.id) && (
+                  <Button
+                    onClick={handleMarkComplete}
+                    className="flex-1"
+                    style={{ backgroundColor: "#610981", color: "white" }}
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Mark as Complete
+                  </Button>
+                )}
+
+                <Button
+                  disabled={!hasNext}
+                  onClick={() => selectClass(classes[currentIndex + 1])}
+                  className="flex-1"
+                  style={{
+                    backgroundColor: hasNext ? "#ff691d" : "#666",
+                    color: "white",
+                    opacity: hasNext ? 1 : 0.5,
+                  }}
+                >
+                  Next Lesson
+                  <SkipForward className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            )}
+
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold">Your Progress</h3>
-                <span className="text-sm font-bold" style={{ color: '#ff691d' }}>
-                  {courseData.progress}% Complete
+                <span className="text-sm font-bold" style={{ color: "#ff691d" }}>
+                  {progressPct}% Complete
                 </span>
               </div>
-              <Progress value={courseData.progress} className="h-2 mb-3" />
+              <Progress value={progressPct} className="h-2 mb-3" />
               <p className="text-sm text-gray-400">
-                {courseData.completedLessons} of {courseData.totalLessons} lessons completed
+                {completedCount} of {classes.length} lessons completed
               </p>
             </div>
           </div>
         </div>
- 
-        {showModules && (
+
+        {showCurriculum && (
           <motion.div
             initial={{ x: 100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             className="fixed right-0 top-0 h-full w-96 bg-white border-l border-border overflow-hidden hidden lg:block"
-            style={{ marginTop: '57px' }}
+            style={{ marginTop: "57px" }}
           >
             <div className="h-full overflow-y-auto">
- 
               <div className="sticky top-0 bg-gradient-to-br from-[#610981] to-[#8b0fa8] text-white p-6 z-10">
                 <h2 className="text-lg font-bold mb-2">Course Curriculum</h2>
-                <p className="text-sm text-white/80">{courseData.totalLessons} lessons • {courseData.totalDuration}</p>
+                <p className="text-sm text-white/80">
+                  {classes.length} lesson{classes.length === 1 ? "" : "s"} •{" "}
+                  {formatTotalDuration(totalDurationMin)}
+                </p>
               </div>
- 
-              <div className="p-4 space-y-4">
-                {courseData.modules.map((module, moduleIndex) => (
-                  <Card key={module.id} className="overflow-hidden border-2">
-                    <CardHeader className="pb-3 bg-gradient-to-r from-[#ff691d]/5 to-[#610981]/5">
-                      <CardTitle className="text-sm flex items-center justify-between">
-                        <span>Module {moduleIndex + 1}: {module.title}</span>
-                        <Badge variant="secondary" className="text-xs">
-                          {module.lessons.filter(l => l.completed).length}/{module.lessons.length}
-                        </Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      {module.lessons.map((lesson, lessonIndex) => (
+
+              <div className="p-4">
+                <Card className="overflow-hidden border-2">
+                  <CardHeader className="pb-3 bg-gradient-to-r from-[#ff691d]/5 to-[#610981]/5">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span className="truncate">{module.title}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {completedCount}/{classes.length}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {classes.length === 0 && (
+                      <p className="text-sm text-muted-foreground p-4">
+                        No lessons published yet.
+                      </p>
+                    )}
+                    {classes.map((cls, lessonIndex) => {
+                      const isCurrent = currentClass?.id === cls.id;
+                      const isCompleted = completedIds.has(cls.id);
+                      const isLocked = !enrolled;
+                      return (
                         <button
-                          key={lesson.id}
-                          onClick={() => handleLessonSelect(lesson)}
-                          disabled={lesson.locked}
+                          key={cls.id}
+                          onClick={() => selectClass(cls)}
+                          disabled={isLocked}
                           className={`w-full text-left px-4 py-3 border-b last:border-b-0 transition-all ${
-                            currentLesson.id === lesson.id
-                              ? 'bg-[#ff691d] text-white'
-                              : lesson.locked
-                              ? 'bg-gray-50 cursor-not-allowed opacity-50'
-                              : 'hover:bg-gray-50'
+                            isCurrent
+                              ? "bg-[#ff691d] text-white"
+                              : isLocked
+                              ? "bg-gray-50 cursor-not-allowed opacity-60"
+                              : "hover:bg-gray-50"
                           }`}
                         >
                           <div className="flex items-start gap-3">
                             <div className="flex-shrink-0 mt-1">
-                              {lesson.locked ? (
+                              {isLocked ? (
                                 <Lock className="w-4 h-4 text-gray-400" />
-                              ) : lesson.completed ? (
-                                <CheckCircle2 className={`w-4 h-4 ${currentLesson.id === lesson.id ? 'text-white' : 'text-green-500'}`} />
-                              ) : currentLesson.id === lesson.id ? (
+                              ) : isCompleted ? (
+                                <CheckCircle2
+                                  className={`w-4 h-4 ${
+                                    isCurrent ? "text-white" : "text-green-500"
+                                  }`}
+                                />
+                              ) : isCurrent ? (
                                 <Play className="w-4 h-4 fill-white text-white" />
                               ) : (
                                 <Circle className="w-4 h-4 text-gray-400" />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className={`text-sm font-medium truncate ${
-                                currentLesson.id === lesson.id ? 'text-white' : 'text-gray-900'
-                              }`}>
-                                {lessonIndex + 1}. {lesson.title}
+                              <p
+                                className={`text-sm font-medium truncate ${
+                                  isCurrent ? "text-white" : "text-gray-900"
+                                }`}
+                              >
+                                {lessonIndex + 1}. {cls.title}
                               </p>
                               <div className="flex items-center gap-2 mt-1">
-                                <Clock className={`w-3 h-3 ${
-                                  currentLesson.id === lesson.id ? 'text-white/80' : 'text-gray-500'
-                                }`} />
-                                <span className={`text-xs ${
-                                  currentLesson.id === lesson.id ? 'text-white/80' : 'text-gray-500'
-                                }`}>
-                                  {lesson.duration}
+                                <Clock
+                                  className={`w-3 h-3 ${
+                                    isCurrent ? "text-white/80" : "text-gray-500"
+                                  }`}
+                                />
+                                <span
+                                  className={`text-xs ${
+                                    isCurrent ? "text-white/80" : "text-gray-500"
+                                  }`}
+                                >
+                                  {formatMinutes(cls.duration)}
                                 </span>
                               </div>
                             </div>
-                            {currentLesson.id === lesson.id && (
+                            {isCurrent && (
                               <ChevronRight className="w-4 h-4 text-white flex-shrink-0" />
                             )}
                           </div>
                         </button>
-                      ))}
-                    </CardContent>
-                  </Card>
-                ))}
+                      );
+                    })}
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </motion.div>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import { Check, Crown, Zap, Shield, Calendar, Download, Sparkles, GraduationCap, Heart } from "lucide-react";
+import { Check, Crown, Zap, Shield, Calendar, GraduationCap, Heart } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,11 @@ import {
   listAllYTTRecordedPlans,
   listAllYTTLivePlans,
 } from "../../api/plans";
+import { enrollInSelfPacedPlan } from "../../api/selfPaced";
+import { enrollInYTTLiveCourse } from "../../api/yttLive";
 import type { LivePlan, SelfPacedPlan, YTTPlan } from "../../api/types";
+
+type PlanCategory = "live" | "self-paced" | "ytt-recorded" | "ytt-live";
 
 type UiPlan = {
   id: string;
@@ -32,6 +36,9 @@ type UiPlan = {
   badge?: string;
   features: string[];
   color: string;
+  category: PlanCategory;
+  // Set for YTT plans where enrollment is per-course.
+  courseId?: string;
 };
 
 const COLOR_DEFAULT = "#ff691d";
@@ -54,6 +61,7 @@ const livePlanToUi = (p: LivePlan): UiPlan => ({
   popular: false,
   features: p.features,
   color: COLOR_DEFAULT,
+  category: "live",
 });
 
 const selfPacedToUi = (p: SelfPacedPlan): UiPlan => ({
@@ -64,9 +72,10 @@ const selfPacedToUi = (p: SelfPacedPlan): UiPlan => ({
   popular: false,
   features: p.features,
   color: COLOR_DEFAULT,
+  category: "self-paced",
 });
 
-const yttPlanToUi = (plan: YTTPlan): UiPlan => ({
+const yttRecordedToUi = (plan: YTTPlan): UiPlan => ({
   id: plan.id,
   name: plan.name,
   duration: formatValidity(plan.validity),
@@ -74,6 +83,20 @@ const yttPlanToUi = (plan: YTTPlan): UiPlan => ({
   popular: false,
   features: plan.features,
   color: COLOR_DEFAULT,
+  category: "ytt-recorded",
+  courseId: plan.courseId,
+});
+
+const yttLiveToUi = (plan: YTTPlan): UiPlan => ({
+  id: plan.id,
+  name: plan.name,
+  duration: formatValidity(plan.validity),
+  price: toNumber(plan.price),
+  popular: false,
+  features: plan.features,
+  color: COLOR_DEFAULT,
+  category: "ytt-live",
+  courseId: plan.courseId,
 });
 
 export function UserPayments() {
@@ -101,8 +124,8 @@ export function UserPayments() {
 
         setLivePlans(live.filter((p) => p.isActive).map(livePlanToUi));
         setSelfPacedPlans(selfPaced.filter((p) => p.isActive).map(selfPacedToUi));
-        setYttSelfPacedPlans(yttRecorded.filter((p) => p.isActive).map(yttPlanToUi));
-        setYttLivePlans(yttLive.filter((p) => p.isActive).map(yttPlanToUi));
+        setYttSelfPacedPlans(yttRecorded.filter((p) => p.isActive).map(yttRecordedToUi));
+        setYttLivePlans(yttLive.filter((p) => p.isActive).map(yttLiveToUi));
       } catch (err) {
         if (!cancelled) {
           toast.error(err instanceof Error ? err.message : "Failed to load plans.");
@@ -116,34 +139,37 @@ export function UserPayments() {
     };
   }, []);
 
-  const currentPlan = {
-    name: 'Live Yoga - Monthly (Inaugural)',
-    price: 499,
-    billingCycle: 'monthly',
-    startDate: 'Jan 10, 2026',
-    nextBilling: 'May 10, 2026',
-    status: 'active',
-    category: 'Live Classes',
-    features: [
-      'Unlimited live class access',
-      'Real-time instructor guidance',
-      'Priority booking',
-      'Personal progress tracking',
-      'Mobile app access',
-      'Community support'
-    ]
-  };
- 
-  const paymentHistory = [
-    { id: 1, date: 'Apr 10, 2026', amount: 499, plan: 'Live Yoga - Monthly (Inaugural)', status: 'paid', method: 'Credit Card ****1234' },
-    { id: 2, date: 'Mar 10, 2026', amount: 499, plan: 'Live Yoga - Monthly (Inaugural)', status: 'paid', method: 'Credit Card ****1234' },
-    { id: 3, date: 'Feb 10, 2026', amount: 499, plan: 'Live Yoga - Monthly (Inaugural)', status: 'paid', method: 'Credit Card ****1234' },
-    { id: 4, date: 'Jan 10, 2026', amount: 499, plan: 'Live Yoga - Monthly (Inaugural)', status: 'paid', method: 'Credit Card ****1234' },
-  ];
+const [isEnrolling, setIsEnrolling] = useState(false);
 
   const handleUpgrade = (plan: UiPlan) => {
     setSelectedPlan(plan);
     setShowUpgradeDialog(true);
+  };
+
+  const handleConfirmPay = async () => {
+    if (!selectedPlan) return;
+    setIsEnrolling(true);
+    try {
+      if (selectedPlan.category === "self-paced") {
+        await enrollInSelfPacedPlan(selectedPlan.id);
+        toast.success("Self-paced subscription activated");
+        setShowUpgradeDialog(false);
+      } else if (selectedPlan.category === "ytt-live") {
+        if (!selectedPlan.courseId) {
+          toast.error("This plan is not linked to a course.");
+          return;
+        }
+        await enrollInYTTLiveCourse(selectedPlan.courseId, selectedPlan.id);
+        toast.success("YTT Live cohort enrollment activated");
+        setShowUpgradeDialog(false);
+      } else {
+        toast.message("Payment integration for this plan is coming soon.");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to subscribe.");
+    } finally {
+      setIsEnrolling(false);
+    }
   };
 
   const container = {
@@ -200,22 +226,9 @@ export function UserPayments() {
             Choose the perfect plan for your yoga journey. From live interactive classes to self-paced programs and professional teacher training.
           </motion.p>
  
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-            className="mt-6 inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30"
-          >
-            <Sparkles className="w-5 h-5 text-white" />
-            <div>
-              <p className="text-sm text-white/80">Active Plan</p>
-              <p className="font-semibold text-white">{currentPlan.name}</p>
-            </div>
-            <Badge className="ml-2 bg-green-500 text-white border-0">Active</Badge>
-          </motion.div>
         </div>
       </motion.div>
- 
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
         <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid p-1 h-auto bg-gray-100 rounded-2xl">
           <TabsTrigger 
@@ -629,61 +642,6 @@ export function UserPayments() {
         </TabsContent>
       </Tabs>
  
-      <div className="mt-12">
-
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card className="relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#ffac96]/5 rounded-full blur-3xl" />
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle style={{ color: '#ff691d' }}>Recent Payments</CardTitle>
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Download All
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {paymentHistory.map((payment, index) => (
-                  <motion.div 
-                    key={payment.id} 
-                    className="flex items-center justify-between p-4 rounded-lg border hover:bg-gray-50 transition-colors"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * index }}
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-sm">{payment.plan}</span>
-                        <span className="font-semibold">₹{payment.amount}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">{payment.date}</span>
-                        <Badge 
-                          className="text-xs"
-                          style={{ 
-                            backgroundColor: '#10b98120', 
-                            color: '#10b981' 
-                          }}
-                        >
-                          Paid
-                        </Badge>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-                <Button variant="outline" className="w-full mt-4">
-                  View All Payment History
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
- 
       <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -722,11 +680,15 @@ export function UserPayments() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowUpgradeDialog(false)}>
+            <Button variant="outline" onClick={() => setShowUpgradeDialog(false)} disabled={isEnrolling}>
               Cancel
             </Button>
-            <Button style={{ backgroundColor: selectedPlan?.color, color: 'white' }}>
-              Confirm & Pay
+            <Button
+              style={{ backgroundColor: selectedPlan?.color, color: 'white' }}
+              onClick={handleConfirmPay}
+              disabled={isEnrolling}
+            >
+              {isEnrolling ? "Processing…" : "Confirm & Pay"}
             </Button>
           </DialogFooter>
         </DialogContent>
