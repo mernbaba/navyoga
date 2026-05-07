@@ -6,20 +6,18 @@ import {
   type Paginated,
   type Role,
   type Student,
-  type StudentStatus,
 } from "./types";
 
 export type StudentListParams = {
   q?: string;
-  status?: StudentStatus;
   page?: number;
   limit?: number;
 };
 
-export type StudentCreateBody = StudentRegisterBody;
+export type StudentCreateBody = StudentRegisterBody & { isActive?: boolean };
 
 export type StudentUpdateBody = Partial<Omit<StudentCreateBody, "password">> & {
-  studentId?: string;
+  password?: string;
   avatar?: string | null;
   address?: string | null;
   age?: number | null;
@@ -29,8 +27,7 @@ export type StudentUpdateBody = Partial<Omit<StudentCreateBody, "password">> & {
   yogaExperience?: string | null;
   currentLevel?: string | null;
   areasOfInterest?: string | null;
-  fitnessGoals?: string | null;
-  status?: StudentStatus;
+  isActive?: boolean;
 };
 
 export function listStudents(role: Role, params: StudentListParams = {}) {

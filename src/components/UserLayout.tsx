@@ -2,7 +2,6 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard,
   BookOpen,
-  Film,
   Calendar,
   CalendarDays,
   User as UserIcon,
@@ -37,7 +36,6 @@ const navigation = [
   { name: 'Self-Paced Classes', href: '/user/self-paced', icon: GraduationCap },
   { name: 'YTT Live', href: '/user/ytt-live', icon: Radio },
   { name: 'YTT Recorded', href: '/user/ytt-recorded', icon: Video },
-  { name: 'Recordings', href: '/user/recordings', icon: Film },
   { name: 'Attendance', href: '/user/attendance', icon: Calendar },
   { name: 'Events', href: '/user/events', icon: CalendarDays },
   { name: 'Referrals', href: '/user/referrals', icon: Gift },
@@ -66,7 +64,9 @@ export function UserLayout() {
   const NavContent = () => (
     <nav className="space-y-1">
       {navigation.map((item) => {
-        const isActive = location.pathname === item.href;
+        const isActive =
+          location.pathname === item.href ||
+          location.pathname.startsWith(item.href + "/");
         return (
           <Link
             key={item.name}
@@ -138,8 +138,8 @@ export function UserLayout() {
           </Sheet>
 
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-[#610981] to-[#8b0fa8] rounded-xl shadow-lg hidden sm:block">
-              <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="NavYoga" className="w-6 h-6 object-contain" />
+            <div className="bg-gradient-to-br from-[#610981] to-[#8b0fa8] rounded-xl shadow-lg hidden sm:block overflow-hidden">
+              <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="NavYoga" className="w-10 h-10 object-contain" />
             </div>
             <div>
               <h1 className="font-semibold text-lg" style={{ color: '#ff691d' }}>NavYoga Academy</h1>

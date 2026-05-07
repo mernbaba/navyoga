@@ -49,7 +49,6 @@ export async function unwrap<T>(promise: Promise<AxiosResponse<ApiSuccess<T>>>):
 export type Role = "SUPERADMIN" | "TUTOR" | "OPERATIONS" | "FRONTLINE" | "STUDENT";
 
 export type StaffStatus = "ACTIVE" | "ON_LEAVE" | "TERMINATED";
-export type StudentStatus = "ACTIVE" | "INACTIVE";
 export type LeadStatus = "NEW" | "CONTACTED" | "INTERESTED" | "CONVERTED" | "NOT_INTERESTED";
 export type LeadSource =
   | "WEBSITE"
@@ -121,14 +120,12 @@ export type FrontlineUser = {
 
 export type StudentUser = {
   id: string;
-  studentId: string;
   email: string;
   name: string;
   phone: string;
   avatar: string | null;
   referralCode: string;
-  status: StudentStatus;
-  joinDate: string;
+  isActive: boolean;
   address?: string | null;
   age?: number | null;
   bloodGroup?: string | null;
@@ -137,8 +134,8 @@ export type StudentUser = {
   yogaExperience?: string | null;
   currentLevel?: string | null;
   areasOfInterest?: string | null;
-  fitnessGoals?: string | null;
   createdAt: string;
+  updatedAt: string;
 };
 
 export type Employee = {
@@ -239,7 +236,7 @@ export type StudentAttendance = {
   status: AttendanceStatus;
   createdAt: string;
   updatedAt: string;
-  student: { id: string; studentId: string; name: string };
+  student: { id: string; name: string };
   subscriptionClass: {
     id: string;
     classId: string;
@@ -426,7 +423,6 @@ export type LiveClass = {
   thumbnailUrl: string | null;
   yogaType: string;
   difficulty: ClassDifficulty;
-  status: LiveClassStatus;
   scheduledAt: string | null;
   startedAt: string | null;
   endedAt: string | null;
@@ -548,10 +544,8 @@ export type YTTLiveClass = {
   courseId: string;
   title: string;
   description: string | null;
-  thumbnailUrl: string | null;
   yogaType: string;
   difficulty: ClassDifficulty;
-  status: LiveClassStatus;
   scheduledAt: string | null;
   startedAt: string | null;
   endedAt: string | null;
@@ -568,13 +562,11 @@ export type YTTLiveClassBody = {
   difficulty: ClassDifficulty;
   duration: number;
   description?: string | null;
-  thumbnailUrl?: string | null;
   link?: string | null;
   scheduledAt?: string | null;
   startedAt?: string | null;
   endedAt?: string | null;
   recording?: string | null;
-  status?: LiveClassStatus;
 };
 
 export type YTTLiveCourseDetail = YTTCourse & {
@@ -594,6 +586,30 @@ export type LivePlan = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+export type LiveEnrollmentStatus = "ACTIVE" | "EXPIRED" | "CANCELLED";
+
+export type MyLiveEnrollment = {
+  id: string;
+  planId: string;
+  batchId: string;
+  startDate: string;
+  endDate: string;
+  status: LiveEnrollmentStatus;
+  plan: LivePlan;
+  batch: { id: string; name: string };
+};
+
+export type MyLiveEnrollmentResponse = {
+  enrolled: boolean;
+  enrollment: MyLiveEnrollment | null;
+};
+
+export type MyLiveClassesResponse = {
+  enrolled: boolean;
+  recordingDays: number;
+  classes: LiveClass[];
 };
 
 export type MembershipPeriod = "MONTHLY" | "QUARTERLY" | "HALF_YEARLY" | "YEARLY";
@@ -618,7 +634,6 @@ export type SubscriptionPlan = {
 
 export type EventEnrollmentStudent = {
   id: string;
-  studentId: string | null;
   name: string;
   email: string;
   phone: string;

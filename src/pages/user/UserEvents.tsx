@@ -68,21 +68,9 @@ export function UserEvents() {
     let cancelled = false;
     // TODO: paginate — currently capped at 20 events.
     listUpcomingEvents("STUDENT", { limit: 20 })
-      .then(async (page) => {
+      .then((page) => {
         if (cancelled) return;
-        const mapped = page.items.map(mapAppEvent);
-        setEvents(mapped);
-
-        // TODO: replace with a bulk "my enrollments" endpoint when backend ships one.
-        const checks = await Promise.all(
-          mapped.map((event) =>
-            getMyEventEnrollment("STUDENT", event.id)
-              .then((res) => (res.enrolled ? event.id : null))
-              .catch(() => null),
-          ),
-        );
-        if (cancelled) return;
-        setEnrolledIds(new Set(checks.filter((id): id is string => id !== null)));
+        setEvents(page.items.map(mapAppEvent));
       })
       .catch((err: unknown) => {
         if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load events.");
@@ -148,6 +136,20 @@ export function UserEvents() {
   const openEventDetails = (event: Event) => {
     setSelectedEvent(event);
     setIsDetailsOpen(true);
+    // Lazily check enrollment for just this event — only if we don't already know.
+    if (enrolledIds.has(event.id)) return;
+    getMyEventEnrollment("STUDENT", event.id)
+      .then((res) => {
+        if (!res.enrolled) return;
+        setEnrolledIds((prev) => {
+          const next = new Set(prev);
+          next.add(event.id);
+          return next;
+        });
+      })
+      .catch(() => {
+        // best-effort; swallow errors
+      });
   };
 
   const getEventTypeColor = (type?: string) => {
@@ -525,19 +527,6 @@ export function UserEvents() {
               <div>
                 <h4 className="font-semibold text-lg mb-2" style={{ color: '#ff691d' }}>Description</h4>
                 <p className="text-muted-foreground leading-relaxed">{selectedEvent.description}</p>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-lg mb-2" style={{ color: '#ff691d' }}>Instructor</h4>
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50">
-                  <div className="p-3 rounded-full bg-gradient-to-br from-[#610981] to-[#8b0fa8]">
-                    <Users className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-semibold">{selectedEvent.instructor || '—'}</p>
-                    <p className="text-sm text-muted-foreground">Expert Yoga Instructor</p>
-                  </div>
-                </div>
               </div>
 
               <div>

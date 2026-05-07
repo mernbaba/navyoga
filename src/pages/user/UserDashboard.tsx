@@ -22,12 +22,6 @@ export function UserDashboard() {
     { id: 4, name: 'Power Yoga Flow', instructor: 'Vikram Singh', date: 'Mar 13', time: '6:30 PM', status: 'upcoming', duration: '75 min', color: '#f59e0b' },
   ];
 
-  const recentRecordings = [
-    { id: 1, title: 'Introduction to Ashtanga', instructor: 'Priya Sharma', duration: '45:30', date: 'Mar 8', views: 234, thumbnail: 'recording' },
-    { id: 2, title: 'Breathing Techniques', instructor: 'Rahul Kumar', duration: '30:15', date: 'Mar 7', views: 189, thumbnail: 'recording' },
-    { id: 3, title: 'Morning Stretch Routine', instructor: 'Anita Verma', duration: '25:00', date: 'Mar 6', views: 312, thumbnail: 'recording' },
-  ];
-
   const achievements = [
     { id: 1, title: '30-Day Streak', description: 'Attended classes for 30 consecutive days', icon: Flame, color: '#ff691d', earned: true },
     { id: 2, title: 'Early Bird', description: 'Attended 10 morning classes', icon: Target, color: '#10b981', earned: true },
@@ -117,8 +111,8 @@ export function UserDashboard() {
           })}
         </div>
  
-        <div className="grid gap-6 lg:grid-cols-2">
- 
+        <div>
+
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -176,63 +170,6 @@ export function UserDashboard() {
             </Card>
           </motion.div>
  
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Card className="relative overflow-hidden border-0 shadow-xl">
-              <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[#610981]/10 to-transparent rounded-full blur-3xl" />
-              <CardHeader className="flex flex-row items-center justify-between relative z-10">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-[#610981] to-[#8b0fa8] shadow-lg">
-                    <Video className="w-5 h-5 text-white" />
-                  </div>
-                  <CardTitle className="text-xl" style={{ color: '#ff691d' }}>Recent Recordings</CardTitle>
-                </div>
-                <Link to="/user/recordings">
-                  <Button variant="ghost" size="sm" className="hover:bg-purple-100" style={{ color: '#610981' }}>View All →</Button>
-                </Link>
-              </CardHeader>
-              <CardContent className="relative z-10">
-                <div className="space-y-3">
-                  {recentRecordings.map((recording, idx) => (
-                    <motion.div 
-                      key={recording.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.5 + idx * 0.1 }}
-                      whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
-                      className="group flex items-center gap-4 p-3 rounded-2xl border-2 border-gray-100 hover:border-purple-200 transition-all duration-300 cursor-pointer bg-white hover:shadow-lg"
-                    >
-                      <div className="relative">
-                        <div className="w-20 h-20 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#610981] to-[#8b0fa8] shadow-lg group-hover:shadow-xl transition-shadow">
-                          <Video className="w-8 h-8 text-white" />
-                        </div>
-                        <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-md">
-                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-                            <div className="w-0 h-0 border-l-[6px] border-l-white border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent ml-0.5" />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate group-hover:text-purple-700 transition-colors">{recording.title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {recording.instructor} • {recording.duration}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="secondary" className="text-xs">
-                            {recording.views} views
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">{recording.date}</span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
         </div>
  
         <motion.div
@@ -299,11 +236,10 @@ export function UserDashboard() {
           </Card>
         </motion.div>
  
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[
             { to: '/user/classes', icon: BookOpen, title: 'Browse Classes', desc: 'Explore available courses', color: '#ff691d', gradient: 'from-orange-500 to-red-500' },
             { to: '/user/self-paced', icon: GraduationCap, title: 'Self-Paced', desc: 'Learn at your pace', color: '#8b0fa8', gradient: 'from-purple-500 to-purple-700' },
-            { to: '/user/recordings', icon: Video, title: 'Watch Recordings', desc: 'Catch up on sessions', color: '#610981', gradient: 'from-purple-600 to-pink-600' },
             { to: '/user/attendance', icon: Calendar, title: 'View Attendance', desc: 'Track your progress', color: '#10b981', gradient: 'from-green-500 to-teal-500' },
             { to: '/user/profile', icon: Award, title: 'My Profile', desc: 'Update your details', color: '#f59e0b', gradient: 'from-yellow-500 to-orange-500' }
           ].map((action, idx) => {

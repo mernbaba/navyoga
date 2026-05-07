@@ -10,9 +10,9 @@ import { Badge } from "../../components/ui/badge";
 import { Plus, Search, Edit, Trash2, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { listStudents, createStudent, updateStudent, deleteStudent } from "../../api/students";
-import type { Student, StudentStatus } from "../../api/types";
+import type { Student } from "../../api/types";
 
-const STATUSES: StudentStatus[] = ["ACTIVE", "INACTIVE"];
+type ActiveFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
 type StudentsAdminRole = "SUPERADMIN" | "OPERATIONS";
 
@@ -22,7 +22,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StudentStatus | "ALL">("ALL");
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("ALL");
   const [isLoading, setIsLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -51,7 +51,6 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
     setIsLoading(true);
     listStudents(role, {
       q: debouncedQuery || undefined,
-      status: statusFilter === "ALL" ? undefined : statusFilter,
       page,
       limit: 20,
     })
@@ -67,7 +66,11 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
     return () => {
       cancelled = true;
     };
-  }, [debouncedQuery, statusFilter, page, refreshKey, role]);
+  }, [debouncedQuery, page, refreshKey, role]);
+
+  const visibleStudents = students.filter((s) =>
+    activeFilter === "ALL" ? true : activeFilter === "ACTIVE" ? s.isActive : !s.isActive,
+  );
 
   const refetch = () => setRefreshKey((k) => k + 1);
 
@@ -106,7 +109,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
         name: String(fd.get("name") || ""),
         email: String(fd.get("email") || ""),
         phone: String(fd.get("phone") || ""),
-        status: fd.get("status") as StudentStatus,
+        isActive: fd.get("isActive") === "true",
       });
       toast.success("Sādhaka updated successfully");
       setEditing(null);
@@ -159,7 +162,18 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })} required minLength={7} maxLength={15} />
+                  <Input
+                    id="phone"
+                    type="tel"
+                    inputMode="numeric"
+                    pattern="\d{10}"
+                    title="Phone must be exactly 10 digits"
+                    value={addForm.phone}
+                    onChange={(e) => setAddForm({ ...addForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                    required
+                    minLength={10}
+                    maxLength={10}
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="password">Password</Label>
@@ -194,11 +208,11 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
         </Card>
         <Card>
           <CardHeader><CardTitle>Active (page)</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-semibold text-green-500">{students.filter((s) => s.status === "ACTIVE").length}</div></CardContent>
+          <CardContent><div className="text-3xl font-semibold text-green-500">{students.filter((s) => s.isActive).length}</div></CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle>Inactive (page)</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-semibold text-muted-foreground">{students.filter((s) => s.status === "INACTIVE").length}</div></CardContent>
+          <CardContent><div className="text-3xl font-semibold text-muted-foreground">{students.filter((s) => !s.isActive).length}</div></CardContent>
         </Card>
       </div>
 
@@ -214,19 +228,20 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
               <Input
-                placeholder="Search by name, email, or student ID..."
+                placeholder="Search by name, email, or phone..."
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
                 className="pl-10"
               />
             </div>
-            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as StudentStatus | "ALL"); setPage(1); }}>
+            <Select value={activeFilter} onValueChange={(v) => setActiveFilter(v as ActiveFilter)}>
               <SelectTrigger className="md:w-48 h-9 rounded-xl bg-input-background/50">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All statuses</SelectItem>
-                {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                <SelectItem value="INACTIVE">INACTIVE</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -239,20 +254,19 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                   <TableHead>Name</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Join Date</TableHead>
-                  <TableHead>Referral Code</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading && students.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
-                ) : students.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No sādhakas found.</TableCell></TableRow>
+                {isLoading && visibleStudents.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                ) : visibleStudents.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No sādhakas found.</TableCell></TableRow>
                 ) : (
-                  students.map((student) => (
+                  visibleStudents.map((student) => (
                     <TableRow key={student.id}>
-                      <TableCell className="font-medium">{student.studentId}</TableCell>
+                      <TableCell className="font-mono text-xs">{student.id}</TableCell>
                       <TableCell>{student.name}</TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
@@ -260,10 +274,9 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Phone className="w-3 h-3" />{student.phone}</div>
                         </div>
                       </TableCell>
-                      <TableCell>{new Date(student.joinDate).toLocaleDateString()}</TableCell>
-                      <TableCell><code className="text-xs">{student.referralCode}</code></TableCell>
+                      <TableCell>{new Date(student.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        <Badge variant={student.status === "ACTIVE" ? "default" : "secondary"}>{student.status}</Badge>
+                        <Badge variant={student.isActive ? "default" : "secondary"}>{student.isActive ? "ACTIVE" : "INACTIVE"}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -309,16 +322,32 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-phone">Phone</Label>
-                  <Input id="edit-phone" name="phone" defaultValue={editing.phone} required minLength={7} maxLength={15} />
+                  <Input
+                    id="edit-phone"
+                    name="phone"
+                    type="tel"
+                    inputMode="numeric"
+                    pattern="\d{10}"
+                    title="Phone must be exactly 10 digits"
+                    defaultValue={editing.phone}
+                    onInput={(e) => {
+                      const el = e.currentTarget;
+                      el.value = el.value.replace(/\D/g, "").slice(0, 10);
+                    }}
+                    required
+                    minLength={10}
+                    maxLength={10}
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-status">Status</Label>
-                  <Select name="status" defaultValue={editing.status}>
+                  <Select name="isActive" defaultValue={editing.isActive ? "true" : "false"}>
                     <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      <SelectItem value="true">ACTIVE</SelectItem>
+                      <SelectItem value="false">INACTIVE</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

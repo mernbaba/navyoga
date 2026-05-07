@@ -38,8 +38,30 @@ import type {
   YTTLiveClass,
   YTTLiveClassBody,
   ClassDifficulty,
-  LiveClassStatus,
 } from "../../../api/types";
+
+type DerivedStatus = "LIVE" | "SCHEDULED" | "COMPLETED" | "UNSCHEDULED";
+
+function deriveStatus(c: YTTLiveClass): DerivedStatus {
+  if (c.startedAt && !c.endedAt) return "LIVE";
+  if (c.endedAt) return "COMPLETED";
+  if (c.scheduledAt) return "SCHEDULED";
+  return "UNSCHEDULED";
+}
+
+const STATUS_TONE: Record<DerivedStatus, string> = {
+  LIVE: "bg-red-50 text-red-700 border-red-200",
+  SCHEDULED: "bg-blue-50 text-blue-700 border-blue-200",
+  COMPLETED: "bg-green-50 text-green-700 border-green-200",
+  UNSCHEDULED: "bg-slate-100 text-slate-700 border-slate-200",
+};
+
+const STATUS_LABEL: Record<DerivedStatus, string> = {
+  LIVE: "Live",
+  SCHEDULED: "Scheduled",
+  COMPLETED: "Completed",
+  UNSCHEDULED: "Unscheduled",
+};
 
 const BRAND = "#610981";
 
@@ -55,22 +77,6 @@ const DIFFICULTIES: { value: ClassDifficulty; label: string }[] = [
   { value: "MEDIUM", label: "Medium" },
   { value: "HARD", label: "Hard" },
 ];
-
-const STATUSES: { value: LiveClassStatus; label: string; tone: string }[] = [
-  { value: "DRAFT", label: "Draft", tone: "bg-slate-100 text-slate-700 border-slate-200" },
-  { value: "SCHEDULED", label: "Scheduled", tone: "bg-blue-50 text-blue-700 border-blue-200" },
-  { value: "LIVE", label: "Live", tone: "bg-red-50 text-red-700 border-red-200" },
-  { value: "COMPLETED", label: "Completed", tone: "bg-green-50 text-green-700 border-green-200" },
-  { value: "CANCELLED", label: "Cancelled", tone: "bg-amber-50 text-amber-700 border-amber-200" },
-];
-
-function statusTone(status: LiveClassStatus) {
-  return STATUSES.find((s) => s.value === status)?.tone ?? "";
-}
-
-function statusLabel(status: LiveClassStatus) {
-  return STATUSES.find((s) => s.value === status)?.label ?? status;
-}
 
 function formatDuration(minutes: number) {
   if (!minutes) return "—";
@@ -278,11 +284,9 @@ type ClassFormState = {
   difficulty: ClassDifficulty;
   duration: string;
   description: string;
-  thumbnailUrl: string;
   link: string;
   scheduledAt: string;
   recording: string;
-  status: LiveClassStatus;
 };
 
 const EMPTY_CLASS: ClassFormState = {
@@ -291,11 +295,9 @@ const EMPTY_CLASS: ClassFormState = {
   difficulty: "EASY",
   duration: "",
   description: "",
-  thumbnailUrl: "",
   link: "",
   scheduledAt: "",
   recording: "",
-  status: "DRAFT",
 };
 
 function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFormDialogProps) {
@@ -311,11 +313,9 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
         difficulty: initial.difficulty,
         duration: String(initial.duration ?? ""),
         description: initial.description ?? "",
-        thumbnailUrl: initial.thumbnailUrl ?? "",
         link: initial.link ?? "",
         scheduledAt: isoToLocalInput(initial.scheduledAt),
         recording: initial.recording ?? "",
-        status: initial.status,
       });
     } else {
       setForm(EMPTY_CLASS);
@@ -344,9 +344,7 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
         yogaType: form.yogaType.trim(),
         difficulty: form.difficulty,
         duration,
-        status: form.status,
         ...(form.description.trim() ? { description: form.description.trim() } : {}),
-        ...(form.thumbnailUrl.trim() ? { thumbnailUrl: form.thumbnailUrl.trim() } : {}),
         ...(form.link.trim() ? { link: form.link.trim() } : {}),
         ...(scheduledIso ? { scheduledAt: scheduledIso } : {}),
         ...(form.recording.trim() ? { recording: form.recording.trim() } : {}),
@@ -357,9 +355,7 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
         yogaType: create.yogaType,
         difficulty: create.difficulty,
         duration,
-        status: form.status,
         description: form.description.trim() ? form.description.trim() : null,
-        thumbnailUrl: form.thumbnailUrl.trim() ? form.thumbnailUrl.trim() : null,
         link: form.link.trim() ? form.link.trim() : null,
         scheduledAt: scheduledIso,
         recording: form.recording.trim() ? form.recording.trim() : null,
@@ -419,29 +415,16 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>Difficulty</Label>
-              <Select value={form.difficulty} onValueChange={(v) => set("difficulty", v as ClassDifficulty)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {DIFFICULTIES.map((d) => (
-                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>Status</Label>
-              <Select value={form.status} onValueChange={(v) => set("status", v as LiveClassStatus)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {STATUSES.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-1">
+            <Label>Difficulty</Label>
+            <Select value={form.difficulty} onValueChange={(v) => set("difficulty", v as ClassDifficulty)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {DIFFICULTIES.map((d) => (
+                  <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1">
@@ -471,16 +454,6 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
               placeholder="https://…"
               value={form.recording}
               onChange={(e) => set("recording", e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-1">
-            <Label htmlFor="cls-thumb">Thumbnail URL</Label>
-            <Input
-              id="cls-thumb"
-              placeholder="https://…"
-              value={form.thumbnailUrl}
-              onChange={(e) => set("thumbnailUrl", e.target.value)}
             />
           </div>
 
@@ -517,7 +490,6 @@ function CourseClasses({ courseId }: CourseClassesProps) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<LiveClassStatus | "ALL">("ALL");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<YTTLiveClass | null>(null);
 
@@ -531,7 +503,6 @@ function CourseClasses({ courseId }: CourseClassesProps) {
     setLoading(true);
     listYTTLiveClasses(courseId, {
       q: debouncedSearch || undefined,
-      status: statusFilter === "ALL" ? undefined : statusFilter,
     })
       .then((items) => { if (!cancelled) setClasses(items); })
       .catch((err: unknown) => {
@@ -539,7 +510,7 @@ function CourseClasses({ courseId }: CourseClassesProps) {
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [courseId, debouncedSearch, statusFilter]);
+  }, [courseId, debouncedSearch]);
 
   function handleSaved(saved: YTTLiveClass) {
     setClasses((cs) => {
@@ -565,7 +536,7 @@ function CourseClasses({ courseId }: CourseClassesProps) {
   }
 
   const isEmpty = !loading && classes.length === 0;
-  const isFiltered = !!debouncedSearch || statusFilter !== "ALL";
+  const isFiltered = !!debouncedSearch;
 
   return (
     <Card>
@@ -582,15 +553,6 @@ function CourseClasses({ courseId }: CourseClassesProps) {
                 className="pl-9 h-9 w-full sm:w-56"
               />
             </div>
-            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as LiveClassStatus | "ALL")}>
-              <SelectTrigger className="h-9 w-full sm:w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All statuses</SelectItem>
-                {STATUSES.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <Button
               size="sm"
               className="h-9 gap-1.5"
@@ -634,9 +596,14 @@ function CourseClasses({ courseId }: CourseClassesProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-medium truncate">{cls.title}</p>
-                    <Badge variant="outline" className={statusTone(cls.status)}>
-                      {statusLabel(cls.status)}
-                    </Badge>
+                    {(() => {
+                      const s = deriveStatus(cls);
+                      return (
+                        <Badge variant="outline" className={STATUS_TONE[s]}>
+                          {STATUS_LABEL[s]}
+                        </Badge>
+                      );
+                    })()}
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
                     <span className="capitalize">{cls.yogaType} · {cls.difficulty.toLowerCase()}</span>

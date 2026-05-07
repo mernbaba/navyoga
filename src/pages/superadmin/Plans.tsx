@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Card, CardContent } from "../../components/ui/card";
+import { useEffect, useState, type ReactNode } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog";
-import { Edit, IndianRupee, Clock, Zap, Tag, CheckCircle2, Video, Radio, BookOpen } from "lucide-react";
+import { Edit, IndianRupee, Zap, Tag, Check, Video, Radio, Heart, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import {
   listLivePlans,
@@ -37,6 +37,116 @@ const featuresFromString = (raw: string): string[] =>
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
+
+const PLAN_COLOR = "#ff691d";
+
+const formatValidity = (days: number) => {
+  if (days <= 31) return "month";
+  if (days <= 95) return "3 months";
+  if (days <= 190) return "6 months";
+  if (days <= 380) return "12 months";
+  return `${days} days`;
+};
+
+type PlanCardProps = {
+  icon: ReactNode;
+  name: string;
+  price: number;
+  originalPrice?: number | null;
+  validity: number;
+  description?: string | null;
+  features: string[];
+  isActive: boolean;
+  topRightSlot?: ReactNode;
+  badgeRow?: ReactNode;
+  onEdit: () => void;
+  color?: string;
+};
+
+function PlanCard({
+  icon,
+  name,
+  price,
+  originalPrice,
+  validity,
+  description,
+  features,
+  isActive,
+  topRightSlot,
+  badgeRow,
+  onEdit,
+  color = PLAN_COLOR,
+}: PlanCardProps) {
+  return (
+    <Card
+      className={`relative overflow-hidden transition-all hover:shadow-2xl hover:scale-[1.02] border-2 h-full group ${!isActive ? "opacity-60" : ""}`}
+    >
+      {topRightSlot && <div className="absolute top-4 right-4 z-10">{topRightSlot}</div>}
+      {!isActive && !topRightSlot && (
+        <div className="absolute top-4 right-4 z-10">
+          <Badge variant="secondary" className="text-xs">Archived</Badge>
+        </div>
+      )}
+
+      <div
+        className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-10 group-hover:opacity-20 transition-opacity"
+        style={{ backgroundColor: color }}
+      />
+
+      <CardHeader>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-3 rounded-2xl" style={{ backgroundColor: `${color}20` }}>
+            {icon}
+          </div>
+          <CardTitle className="text-2xl truncate" style={{ color }}>
+            {name}
+          </CardTitle>
+        </div>
+
+        <div className="mt-2">
+          <div className="flex items-baseline gap-3">
+            <span className="text-5xl font-bold">{formatINR(price)}</span>
+            {originalPrice ? (
+              <span className="text-base text-muted-foreground line-through">
+                {formatINR(originalPrice)}
+              </span>
+            ) : null}
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">for {formatValidity(validity)}</p>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-6">
+        {description && (
+          <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+        )}
+
+        {features.length > 0 && (
+          <div className="space-y-3">
+            {features.map((feature, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <Check className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color }} />
+                <span className="text-sm leading-relaxed">{feature}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {badgeRow}
+
+        <Button
+          variant="outline"
+          className="w-full py-6 text-base font-semibold rounded-xl border-2"
+          style={{ borderColor: color, color }}
+          onClick={onEdit}
+        >
+          <Edit className="w-4 h-4 mr-2" />
+          Edit Plan
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 // ─── LIVE CLASSES PLANS TAB ──────────────────────────────────────────────────
 
@@ -102,51 +212,29 @@ function LivePlansTab() {
       ) : plans.length === 0 ? (
         <p className="text-center text-muted-foreground py-12">No live plans found.</p>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {plans.map((plan) => (
-            <Card key={plan.id} className={`relative ${!plan.isActive ? "opacity-60" : ""}`}>
-              <CardContent className="pt-6 pb-4 space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-semibold text-base leading-tight">{plan.name}</p>
-                    <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                      <Clock className="w-3 h-3" />
-                      {plan.validity} days
-                    </div>
+            <PlanCard
+              key={plan.id}
+              icon={<Zap className="w-6 h-6" style={{ color: PLAN_COLOR }} />}
+              name={plan.name}
+              price={Number(plan.price)}
+              originalPrice={plan.originalPrice ? Number(plan.originalPrice) : null}
+              validity={plan.validity}
+              description={plan.description}
+              features={plan.features}
+              isActive={plan.isActive}
+              badgeRow={
+                plan.recordingAccess > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    <Badge variant="secondary" className="text-xs">
+                      Recordings: {plan.recordingAccess}d
+                    </Badge>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-2xl font-bold">{formatINR(plan.price)}</p>
-                    {plan.originalPrice && (
-                      <p className="text-xs text-muted-foreground line-through">{formatINR(plan.originalPrice)}</p>
-                    )}
-                  </div>
-                </div>
-                {plan.description && (
-                  <p className="text-sm text-muted-foreground">{plan.description}</p>
-                )}
-                {plan.features.length > 0 && (
-                  <ul className="space-y-1">
-                    {plan.features.map((f, i) => (
-                      <li key={i} className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <div className="flex flex-wrap gap-1 pt-1">
-                  {plan.recordingAccess > 0 && (
-                    <Badge variant="secondary" className="text-xs">Recordings: {plan.recordingAccess}d</Badge>
-                  )}
-                  {!plan.isActive && <Badge variant="secondary" className="text-xs text-muted-foreground">Archived</Badge>}
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="w-full" onClick={() => openEdit(plan)}>
-                    <Edit className="w-3.5 h-3.5 mr-1" />Edit
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                ) : undefined
+              }
+              onEdit={() => openEdit(plan)}
+            />
           ))}
         </div>
       )}
@@ -281,48 +369,20 @@ function SelfPacedPlansTab() {
       ) : plans.length === 0 ? (
         <p className="text-center text-muted-foreground py-12">No self-paced plans yet.</p>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {plans.map((plan) => (
-            <Card key={plan.id} className={`relative ${!plan.isActive ? "opacity-60" : ""}`}>
-              <CardContent className="pt-6 pb-4 space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-semibold text-base leading-tight">{plan.name}</p>
-                    <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                      <Clock className="w-3 h-3" />
-                      {plan.validity} days
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-2xl font-bold">{formatINR(plan.price)}</p>
-                    {plan.originalPrice && (
-                      <p className="text-xs text-muted-foreground line-through">{formatINR(plan.originalPrice)}</p>
-                    )}
-                  </div>
-                </div>
-                {plan.description && (
-                  <p className="text-sm text-muted-foreground">{plan.description}</p>
-                )}
-                {plan.features.length > 0 && (
-                  <ul className="space-y-1">
-                    {plan.features.map((f, i) => (
-                      <li key={i} className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {!plan.isActive && (
-                  <Badge variant="secondary" className="text-xs text-muted-foreground">Archived</Badge>
-                )}
-                <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="w-full" onClick={() => openEdit(plan)}>
-                    <Edit className="w-3.5 h-3.5 mr-1" />Edit
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <PlanCard
+              key={plan.id}
+              icon={<Heart className="w-6 h-6" style={{ color: PLAN_COLOR }} />}
+              name={plan.name}
+              price={Number(plan.price)}
+              originalPrice={plan.originalPrice ? Number(plan.originalPrice) : null}
+              validity={plan.validity}
+              description={plan.description}
+              features={plan.features}
+              isActive={plan.isActive}
+              onEdit={() => openEdit(plan)}
+            />
           ))}
         </div>
       )}
@@ -480,46 +540,22 @@ function YTTPlansTab({ label, listCoursesFn, listPlansFn, updatePlanFn }: YTTPla
       ) : flatPlans.length === 0 ? (
         <p className="text-center text-muted-foreground py-12">No {label} plans found.</p>
       ) : (
-        <>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {flatPlans.map((fp) => (
-              <div key={fp.plan.id} className={`p-3 border rounded-xl space-y-2 ${!fp.plan.isActive ? "opacity-60" : ""}`}>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <BookOpen className="w-3 h-3 text-[#610981] shrink-0" />
-                  <span className="text-xs text-[#610981] font-medium truncate">{fp.course.title}</span>
-                  {!fp.course.isActive && <Badge variant="secondary" className="text-xs ml-auto shrink-0">Inactive Course</Badge>}
-                </div>
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium text-sm leading-tight">{fp.plan.name}</p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                      <Clock className="w-3 h-3" />{fp.plan.validity} days
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-bold">{formatINR(fp.plan.price)}</p>
-                    {fp.plan.originalPrice && <p className="text-xs text-muted-foreground line-through">{formatINR(fp.plan.originalPrice)}</p>}
-                  </div>
-                </div>
-                {fp.plan.features.length > 0 && (
-                  <ul className="space-y-0.5">
-                    {fp.plan.features.map((f, i) => (
-                      <li key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <CheckCircle2 className="w-3 h-3 text-green-500 shrink-0" />{f}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {!fp.plan.isActive && <Badge variant="secondary" className="text-xs">Inactive</Badge>}
-                <div className="flex gap-2 pt-1">
-                  <Button variant="outline" size="sm" className="w-full h-7 text-xs" onClick={() => openEdit(fp)}>
-                    <Edit className="w-3 h-3 mr-1" />Edit
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {flatPlans.map((fp) => (
+            <PlanCard
+              key={fp.plan.id}
+              icon={<GraduationCap className="w-6 h-6" style={{ color: PLAN_COLOR }} />}
+              name={fp.plan.name}
+              price={Number(fp.plan.price)}
+              originalPrice={fp.plan.originalPrice ? Number(fp.plan.originalPrice) : null}
+              validity={fp.plan.validity}
+              description={fp.plan.description}
+              features={fp.plan.features}
+              isActive={fp.plan.isActive}
+              onEdit={() => openEdit(fp)}
+            />
+          ))}
+        </div>
       )}
 
       {/* Edit plan dialog */}

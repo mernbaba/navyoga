@@ -1,6 +1,6 @@
 import { authedRequest } from "../lib/apiClient";
 import type { LoginRole } from "../components/auth/RoleLoginPage";
-import { unwrap, type ApiSuccess, type LiveClassStatus, type LivePlan, type MembershipPeriod, type SubscriptionPlan, type SelfPacedPlan, type YTTCourse, type YTTPlan, type YTTCourseDetail, type YTTModule, type YTTClass, type YTTLiveClass, type YTTLiveClassBody, type YTTLiveCourseDetail, type YTTCourseBody } from "./types";
+import { unwrap, type ApiSuccess, type LivePlan, type MembershipPeriod, type MyLiveClassesResponse, type MyLiveEnrollmentResponse, type SubscriptionPlan, type SelfPacedPlan, type YTTCourse, type YTTPlan, type YTTCourseDetail, type YTTModule, type YTTClass, type YTTLiveClass, type YTTLiveClassBody, type YTTLiveCourseDetail, type YTTCourseBody } from "./types";
 
 // ─── SUBSCRIPTION PLANS ───────────────────────────────────────────────────────
 
@@ -75,6 +75,26 @@ export function deleteLivePlan(id: string) {
     authedRequest<ApiSuccess<null>>("SUPERADMIN", {
       method: "DELETE",
       url: `/api/live/plans/${id}`,
+    }),
+  );
+}
+
+// ─── STUDENT: MY LIVE ENROLLMENT & MY LIVE CLASSES ───────────────────────────
+
+export function getMyLiveEnrollment() {
+  return unwrap<MyLiveEnrollmentResponse>(
+    authedRequest<ApiSuccess<MyLiveEnrollmentResponse>>("STUDENT", {
+      method: "GET",
+      url: "/api/live/my-enrollment",
+    }),
+  );
+}
+
+export function listMyLiveClasses() {
+  return unwrap<MyLiveClassesResponse>(
+    authedRequest<ApiSuccess<MyLiveClassesResponse>>("STUDENT", {
+      method: "GET",
+      url: "/api/live/my-classes",
     }),
   );
 }
@@ -431,7 +451,6 @@ export function deleteYTTLivePlan(courseId: string, planId: string) {
 // ─── YTT LIVE CLASSES ────────────────────────────────────────────────────────
 
 export type YTTLiveClassListParams = {
-  status?: LiveClassStatus;
   q?: string;
 };
 

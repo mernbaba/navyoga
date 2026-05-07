@@ -985,8 +985,8 @@ export function ClassesEvents() {
                           </div>
                           <div>
                             <p className="text-sm font-medium">{row.student.name}</p>
-                            {row.student.studentId && (
-                              <p className="text-[11px] text-muted-foreground">{row.student.studentId}</p>
+                            {row.student.id && (
+                              <p className="text-[11px] text-muted-foreground font-mono">{row.student.id}</p>
                             )}
                           </div>
                         </div>

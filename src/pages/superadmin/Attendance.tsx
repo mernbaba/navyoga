@@ -198,7 +198,7 @@ export function Attendance() {
   }, [category]);
 
   const getDisplayId = (r: AnyAttendance): string => {
-    if (category === "users") return (r as StudentAttendance).student?.studentId ?? "—";
+    if (category === "users") return (r as StudentAttendance).student?.id ?? "—";
     if (category === "tutors") return (r as TutorAttendance).tutor?.tutorId ?? "—";
     return (r as FrontlineAttendance | OperationsAttendance).staff?.employeeId ?? "—";
   };

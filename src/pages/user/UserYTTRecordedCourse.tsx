@@ -11,7 +11,6 @@ import {
   Lock,
   Clock,
   BookOpen,
-  Share2,
   ChevronRight,
   SkipBack,
   SkipForward,
@@ -20,13 +19,12 @@ import { motion } from "motion/react";
 import { Progress } from "../../components/ui/progress";
 import { toast } from "sonner";
 import {
-  getModule,
-  listClasses,
-  getMySelfPacedSubscription,
-  listMySelfPacedProgress,
-  upsertSelfPacedProgress,
-} from "../../api/selfPaced";
-import type { SelfPacedClass, SelfPacedModule } from "../../api/types";
+  listMyYTTRecordedEnrollments,
+  getYTTRecordedCourseForStudent,
+  listMyYTTRecordedProgress,
+  upsertYTTRecordedProgress,
+} from "../../api/yttRecorded";
+import type { YTTClass, YTTCourseDetail, YTTModule } from "../../api/types";
 
 const FALLBACK_POSTER =
   "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200&q=80";
@@ -46,11 +44,12 @@ const formatTotalDuration = (minutes: number) => {
   return `${h} hr ${m} min`;
 };
 
-export function UserSelfPacedCourse() {
-  const { courseId } = useParams();
+export function UserYTTRecordedCourse() {
+  const { courseId: moduleId } = useParams();
   const navigate = useNavigate();
-  const [module, setModule] = useState<SelfPacedModule | null>(null);
-  const [classes, setClasses] = useState<SelfPacedClass[]>([]);
+  const [module, setModule] = useState<YTTModule | null>(null);
+  const [course, setCourse] = useState<YTTCourseDetail | null>(null);
+  const [classes, setClasses] = useState<YTTClass[]>([]);
   const [enrolled, setEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentClassId, setCurrentClassId] = useState<string | null>(null);
@@ -58,40 +57,59 @@ export function UserSelfPacedCourse() {
   const [showCurriculum, setShowCurriculum] = useState(true);
 
   useEffect(() => {
-    if (!courseId) return;
+    if (!moduleId) return;
     let cancelled = false;
     setLoading(true);
     (async () => {
       try {
-        const [mod, cls, sub] = await Promise.all([
-          getModule("STUDENT", courseId),
-          listClasses("STUDENT", courseId),
-          getMySelfPacedSubscription("STUDENT"),
-        ]);
+        const enrollments = await listMyYTTRecordedEnrollments("STUDENT");
         if (cancelled) return;
-        const active = cls.filter((c) => c.isActive);
-        setModule(mod);
-        setClasses(active);
-        setEnrolled(sub.enrolled);
-        setCurrentClassId(active[0]?.id ?? null);
 
-        if (sub.enrolled) {
-          try {
-            const progress = await listMySelfPacedProgress("STUDENT");
-            if (cancelled) return;
-            setCompletedIds(
-              new Set(
-                progress.filter((p) => p.isCompleted).map((p) => p.classId),
-              ),
-            );
-          } catch {
-            // Progress is best-effort; don't fail the page if the endpoint is unavailable.
+        if (enrollments.length === 0) {
+          setEnrolled(false);
+          return;
+        }
+
+        const details = await Promise.all(
+          enrollments.map((e) =>
+            getYTTRecordedCourseForStudent(e.courseId, "STUDENT").catch(() => null),
+          ),
+        );
+        if (cancelled) return;
+
+        let foundCourse: YTTCourseDetail | null = null;
+        let foundModule: YTTModule | null = null;
+        for (const detail of details) {
+          if (!detail) continue;
+          const mod = detail.modules.find((m) => m.id === moduleId);
+          if (mod) {
+            foundCourse = detail;
+            foundModule = mod;
+            break;
           }
         }
+
+        if (!foundCourse || !foundModule) {
+          setEnrolled(false);
+          return;
+        }
+
+        setEnrolled(true);
+        setCourse(foundCourse);
+        setModule(foundModule);
+        const active = foundModule.classes.filter((c) => c.isActive);
+        setClasses(active);
+        setCurrentClassId(active[0]?.id ?? null);
+
+        const progress = await listMyYTTRecordedProgress(foundCourse.id, "STUDENT");
+        if (cancelled) return;
+        setCompletedIds(
+          new Set(progress.filter((p) => p.isCompleted).map((p) => p.classId)),
+        );
       } catch (err) {
         if (!cancelled) {
           toast.error(
-            err instanceof Error ? err.message : "Failed to load this course.",
+            err instanceof Error ? err.message : "Failed to load this module.",
           );
         }
       } finally {
@@ -101,15 +119,14 @@ export function UserSelfPacedCourse() {
     return () => {
       cancelled = true;
     };
-  }, [courseId]);
+  }, [moduleId]);
 
   const currentClass = useMemo(
     () => classes.find((c) => c.id === currentClassId) ?? null,
     [classes, currentClassId],
   );
   const currentIndex = useMemo(
-    () =>
-      currentClass ? classes.findIndex((c) => c.id === currentClass.id) : -1,
+    () => (currentClass ? classes.findIndex((c) => c.id === currentClass.id) : -1),
     [classes, currentClass],
   );
   const hasPrevious = currentIndex > 0;
@@ -127,13 +144,13 @@ export function UserSelfPacedCourse() {
       ? 0
       : Math.round((completedCount / classes.length) * 100);
 
-  const selectClass = (cls: SelfPacedClass) => {
+  const selectClass = (cls: YTTClass) => {
     if (!enrolled) return;
     setCurrentClassId(cls.id);
   };
 
   const handleMarkComplete = async () => {
-    if (!currentClass) return;
+    if (!currentClass || !course) return;
     const targetId = currentClass.id;
     setCompletedIds((prev) => {
       const next = new Set(prev);
@@ -144,7 +161,7 @@ export function UserSelfPacedCourse() {
       setCurrentClassId(classes[currentIndex + 1].id);
     }
     try {
-      await upsertSelfPacedProgress(targetId, {
+      await upsertYTTRecordedProgress(course.id, targetId, {
         isCompleted: true,
         progress: 100,
       });
@@ -168,18 +185,42 @@ export function UserSelfPacedCourse() {
     );
   }
 
-  if (!module) {
+  if (!enrolled) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 text-white">
-        <p>Course not found.</p>
-        <Button variant="outline" onClick={() => navigate("/user/self-paced")}>
-          Back to Courses
-        </Button>
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 text-white px-6 text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm">
+          <Lock className="w-8 h-8 text-white" />
+        </div>
+        <h2 className="text-2xl font-semibold">Module locked</h2>
+        <p className="text-white/70 max-w-md">
+          You need an active YTT Recorded enrollment for this course to view its
+          modules.
+        </p>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => navigate("/user/ytt-recorded")}>
+            Back
+          </Button>
+          <Button
+            onClick={() => navigate("/user/payments")}
+            style={{ backgroundColor: "#ff691d", color: "white" }}
+          >
+            View Plans
+          </Button>
+        </div>
       </div>
     );
   }
 
-  const showLockOverlay = !enrolled;
+  if (!module) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 text-white">
+        <p>Module not found.</p>
+        <Button variant="outline" onClick={() => navigate("/user/ytt-recorded")}>
+          Back to YTT Recorded
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black">
@@ -189,7 +230,7 @@ export function UserSelfPacedCourse() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate("/user/self-paced")}
+              onClick={() => navigate("/user/ytt-recorded")}
               className="text-white hover:bg-white/10 hover:text-white"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -197,7 +238,8 @@ export function UserSelfPacedCourse() {
             <div className="hidden md:block">
               <h2 className="text-white font-semibold">{module.title}</h2>
               <p className="text-sm text-gray-400">
-                {classes.length} lesson{classes.length === 1 ? "" : "s"} •{" "}
+                {course?.title} • {classes.length} lesson
+                {classes.length === 1 ? "" : "s"} •{" "}
                 {formatTotalDuration(totalDurationMin)}
               </p>
             </div>
@@ -232,7 +274,7 @@ export function UserSelfPacedCourse() {
       <div className="flex">
         <div className={`flex-1 ${showCurriculum ? "lg:mr-96" : ""}`}>
           <div className="relative bg-black aspect-video">
-            {currentClass && enrolled ? (
+            {currentClass ? (
               <video
                 key={currentClass.id}
                 className="w-full h-full"
@@ -244,33 +286,12 @@ export function UserSelfPacedCourse() {
               <div
                 className="w-full h-full bg-cover bg-center flex items-center justify-center"
                 style={{
-                  backgroundImage: `url(${currentClass?.thumbnailUrl ?? FALLBACK_POSTER})`,
+                  backgroundImage: `url(${FALLBACK_POSTER})`,
                 }}
               >
                 <div className="absolute inset-0 bg-black/70" />
                 <div className="relative z-10 text-center px-6">
-                  {showLockOverlay ? (
-                    <>
-                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm mb-4">
-                        <Lock className="w-8 h-8 text-white" />
-                      </div>
-                      <h2 className="text-2xl font-semibold text-white mb-2">
-                        Subscribe to start watching
-                      </h2>
-                      <p className="text-white/70 mb-6">
-                        Enroll in a self-paced plan to unlock every lesson in
-                        this course.
-                      </p>
-                      <Button
-                        onClick={() => navigate("/user/payments")}
-                        style={{ backgroundColor: "#ff691d", color: "white" }}
-                      >
-                        View Plans
-                      </Button>
-                    </>
-                  ) : (
-                    <p className="text-white/80">No lessons available yet.</p>
-                  )}
+                  <p className="text-white/80">No lessons available yet.</p>
                 </div>
               </div>
             )}
@@ -279,14 +300,6 @@ export function UserSelfPacedCourse() {
           <div className="bg-gradient-to-br from-gray-900 to-black text-white p-6 lg:p-8">
             <div className="flex items-start justify-between mb-6 gap-4">
               <div className="flex-1 min-w-0">
-                {showLockOverlay && (
-                  <div className="mb-2">
-                    <Badge className="bg-black/60 text-white border border-white/20">
-                      <Lock className="w-3 h-3 mr-1" />
-                      Locked
-                    </Badge>
-                  </div>
-                )}
                 <h1 className="text-2xl lg:text-3xl font-bold mb-2 break-words">
                   {currentClass
                     ? `${currentIndex + 1}. ${currentClass.title}`
@@ -314,7 +327,7 @@ export function UserSelfPacedCourse() {
               </div>
             </div>
 
-            {enrolled && currentClass && (
+            {currentClass && (
               <div className="flex items-center gap-3 mb-6">
                 <Button
                   disabled={!hasPrevious}
@@ -397,25 +410,19 @@ export function UserSelfPacedCourse() {
                     {classes.map((cls, lessonIndex) => {
                       const isCurrent = currentClass?.id === cls.id;
                       const isCompleted = completedIds.has(cls.id);
-                      const isLocked = !enrolled;
                       return (
                         <button
                           key={cls.id}
                           onClick={() => selectClass(cls)}
-                          disabled={isLocked}
                           className={`w-full text-left px-4 py-3 border-b last:border-b-0 transition-all ${
                             isCurrent
                               ? "bg-[#ff691d] text-white"
-                              : isLocked
-                                ? "bg-gray-50 cursor-not-allowed opacity-60"
-                                : "hover:bg-gray-50"
+                              : "hover:bg-gray-50"
                           }`}
                         >
                           <div className="flex items-start gap-3">
                             <div className="flex-shrink-0 mt-1">
-                              {isLocked ? (
-                                <Lock className="w-4 h-4 text-gray-400" />
-                              ) : isCompleted ? (
+                              {isCompleted ? (
                                 <CheckCircle2
                                   className={`w-4 h-4 ${
                                     isCurrent ? "text-white" : "text-green-500"
@@ -438,16 +445,12 @@ export function UserSelfPacedCourse() {
                               <div className="flex items-center gap-2 mt-1">
                                 <Clock
                                   className={`w-3 h-3 ${
-                                    isCurrent
-                                      ? "text-white/80"
-                                      : "text-gray-500"
+                                    isCurrent ? "text-white/80" : "text-gray-500"
                                   }`}
                                 />
                                 <span
                                   className={`text-xs ${
-                                    isCurrent
-                                      ? "text-white/80"
-                                      : "text-gray-500"
+                                    isCurrent ? "text-white/80" : "text-gray-500"
                                   }`}
                                 >
                                   {formatMinutes(cls.duration)}

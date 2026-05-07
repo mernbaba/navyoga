@@ -22,6 +22,7 @@ import {
 } from "../../api/plans";
 import { enrollInSelfPacedPlan } from "../../api/selfPaced";
 import { enrollInYTTLiveCourse } from "../../api/yttLive";
+import { enrollInYTTRecordedCourse } from "../../api/yttRecorded";
 import type { LivePlan, SelfPacedPlan, YTTPlan } from "../../api/types";
 
 type PlanCategory = "live" | "self-paced" | "ytt-recorded" | "ytt-live";
@@ -161,6 +162,14 @@ const [isEnrolling, setIsEnrolling] = useState(false);
         }
         await enrollInYTTLiveCourse(selectedPlan.courseId, selectedPlan.id);
         toast.success("YTT Live cohort enrollment activated");
+        setShowUpgradeDialog(false);
+      } else if (selectedPlan.category === "ytt-recorded") {
+        if (!selectedPlan.courseId) {
+          toast.error("This plan is not linked to a course.");
+          return;
+        }
+        await enrollInYTTRecordedCourse(selectedPlan.courseId, selectedPlan.id);
+        toast.success("YTT Recorded enrollment activated");
         setShowUpgradeDialog(false);
       } else {
         toast.message("Payment integration for this plan is coming soon.");

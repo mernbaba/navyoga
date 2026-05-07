@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { Input } from "../../components/ui/input";
-import { Share2, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import {
   Play,
   Clock,
   BookOpen,
-  CheckCircle2,
   Search,
-  Filter,
   GraduationCap,
   TrendingUp,
-  Award,
+  Crown,
+  CheckCircle2,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
@@ -22,6 +21,8 @@ import {
   listModules,
   listClasses,
   getMySelfPacedSubscription,
+  listMySelfPacedProgress,
+  type MySelfPacedSubscription,
 } from "../../api/selfPaced";
 import type { SelfPacedClass, SelfPacedModule } from "../../api/types";
 
@@ -30,16 +31,15 @@ type ModuleCourse = SelfPacedModule & {
   totalDurationMin: number;
 };
 
-const FALLBACK_THUMB =
-  "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&q=80";
-
 export function UserSelfPaced() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [showEnrolledOnly, setShowEnrolledOnly] = useState(false);
   const [modules, setModules] = useState<ModuleCourse[]>([]);
-  const [enrolled, setEnrolled] = useState(false);
+  const [subscription, setSubscription] = useState<MySelfPacedSubscription["subscription"]>(null);
+  const [completedClassIds, setCompletedClassIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+
+  const enrolled = subscription !== null;
 
   useEffect(() => {
     let cancelled = false;
@@ -61,7 +61,19 @@ export function UserSelfPaced() {
           return { ...m, classes: cls, totalDurationMin };
         });
         setModules(courses);
-        setEnrolled(sub.enrolled);
+        setSubscription(sub.enrolled ? sub.subscription : null);
+
+        if (sub.enrolled) {
+          try {
+            const progress = await listMySelfPacedProgress("STUDENT");
+            if (cancelled) return;
+            setCompletedClassIds(
+              new Set(progress.filter((p) => p.isCompleted).map((p) => p.classId)),
+            );
+          } catch {
+            // Progress is best-effort; don't fail the page if the endpoint is unavailable.
+          }
+        }
       } catch (err) {
         if (!cancelled) {
           toast.error(err instanceof Error ? err.message : "Failed to load self-paced courses.");
@@ -78,23 +90,55 @@ export function UserSelfPaced() {
   const filteredCourses = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return modules.filter((mod) => {
-      const matchesSearch =
+      return (
         !q ||
         mod.title.toLowerCase().includes(q) ||
-        mod.classes.some((c) => c.title.toLowerCase().includes(q));
-      const matchesEnrolled = !showEnrolledOnly || enrolled;
-      return matchesSearch && matchesEnrolled;
+        mod.classes.some((c) => c.title.toLowerCase().includes(q))
+      );
     });
-  }, [modules, searchQuery, enrolled, showEnrolledOnly]);
+  }, [modules, searchQuery]);
 
-  const enrolledCourses = enrolled ? modules : [];
+  const totalClasses = useMemo(
+    () => modules.reduce((sum, m) => sum + m.classes.length, 0),
+    [modules],
+  );
+
+  const progressPct = useMemo(() => {
+    if (!enrolled || totalClasses === 0) return 0;
+    let completed = 0;
+    for (const m of modules) {
+      for (const c of m.classes) {
+        if (completedClassIds.has(c.id)) completed += 1;
+      }
+    }
+    return Math.round((completed / totalClasses) * 100);
+  }, [modules, completedClassIds, totalClasses, enrolled]);
+
+  // Sequential unlocking: a module is unlocked only if every preceding module
+  // (in the catalogue order) is fully completed.
+  const unlockedIds = useMemo(() => {
+    const unlocked = new Set<string>();
+    if (!enrolled) return unlocked;
+    for (const m of modules) {
+      unlocked.add(m.id);
+      const completed =
+        m.classes.length > 0 &&
+        m.classes.every((c) => completedClassIds.has(c.id));
+      if (!completed) break;
+    }
+    return unlocked;
+  }, [modules, completedClassIds, enrolled]);
 
   const handleCourseClick = (mod: ModuleCourse) => {
     if (!enrolled) {
       navigate("/user/payments");
       return;
     }
-    navigate(`/user/self-paced-course/${mod.id}`);
+    if (!unlockedIds.has(mod.id)) {
+      toast.info("Complete the previous module to unlock this one.");
+      return;
+    }
+    navigate(`/user/self-paced/${mod.id}`);
   };
 
   const formatDuration = (minutes: number) => {
@@ -137,7 +181,7 @@ export function UserSelfPaced() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.5 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8"
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8"
           >
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
               <div className="flex items-center gap-3">
@@ -145,8 +189,20 @@ export function UserSelfPaced() {
                   <BookOpen className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-sm text-white/80">Available Courses</p>
+                  <p className="text-sm text-white/80">Modules</p>
                   <p className="text-2xl font-bold">{modules.length}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-xl">
+                  <Play className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm text-white/80">Classes</p>
+                  <p className="text-2xl font-bold">{totalClasses}</p>
                 </div>
               </div>
             </div>
@@ -157,8 +213,8 @@ export function UserSelfPaced() {
                   <TrendingUp className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-sm text-white/80">Enrolled</p>
-                  <p className="text-2xl font-bold">{enrolledCourses.length}</p>
+                  <p className="text-sm text-white/80">Progress</p>
+                  <p className="text-2xl font-bold">{progressPct}%</p>
                 </div>
               </div>
             </div>
@@ -166,12 +222,12 @@ export function UserSelfPaced() {
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-white/20 rounded-xl">
-                  <Award className="w-5 h-5" />
+                  <Crown className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-sm text-white/80">Status</p>
-                  <p className="text-2xl font-bold">
-                    {enrolled ? "Active" : "Not Enrolled"}
+                  <p className="text-sm text-white/80">Active Plan</p>
+                  <p className="text-2xl font-bold truncate">
+                    {subscription?.planName ?? "Not Enrolled"}
                   </p>
                 </div>
               </div>
@@ -213,26 +269,14 @@ export function UserSelfPaced() {
           transition={{ delay: 0.4, duration: 0.5 }}
           className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-border/50 shadow-lg"
         >
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                placeholder="Search courses…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-12 border-2 focus:border-[#ff691d]"
-              />
-            </div>
-
-            <Button
-              variant={showEnrolledOnly ? "default" : "outline"}
-              onClick={() => setShowEnrolledOnly(!showEnrolledOnly)}
-              className="h-12"
-              style={showEnrolledOnly ? { backgroundColor: "#610981", color: "white" } : {}}
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              {showEnrolledOnly ? "My Courses" : "All Courses"}
-            </Button>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-700 z-10 pointer-events-none" strokeWidth={2.25} />
+            <Input
+              placeholder="Search courses…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-12 border-2 focus:border-[#ff691d]"
+            />
           </div>
         </motion.div>
 
@@ -244,7 +288,12 @@ export function UserSelfPaced() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
             {filteredCourses.map((course, index) => {
               const lessonCount = course.classes.length;
-              const thumb = course.classes[0]?.thumbnailUrl || FALLBACK_THUMB;
+              const isCompleted =
+                enrolled &&
+                lessonCount > 0 &&
+                course.classes.every((c) => completedClassIds.has(c.id));
+              const isUnlocked = enrolled ? unlockedIds.has(course.id) : false;
+              const showLock = !isUnlocked;
               return (
                 <motion.div
                   key={course.id}
@@ -252,100 +301,102 @@ export function UserSelfPaced() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.05 * index, duration: 0.4 }}
                 >
-                  <Card className="group cursor-pointer hover:shadow-2xl transition-all duration-300 overflow-hidden border-2 hover:border-[#ff691d]/50 bg-white/80 backdrop-blur-sm">
-                    <div className="relative h-48 overflow-hidden">
-                      <img
-                        src={thumb}
-                        alt={course.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                      {enrolled ? (
+                  <Card
+                    className={`group transition-all duration-300 overflow-hidden border-2 bg-white/80 backdrop-blur-sm flex flex-col ${
+                      isUnlocked || !enrolled
+                        ? "cursor-pointer hover:shadow-2xl hover:border-[#ff691d]/50"
+                        : "opacity-75"
+                    }`}
+                  >
+                    <div
+                      className={`relative h-28 overflow-hidden bg-gradient-to-br from-[#610981] via-[#8b0fa8] to-[#ff691d] ${
+                        showLock && enrolled ? "grayscale" : ""
+                      }`}
+                    >
+                      <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
+                      <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+                      <div className="absolute top-3 left-3">
+                        <Badge className="bg-white/95 text-[#610981] border-0 font-semibold tracking-wide text-[10px]">
+                          <GraduationCap className="w-3 h-3 mr-1" />
+                          MODULE
+                        </Badge>
+                      </div>
+                      {isCompleted ? (
                         <div className="absolute top-3 right-3">
-                          <Badge className="bg-white/90 backdrop-blur-sm text-[#610981] border-[#610981]">
+                          <Badge className="bg-green-500/95 text-white border-0 shadow-md">
                             <CheckCircle2 className="w-3 h-3 mr-1" />
-                            Enrolled
+                            Completed
                           </Badge>
                         </div>
-                      ) : (
+                      ) : showLock ? (
                         <div className="absolute top-3 right-3">
                           <Badge className="bg-black/70 backdrop-blur-sm text-white border-0">
                             <Lock className="w-3 h-3 mr-1" />
                             Locked
                           </Badge>
                         </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-                        <Badge className="bg-white/90 text-[#610981] border-[#610981]/30">
-                          {lessonCount} lesson{lessonCount === 1 ? "" : "s"}
-                        </Badge>
-                        <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full">
-                          <Clock className="w-3 h-3 text-gray-700" />
-                          <span className="text-xs font-semibold">
+                      ) : null}
+                      <div className="relative z-10 h-full flex items-center justify-center">
+                        {showLock && enrolled ? (
+                          <Lock className="w-9 h-9 text-white/80" />
+                        ) : (
+                          <BookOpen className="w-10 h-10 text-white/70" />
+                        )}
+                      </div>
+                    </div>
+
+                    <CardHeader className="pb-0 pt-3">
+                      <CardTitle className="text-lg leading-tight group-hover:text-[#ff691d] transition-colors">
+                        {course.title}
+                      </CardTitle>
+                    </CardHeader>
+
+                    <CardContent className="flex flex-col flex-1 justify-end space-y-3 pb-4">
+                      <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-1.5 text-gray-700">
+                          <BookOpen className="w-4 h-4 text-[#610981]" />
+                          <span className="font-semibold">{lessonCount}</span>
+                          <span className="text-gray-500">
+                            lesson{lessonCount === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                        <div className="w-px h-4 bg-gray-200" />
+                        <div className="flex items-center gap-1.5 text-gray-700">
+                          <Clock className="w-4 h-4 text-[#ff691d]" />
+                          <span className="font-semibold">
                             {formatDuration(course.totalDurationMin)}
                           </span>
                         </div>
                       </div>
-                    </div>
 
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg group-hover:text-[#ff691d] transition-colors">
-                        {course.title}
-                      </CardTitle>
-                      <CardDescription className="line-clamp-2 text-sm">
-                        {lessonCount === 0
-                          ? "No classes published yet."
-                          : `Includes ${lessonCount} guided session${lessonCount === 1 ? "" : "s"}.`}
-                      </CardDescription>
-                    </CardHeader>
-
-                    <CardContent className="space-y-4">
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => handleCourseClick(course)}
-                          disabled={lessonCount === 0}
-                          className={`flex-1 group/btn text-white ${
-                            enrolled
+                      <Button
+                        onClick={() => handleCourseClick(course)}
+                        disabled={lessonCount === 0 || (enrolled && !isUnlocked)}
+                        className={`w-full group/btn text-white ${
+                          !enrolled
+                            ? "bg-[#ff691d] hover:bg-[#ff7f3a]"
+                            : isUnlocked
                               ? "bg-[#610981] hover:bg-[#7a0a9f]"
-                              : "bg-[#ff691d] hover:bg-[#ff7f3a]"
-                          }`}
-                        >
-                          {enrolled ? (
-                            <>
-                              <Play className="w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform" />
-                              Continue Learning
-                            </>
-                          ) : (
-                            <>
-                              <BookOpen className="w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform" />
-                              Enroll Now
-                            </>
-                          )}
-                        </Button>
-
-                        <Button
-                          onClick={() => {
-                            const url = `${window.location.origin}/user/self-paced-course/${course.id}`;
-                            if (navigator.share) {
-                              navigator.share({
-                                title: course.title,
-                                text: `Check out this course: ${course.title}`,
-                                url,
-                              });
-                            } else {
-                              navigator.clipboard.writeText(url);
-                              toast.success("Link copied!");
-                            }
-                          }}
-                          className={`px-3 text-white ${
-                            enrolled
-                              ? "bg-[#ff691d] hover:bg-[#ff7f3a]"
-                              : "bg-[#610981] hover:bg-[#7a0a9f]"
-                          }`}
-                        >
-                          <Share2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                              : "bg-gray-400 hover:bg-gray-400"
+                        }`}
+                      >
+                        {!enrolled ? (
+                          <>
+                            <BookOpen className="w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform" />
+                            Enroll Now
+                          </>
+                        ) : isUnlocked ? (
+                          <>
+                            <Play className="w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform" />
+                            {isCompleted ? "Review" : "Continue Learning"}
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-4 h-4 mr-2" />
+                            Locked
+                          </>
+                        )}
+                      </Button>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -364,19 +415,12 @@ export function UserSelfPaced() {
               <Search className="w-10 h-10 text-gray-400" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No courses found</h3>
-            <p className="text-gray-600 mb-6">
-              {showEnrolledOnly && !enrolled
-                ? "You haven't enrolled in self-paced yet."
-                : "Try adjusting your search."}
-            </p>
+            <p className="text-gray-600 mb-6">Try adjusting your search.</p>
             <Button
-              onClick={() => {
-                setSearchQuery("");
-                setShowEnrolledOnly(false);
-              }}
+              onClick={() => setSearchQuery("")}
               style={{ backgroundColor: "#ff691d", color: "white" }}
             >
-              Clear Filters
+              Clear Search
             </Button>
           </motion.div>
         )}

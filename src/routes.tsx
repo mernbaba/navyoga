@@ -55,19 +55,18 @@ import { OperationsEvents } from "./pages/operations/OperationsEvents";
 import { OperationsSettings } from "./pages/operations/OperationsSettings";
 import { UserDashboard } from "./pages/user/UserDashboard";
 import { UserClasses } from "./pages/user/UserClasses";
-import { UserRecordings } from "./pages/user/UserRecordings";
 import { UserAttendance } from "./pages/user/UserAttendance";
 import { UserProfile } from "./pages/user/UserProfile";
 import { UserPayments } from "./pages/user/UserPayments";
 import { UserSettings } from "./pages/user/UserSettings";
 import { UserClassSession } from "./pages/user/UserClassSession";
-import { UserRecordingPlayer } from "./pages/user/UserRecordingPlayer";
 import { UserSelfPaced } from "./pages/user/UserSelfPaced";
 import { UserSelfPacedCourse } from "./pages/user/UserSelfPacedCourse";
 import { UserReferrals } from "./pages/user/UserReferrals";
 import { UserEvents } from "./pages/user/UserEvents";
 import { UserYTTLive } from "./pages/user/UserYTTLive";
 import { UserYTTRecorded } from "./pages/user/UserYTTRecorded";
+import { UserYTTRecordedCourse } from "./pages/user/UserYTTRecordedCourse";
 
 const ProtectedRoute = ({ role, children }: { role: LoginRole; children: React.ReactNode }) => {
   if (!isRoleAuthenticated(role)) {
@@ -217,7 +216,6 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/user/dashboard" replace /> },
       { path: "dashboard", Component: UserDashboard },
       { path: "classes", Component: UserClasses },
-      { path: "recordings", Component: UserRecordings },
       { path: "attendance", Component: UserAttendance },
       { path: "referrals", Component: UserReferrals },
       { path: "events", Component: UserEvents },
@@ -225,11 +223,11 @@ export const router = createBrowserRouter([
       { path: "payments", Component: UserPayments },
       { path: "settings", Component: UserSettings },
       { path: "class-session/:classId", Component: UserClassSession },
-      { path: "recording-player/:recordingId", Component: UserRecordingPlayer },
       { path: "self-paced", Component: UserSelfPaced },
-      { path: "self-paced-course/:courseId", Component: UserSelfPacedCourse },
+      { path: "self-paced/:courseId", Component: UserSelfPacedCourse },
       { path: "ytt-live", Component: UserYTTLive },
       { path: "ytt-recorded", Component: UserYTTRecorded },
+      { path: "ytt-recorded/:courseId", Component: UserYTTRecordedCourse },
     ],
   },
 ]);

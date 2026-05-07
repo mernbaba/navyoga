@@ -17,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
@@ -52,54 +51,14 @@ import {
 } from "@/api/live";
 import { listTutors } from "@/api/tutors";
 import { listBatches } from "@/api/batches";
-import type { LiveClass, LiveClassStatus, ClassDifficulty, Tutor, Batch } from "@/api/types";
+import type { LiveClass, ClassDifficulty, Tutor, Batch } from "@/api/types";
 import { BatchesDialog } from "./BatchesDialog";
-
-const STATUS_CONFIG: Record<
-  LiveClassStatus,
-  { label: string; color: string; dot: string }
-> = {
-  DRAFT: {
-    label: "Draft",
-    color: "bg-slate-100 text-slate-600 border-slate-200",
-    dot: "bg-slate-400",
-  },
-  SCHEDULED: {
-    label: "Scheduled",
-    color: "bg-blue-50 text-blue-700 border-blue-200",
-    dot: "bg-blue-500",
-  },
-  LIVE: {
-    label: "Live",
-    color: "bg-red-50 text-red-700 border-red-200",
-    dot: "bg-red-500",
-  },
-  COMPLETED: {
-    label: "Completed",
-    color: "bg-green-50 text-green-700 border-green-200",
-    dot: "bg-green-500",
-  },
-  CANCELLED: {
-    label: "Cancelled",
-    color: "bg-orange-50 text-orange-700 border-orange-200",
-    dot: "bg-orange-400",
-  },
-};
 
 const DIFFICULTY_CONFIG: Record<ClassDifficulty, { label: string; color: string }> = {
   EASY: { label: "Beginner", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   MEDIUM: { label: "Intermediate", color: "bg-amber-50 text-amber-700 border-amber-200" },
   HARD: { label: "Advanced", color: "bg-rose-50 text-rose-700 border-rose-200" },
 };
-
-const STATUS_TABS: Array<{ value: LiveClassStatus | "ALL"; label: string }> = [
-  { value: "ALL", label: "All" },
-  { value: "LIVE", label: "Live Now" },
-  { value: "SCHEDULED", label: "Scheduled" },
-  { value: "DRAFT", label: "Draft" },
-  { value: "COMPLETED", label: "Completed" },
-  { value: "CANCELLED", label: "Cancelled" },
-];
 
 const BLANK_FORM = {
   title: "",
@@ -112,7 +71,6 @@ const BLANK_FORM = {
   scheduledAt: "",
   link: "",
   recording: "",
-  status: "DRAFT" as LiveClassStatus,
 };
 
 type FormState = typeof BLANK_FORM;
@@ -143,7 +101,6 @@ export function ClassesLive() {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<LiveClassStatus | "ALL">("ALL");
   const [search, setSearch] = useState("");
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -175,19 +132,9 @@ export function ClassesLive() {
   }, [load]);
 
   const filtered = classes.filter((c) => {
-    if (activeTab !== "ALL" && c.status !== activeTab) return false;
     if (search && !c.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
-
-  const counts = {
-    ALL: classes.length,
-    LIVE: classes.filter((c) => c.status === "LIVE").length,
-    SCHEDULED: classes.filter((c) => c.status === "SCHEDULED").length,
-    DRAFT: classes.filter((c) => c.status === "DRAFT").length,
-    COMPLETED: classes.filter((c) => c.status === "COMPLETED").length,
-    CANCELLED: classes.filter((c) => c.status === "CANCELLED").length,
-  };
 
   function openCreate() {
     setEditing(null);
@@ -210,7 +157,6 @@ export function ClassesLive() {
         : "",
       link: cls.link ?? "",
       recording: cls.recording ?? "",
-      status: cls.status,
     });
     setDialogOpen(true);
   }
@@ -238,7 +184,6 @@ export function ClassesLive() {
         scheduledAt: form.scheduledAt ? new Date(form.scheduledAt).toISOString() : null,
         link: form.link || null,
         recording: form.recording || null,
-        status: form.status,
       };
 
       if (editing) {
@@ -312,35 +257,6 @@ export function ClassesLive() {
         </div>
       </div>
 
-      {/* Stat chips */}
-      <div className="flex flex-wrap gap-3">
-        {(["LIVE", "SCHEDULED", "DRAFT", "COMPLETED"] as LiveClassStatus[]).map((s) => {
-          const cfg = STATUS_CONFIG[s];
-          return (
-            <div
-              key={s}
-              className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium cursor-pointer transition-opacity",
-                cfg.color,
-                activeTab === s ? "opacity-100 outline outline-2 outline-offset-1" : "opacity-80 hover:opacity-100",
-              )}
-              style={activeTab === s ? { outlineColor: "#610981" } : {}}
-              onClick={() => setActiveTab(activeTab === s ? "ALL" : s)}
-            >
-              <span
-                className={cn(
-                  "w-2 h-2 rounded-full",
-                  cfg.dot,
-                  s === "LIVE" && counts.LIVE > 0 && "animate-pulse",
-                )}
-              />
-              {cfg.label}
-              <span className="font-bold">{counts[s]}</span>
-            </div>
-          );
-        })}
-      </div>
-
       {/* Filter bar */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
@@ -360,26 +276,6 @@ export function ClassesLive() {
             </button>
           )}
         </div>
-
-        <div className="flex gap-1 p-1 bg-muted/50 rounded-lg border">
-          {STATUS_TABS.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setActiveTab(tab.value)}
-              className={cn(
-                "px-3 py-1 text-xs font-medium rounded-md transition-all",
-                activeTab === tab.value
-                  ? "bg-white text-[#610981] shadow-sm font-semibold"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {tab.label}
-              {counts[tab.value] > 0 && (
-                <span className="ml-1.5 text-[10px] opacity-70">{counts[tab.value]}</span>
-              )}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Content */}
@@ -396,7 +292,7 @@ export function ClassesLive() {
               Try clearing your search
             </p>
           )}
-          {!search && activeTab === "ALL" && (
+          {!search && (
             <Button
               variant="outline"
               size="sm"
@@ -476,39 +372,18 @@ export function ClassesLive() {
               </div>
             </div>
 
-            {/* Duration + Status */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>
-                  Duration (mins) <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  type="number"
-                  min={1}
-                  placeholder="60"
-                  value={form.duration}
-                  onChange={(e) => setField("duration", e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Status</Label>
-                <Select
-                  value={form.status}
-                  onValueChange={(v) => setField("status", v as LiveClassStatus)}
-                >
-                  <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="DRAFT">Draft</SelectItem>
-                    <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-                    <SelectItem value="LIVE">Live</SelectItem>
-                    <SelectItem value="COMPLETED">Completed</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Duration */}
+            <div className="space-y-1.5">
+              <Label>
+                Duration (mins) <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                type="number"
+                min={1}
+                placeholder="60"
+                value={form.duration}
+                onChange={(e) => setField("duration", e.target.value)}
+              />
             </div>
 
             {/* Scheduled At */}
@@ -669,42 +544,14 @@ function LiveClassCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const statusCfg = STATUS_CONFIG[cls.status];
   const diffCfg = DIFFICULTY_CONFIG[cls.difficulty];
 
   return (
     <div className="rounded-2xl border bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow overflow-hidden group">
-      {/* Status stripe */}
-      <div
-        className={cn(
-          "h-1 w-full",
-          cls.status === "LIVE" && "bg-red-500 animate-pulse",
-          cls.status === "SCHEDULED" && "bg-blue-500",
-          cls.status === "DRAFT" && "bg-slate-300",
-          cls.status === "COMPLETED" && "bg-green-500",
-          cls.status === "CANCELLED" && "bg-orange-400",
-        )}
-      />
-
       <div className="p-4 space-y-3">
         {/* Header row */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap gap-1.5">
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[11px] font-semibold",
-                statusCfg.color,
-              )}
-            >
-              <span
-                className={cn(
-                  "w-1.5 h-1.5 rounded-full",
-                  statusCfg.dot,
-                  cls.status === "LIVE" && "animate-pulse",
-                )}
-              />
-              {statusCfg.label}
-            </span>
             <span
               className={cn(
                 "inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium",

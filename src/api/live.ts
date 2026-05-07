@@ -4,12 +4,10 @@ import {
   type ApiSuccess,
   type Role,
   type LiveClass,
-  type LiveClassStatus,
   type ClassDifficulty,
 } from "./types";
 
 export type LiveClassListParams = {
-  status?: LiveClassStatus;
   tutorId?: string;
   batchId?: string;
   q?: string;
@@ -27,7 +25,6 @@ export type LiveClassCreateBody = {
   scheduledAt?: string;
   link?: string;
   recording?: string;
-  status?: LiveClassStatus;
 };
 
 export type LiveClassUpdateBody = {
@@ -41,7 +38,6 @@ export type LiveClassUpdateBody = {
   scheduledAt?: string | null;
   link?: string | null;
   recording?: string | null;
-  status?: LiveClassStatus;
 };
 
 export function listLiveClasses(role: Role, params: LiveClassListParams = {}) {
