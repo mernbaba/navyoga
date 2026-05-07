@@ -34,6 +34,7 @@ export function OperationsTutors() {
     experience: "",
     specializations: "",
     bio: "",
+    referredByCode: "",
   });
 
   const [editing, setEditing] = useState<Tutor | null>(null);
@@ -90,10 +91,11 @@ export function OperationsTutors() {
         experience: Number(addForm.experience) || 0,
         specializations: addForm.specializations.split(",").map((s) => s.trim()).filter(Boolean),
         bio: addForm.bio || undefined,
+        referredByCode: addForm.referredByCode.trim() || undefined,
       });
       toast.success("Tutor added successfully");
       setIsAddOpen(false);
-      setAddForm({ name: "", email: "", phone: "", password: "", experience: "", specializations: "", bio: "" });
+      setAddForm({ name: "", email: "", phone: "", password: "", experience: "", specializations: "", bio: "", referredByCode: "" });
       refetch();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to add tutor.");
@@ -297,6 +299,10 @@ export function OperationsTutors() {
             <div>
               <Label htmlFor="bio" style={{ color: "#ffac96" }}>Bio</Label>
               <Textarea id="bio" value={addForm.bio} onChange={(e) => setAddForm({ ...addForm, bio: e.target.value })} className="mt-1" rows={3} maxLength={2000} />
+            </div>
+            <div>
+              <Label htmlFor="referredByCode" style={{ color: "#ffac96" }}>Referral code (optional)</Label>
+              <Input id="referredByCode" value={addForm.referredByCode} onChange={(e) => setAddForm({ ...addForm, referredByCode: e.target.value })} className="mt-1" maxLength={50} placeholder="ARJU-AB12CD" />
             </div>
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>

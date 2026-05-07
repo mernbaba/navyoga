@@ -543,8 +543,43 @@ export type YTTCourseBody = {
   isActive?: boolean;
 };
 
+export type YTTLiveClass = {
+  id: string;
+  courseId: string;
+  title: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  yogaType: string;
+  difficulty: ClassDifficulty;
+  status: LiveClassStatus;
+  scheduledAt: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  duration: number;
+  link: string | null;
+  recording: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type YTTLiveClassBody = {
+  title: string;
+  yogaType: string;
+  difficulty: ClassDifficulty;
+  duration: number;
+  description?: string | null;
+  thumbnailUrl?: string | null;
+  link?: string | null;
+  scheduledAt?: string | null;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  recording?: string | null;
+  status?: LiveClassStatus;
+};
+
 export type YTTLiveCourseDetail = YTTCourse & {
   plans: YTTPlan[];
+  classes: YTTLiveClass[];
 };
 
 export type MembershipPeriod = "MONTHLY" | "QUARTERLY" | "HALF_YEARLY" | "YEARLY";

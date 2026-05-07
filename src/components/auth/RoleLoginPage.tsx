@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { ArrowRight, Eye, EyeOff, Lock, Mail, Sparkles } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
@@ -98,8 +98,8 @@ export function RoleLoginPage({ role }: { role: LoginRole }) {
           transition={{ delay: 0.2, duration: 0.5 }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6" style={{ backgroundColor: "#ff691d" }}>
-            <Sparkles className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6 bg-gradient-to-br from-[#610981] to-[#8b0fa8] shadow-lg shadow-[#610981]/30">
+            <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="NavYoga" className="w-10 h-10 object-contain" />
           </div>
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-gray-400 mb-3">{config.roleLabel} Portal</p>
           <h1 className="text-4xl font-bold tracking-tight mb-2" style={{ color: "#610981" }}>

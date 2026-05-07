@@ -41,6 +41,7 @@ export function Tutors() {
     experience: "",
     specializations: "",
     bio: "",
+    referredByCode: "",
   });
 
   const [editingTutor, setEditingTutor] = useState<Tutor | null>(null);
@@ -95,10 +96,11 @@ export function Tutors() {
           .map((s) => s.trim())
           .filter(Boolean),
         bio: addForm.bio || undefined,
+        referredByCode: addForm.referredByCode.trim() || undefined,
       });
       toast.success("Tutor added successfully.");
       setIsAddOpen(false);
-      setAddForm({ name: "", email: "", phone: "", password: "", experience: "", specializations: "", bio: "" });
+      setAddForm({ name: "", email: "", phone: "", password: "", experience: "", specializations: "", bio: "", referredByCode: "" });
       refetch();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to add tutor.");
@@ -160,13 +162,13 @@ export function Tutors() {
               Add Yoga Shikshak
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-2xl">
             <form onSubmit={handleAdd}>
               <DialogHeader>
                 <DialogTitle>Add New Yoga Shikshak</DialogTitle>
                 <DialogDescription>Enter the details of the new yoga shikshak</DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input id="name" value={addForm.name} onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} required maxLength={100} />
@@ -184,16 +186,20 @@ export function Tutors() {
                   <Input id="password" type="password" value={addForm.password} onChange={(e) => setAddForm({ ...addForm, password: e.target.value })} required minLength={8} maxLength={128} />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="specializations">Specializations</Label>
-                  <Input id="specializations" placeholder="Hatha, Vinyasa, Yin (comma separated)" value={addForm.specializations} onChange={(e) => setAddForm({ ...addForm, specializations: e.target.value })} />
-                </div>
-                <div className="grid gap-2">
                   <Label htmlFor="experience">Years of Experience</Label>
                   <Input id="experience" type="number" min={0} max={80} value={addForm.experience} onChange={(e) => setAddForm({ ...addForm, experience: e.target.value })} required />
                 </div>
                 <div className="grid gap-2">
+                  <Label htmlFor="referredByCode">Referral code (optional)</Label>
+                  <Input id="referredByCode" value={addForm.referredByCode} onChange={(e) => setAddForm({ ...addForm, referredByCode: e.target.value })} maxLength={50} placeholder="ARJU-AB12CD" />
+                </div>
+                <div className="grid gap-2 sm:col-span-2">
+                  <Label htmlFor="specializations">Specializations</Label>
+                  <Input id="specializations" placeholder="Hatha, Vinyasa, Yin (comma separated)" value={addForm.specializations} onChange={(e) => setAddForm({ ...addForm, specializations: e.target.value })} />
+                </div>
+                <div className="grid gap-2 sm:col-span-2">
                   <Label htmlFor="bio">Bio</Label>
-                  <Textarea id="bio" value={addForm.bio} onChange={(e) => setAddForm({ ...addForm, bio: e.target.value })} maxLength={2000} rows={3} />
+                  <Textarea id="bio" value={addForm.bio} onChange={(e) => setAddForm({ ...addForm, bio: e.target.value })} maxLength={2000} rows={3} className="rounded-xl border-border/50 bg-input-background/50" />
                 </div>
               </div>
               <DialogFooter>
@@ -230,7 +236,7 @@ export function Tutors() {
         <CardContent>
           <div className="mb-4 flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
               <Input
                 placeholder="Search by name, email, or tutor ID..."
                 value={searchQuery}
@@ -242,7 +248,9 @@ export function Tutors() {
               />
             </div>
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as StaffStatus | "ALL"); setPage(1); }}>
-              <SelectTrigger className="md:w-48"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="md:w-48 h-9 rounded-xl bg-input-background/50">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All statuses</SelectItem>
                 {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace("_", " ")}</SelectItem>)}
@@ -323,14 +331,14 @@ export function Tutors() {
       </Card>
 
       <Dialog open={!!editingTutor} onOpenChange={() => setEditingTutor(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl">
           <form onSubmit={handleEdit}>
             <DialogHeader>
               <DialogTitle>Edit Yoga Shikshak</DialogTitle>
               <DialogDescription>Update yoga shikshak information</DialogDescription>
             </DialogHeader>
             {editingTutor && (
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="edit-name">Full Name</Label>
                   <Input id="edit-name" name="name" defaultValue={editingTutor.name} required maxLength={100} />
@@ -344,25 +352,27 @@ export function Tutors() {
                   <Input id="edit-phone" name="phone" defaultValue={editingTutor.phone} required minLength={7} maxLength={15} />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-specializations">Specializations</Label>
-                  <Input id="edit-specializations" name="specializations" defaultValue={editingTutor.specializations.join(", ")} />
-                </div>
-                <div className="grid gap-2">
                   <Label htmlFor="edit-experience">Years of Experience</Label>
                   <Input id="edit-experience" name="experience" type="number" min={0} max={80} defaultValue={editingTutor.experience} required />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-bio">Bio</Label>
-                  <Textarea id="edit-bio" name="bio" defaultValue={editingTutor.bio ?? ""} maxLength={2000} rows={3} />
-                </div>
-                <div className="grid gap-2">
                   <Label htmlFor="edit-status">Status</Label>
                   <Select name="status" defaultValue={editingTutor.status}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
                     <SelectContent>
                       {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace("_", " ")}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="grid gap-2 sm:col-span-2">
+                  <Label htmlFor="edit-specializations">Specializations</Label>
+                  <Input id="edit-specializations" name="specializations" defaultValue={editingTutor.specializations.join(", ")} />
+                </div>
+                <div className="grid gap-2 sm:col-span-2">
+                  <Label htmlFor="edit-bio">Bio</Label>
+                  <Textarea id="edit-bio" name="bio" defaultValue={editingTutor.bio ?? ""} maxLength={2000} rows={3} className="rounded-xl bg-input-background/50" />
                 </div>
               </div>
             )}

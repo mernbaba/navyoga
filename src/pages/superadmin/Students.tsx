@@ -142,13 +142,13 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
               <Plus className="w-4 h-4 mr-2" />Add Sādhaka
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-2xl">
             <form onSubmit={handleAdd}>
               <DialogHeader>
                 <DialogTitle>Add New Sādhaka</DialogTitle>
                 <DialogDescription>Enter the details of the new sādhaka</DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input id="name" value={addForm.name} onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} required maxLength={100} />
@@ -170,12 +170,12 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                   <Input id="age" type="number" min={1} max={120} value={addForm.age} onChange={(e) => setAddForm({ ...addForm, age: e.target.value })} />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Input id="address" value={addForm.address} onChange={(e) => setAddForm({ ...addForm, address: e.target.value })} maxLength={500} />
-                </div>
-                <div className="grid gap-2">
                   <Label htmlFor="referredByCode">Referral Code (optional)</Label>
                   <Input id="referredByCode" value={addForm.referredByCode} onChange={(e) => setAddForm({ ...addForm, referredByCode: e.target.value })} maxLength={50} />
+                </div>
+                <div className="grid gap-2 sm:col-span-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input id="address" value={addForm.address} onChange={(e) => setAddForm({ ...addForm, address: e.target.value })} maxLength={500} />
                 </div>
               </div>
               <DialogFooter>
@@ -212,7 +212,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
         <CardContent>
           <div className="mb-4 flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
               <Input
                 placeholder="Search by name, email, or student ID..."
                 value={searchQuery}
@@ -221,7 +221,9 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
               />
             </div>
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as StudentStatus | "ALL"); setPage(1); }}>
-              <SelectTrigger className="md:w-48"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="md:w-48 h-9 rounded-xl bg-input-background/50">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All statuses</SelectItem>
                 {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -289,14 +291,14 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
       </Card>
 
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl">
           {editing && (
             <form onSubmit={handleEdit}>
               <DialogHeader>
                 <DialogTitle>Edit Sādhaka</DialogTitle>
                 <DialogDescription>Update sādhaka information</DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="edit-name">Full Name</Label>
                   <Input id="edit-name" name="name" defaultValue={editing.name} required maxLength={100} />
@@ -312,7 +314,9 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                 <div className="grid gap-2">
                   <Label htmlFor="edit-status">Status</Label>
                   <Select name="status" defaultValue={editing.status}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
                     <SelectContent>
                       {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                     </SelectContent>

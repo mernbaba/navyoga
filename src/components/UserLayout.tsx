@@ -9,7 +9,6 @@ import {
   Settings as SettingsIcon,
   Menu,
   LogOut,
-  Sparkles,
   GraduationCap,
   Gift,
   CalendarDays
@@ -93,7 +92,7 @@ export function UserLayout() {
                 <div className="p-6 border-b border-border/50">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-gradient-to-br from-[#610981] to-[#8b0fa8] rounded-xl shadow-lg">
-                      <Sparkles className="w-6 h-6 text-white" />
+                      <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="NavYoga" className="w-7 h-7 object-contain" />
                     </div>
                     <div>
                       <h2 className="font-semibold text-lg" style={{ color: '#ff691d' }}>NavYoga</h2>
@@ -120,7 +119,7 @@ export function UserLayout() {
 
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gradient-to-br from-[#610981] to-[#8b0fa8] rounded-xl shadow-lg hidden sm:block">
-              <Sparkles className="w-5 h-5 text-white" />
+              <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="NavYoga" className="w-6 h-6 object-contain" />
             </div>
             <div>
               <h1 className="font-semibold text-lg" style={{ color: '#ff691d' }}>NavYoga Academy</h1>

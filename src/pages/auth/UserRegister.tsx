@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams, Link } from "react-router";
 import { ArrowRight, Eye, EyeOff, Lock, Mail, Phone, Sparkles, User as UserIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { setRoleAuth } from "../../lib/auth";
 
 export function UserRegister() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -18,6 +19,11 @@ export function UserRegister() {
   const [referredByCode, setReferredByCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) setReferredByCode(ref.trim());
+  }, [searchParams]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

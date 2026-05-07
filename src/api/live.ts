@@ -26,6 +26,7 @@ export type LiveClassCreateBody = {
   batchId?: string;
   scheduledAt?: string;
   link?: string;
+  recording?: string;
   status?: LiveClassStatus;
 };
 

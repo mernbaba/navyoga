@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
+import { Textarea } from "../../../components/ui/textarea";
 import { Badge } from "../../../components/ui/badge";
 import {
   Dialog,
@@ -19,16 +20,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select";
-import { Radio, Plus, Trash2, ChevronRight, GraduationCap, Pencil, Clock, IndianRupee, CheckCircle2 } from "lucide-react";
+import { Radio, Plus, Trash2, ChevronRight, GraduationCap, Pencil, Search, Clock, CalendarDays, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   listYTTLiveCourses,
-  getYTTLiveCourse,
   createYTTLiveCourse,
   updateYTTLiveCourse,
-  deleteYTTLiveCourse,
+  listYTTLiveClasses,
+  createYTTLiveClass,
+  updateYTTLiveClass,
+  deleteYTTLiveClass,
 } from "../../../api/plans";
-import type { YTTCourse, YTTLiveCourseDetail, ClassLevel, YTTCourseBody } from "../../../api/types";
+import type {
+  YTTCourse,
+  ClassLevel,
+  YTTCourseBody,
+  YTTLiveClass,
+  YTTLiveClassBody,
+  ClassDifficulty,
+  LiveClassStatus,
+} from "../../../api/types";
 
 const BRAND = "#610981";
 
@@ -39,7 +50,62 @@ const LEVELS: { value: ClassLevel; label: string }[] = [
   { value: "ADVANCED", label: "Advanced" },
 ];
 
-const formatINR = (val: string | number) => `₹${Number(val).toLocaleString("en-IN")}`;
+const DIFFICULTIES: { value: ClassDifficulty; label: string }[] = [
+  { value: "EASY", label: "Easy" },
+  { value: "MEDIUM", label: "Medium" },
+  { value: "HARD", label: "Hard" },
+];
+
+const STATUSES: { value: LiveClassStatus; label: string; tone: string }[] = [
+  { value: "DRAFT", label: "Draft", tone: "bg-slate-100 text-slate-700 border-slate-200" },
+  { value: "SCHEDULED", label: "Scheduled", tone: "bg-blue-50 text-blue-700 border-blue-200" },
+  { value: "LIVE", label: "Live", tone: "bg-red-50 text-red-700 border-red-200" },
+  { value: "COMPLETED", label: "Completed", tone: "bg-green-50 text-green-700 border-green-200" },
+  { value: "CANCELLED", label: "Cancelled", tone: "bg-amber-50 text-amber-700 border-amber-200" },
+];
+
+function statusTone(status: LiveClassStatus) {
+  return STATUSES.find((s) => s.value === status)?.tone ?? "";
+}
+
+function statusLabel(status: LiveClassStatus) {
+  return STATUSES.find((s) => s.value === status)?.label ?? status;
+}
+
+function formatDuration(minutes: number) {
+  if (!minutes) return "—";
+  if (minutes < 60) return `${minutes}m`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+
+function formatScheduled(iso: string | null) {
+  if (!iso) return "Not scheduled";
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+// ISO ↔ datetime-local helpers (HTML input gives "YYYY-MM-DDTHH:MM" in local TZ)
+function isoToLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function localInputToIso(value: string): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
 
 // ─── COURSE FORM DIALOG (Create + Edit) ───────────────────────────────────────
 
@@ -196,27 +262,442 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
   );
 }
 
+// ─── CLASS FORM DIALOG (Create + Edit) ────────────────────────────────────────
+
+interface ClassFormDialogProps {
+  open: boolean;
+  courseId: string;
+  initial: YTTLiveClass | null;
+  onClose: () => void;
+  onSaved: (cls: YTTLiveClass) => void;
+}
+
+type ClassFormState = {
+  title: string;
+  yogaType: string;
+  difficulty: ClassDifficulty;
+  duration: string;
+  description: string;
+  thumbnailUrl: string;
+  link: string;
+  scheduledAt: string;
+  recording: string;
+  status: LiveClassStatus;
+};
+
+const EMPTY_CLASS: ClassFormState = {
+  title: "",
+  yogaType: "",
+  difficulty: "EASY",
+  duration: "",
+  description: "",
+  thumbnailUrl: "",
+  link: "",
+  scheduledAt: "",
+  recording: "",
+  status: "DRAFT",
+};
+
+function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFormDialogProps) {
+  const [form, setForm] = useState<ClassFormState>(EMPTY_CLASS);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    if (initial) {
+      setForm({
+        title: initial.title,
+        yogaType: initial.yogaType,
+        difficulty: initial.difficulty,
+        duration: String(initial.duration ?? ""),
+        description: initial.description ?? "",
+        thumbnailUrl: initial.thumbnailUrl ?? "",
+        link: initial.link ?? "",
+        scheduledAt: isoToLocalInput(initial.scheduledAt),
+        recording: initial.recording ?? "",
+        status: initial.status,
+      });
+    } else {
+      setForm(EMPTY_CLASS);
+    }
+  }, [open, initial]);
+
+  function set<K extends keyof ClassFormState>(key: K, value: ClassFormState[K]) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function handleSave() {
+    const duration = Number(form.duration);
+    if (!form.title.trim() || !form.yogaType.trim()) {
+      toast.error("Title and yoga type are required");
+      return;
+    }
+    if (!Number.isFinite(duration) || duration <= 0) {
+      toast.error("Duration must be a positive number");
+      return;
+    }
+    setSaving(true);
+    try {
+      const scheduledIso = localInputToIso(form.scheduledAt);
+      const create: YTTLiveClassBody = {
+        title: form.title.trim(),
+        yogaType: form.yogaType.trim(),
+        difficulty: form.difficulty,
+        duration,
+        status: form.status,
+        ...(form.description.trim() ? { description: form.description.trim() } : {}),
+        ...(form.thumbnailUrl.trim() ? { thumbnailUrl: form.thumbnailUrl.trim() } : {}),
+        ...(form.link.trim() ? { link: form.link.trim() } : {}),
+        ...(scheduledIso ? { scheduledAt: scheduledIso } : {}),
+        ...(form.recording.trim() ? { recording: form.recording.trim() } : {}),
+      };
+      // For PATCH, send nullable fields explicitly so they can be cleared.
+      const patch: Partial<YTTLiveClassBody> = {
+        title: create.title,
+        yogaType: create.yogaType,
+        difficulty: create.difficulty,
+        duration,
+        status: form.status,
+        description: form.description.trim() ? form.description.trim() : null,
+        thumbnailUrl: form.thumbnailUrl.trim() ? form.thumbnailUrl.trim() : null,
+        link: form.link.trim() ? form.link.trim() : null,
+        scheduledAt: scheduledIso,
+        recording: form.recording.trim() ? form.recording.trim() : null,
+      };
+      const saved = initial
+        ? await updateYTTLiveClass(courseId, initial.id, patch)
+        : await createYTTLiveClass(courseId, create);
+      toast.success(initial ? "Class updated" : "Class created");
+      onSaved(saved);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save class");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{initial ? "Edit Class" : "New Live Class"}</DialogTitle>
+          <DialogDescription>
+            {initial ? "Update live session details" : "Schedule a new live session for this course"}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label htmlFor="cls-title">Title *</Label>
+            <Input
+              id="cls-title"
+              placeholder="e.g. Week 1 — Sun Salutations Lab"
+              value={form.title}
+              onChange={(e) => set("title", e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="cls-yoga">Yoga Type *</Label>
+              <Input
+                id="cls-yoga"
+                placeholder="Hatha"
+                value={form.yogaType}
+                onChange={(e) => set("yogaType", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="cls-duration">Duration (min) *</Label>
+              <Input
+                id="cls-duration"
+                type="number"
+                min={1}
+                placeholder="60"
+                value={form.duration}
+                onChange={(e) => set("duration", e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Difficulty</Label>
+              <Select value={form.difficulty} onValueChange={(v) => set("difficulty", v as ClassDifficulty)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DIFFICULTIES.map((d) => (
+                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={(v) => set("status", v as LiveClassStatus)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {STATUSES.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="cls-scheduled">Scheduled at</Label>
+            <Input
+              id="cls-scheduled"
+              type="datetime-local"
+              value={form.scheduledAt}
+              onChange={(e) => set("scheduledAt", e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="cls-link">Live join URL</Label>
+            <Input
+              id="cls-link"
+              placeholder="https://meet.google.com/…"
+              value={form.link}
+              onChange={(e) => set("link", e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="cls-recording">Recording URL</Label>
+            <Input
+              id="cls-recording"
+              placeholder="https://…"
+              value={form.recording}
+              onChange={(e) => set("recording", e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="cls-thumb">Thumbnail URL</Label>
+            <Input
+              id="cls-thumb"
+              placeholder="https://…"
+              value={form.thumbnailUrl}
+              onChange={(e) => set("thumbnailUrl", e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="cls-desc">Description</Label>
+            <Textarea
+              id="cls-desc"
+              placeholder="What this session covers"
+              rows={3}
+              value={form.description}
+              onChange={(e) => set("description", e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button disabled={saving} onClick={handleSave} style={{ background: BRAND }}>
+            {saving ? "Saving…" : initial ? "Save Changes" : "Create Class"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── CLASS LIST INSIDE COURSE DETAIL ──────────────────────────────────────────
+
+interface CourseClassesProps {
+  courseId: string;
+}
+
+function CourseClasses({ courseId }: CourseClassesProps) {
+  const [classes, setClasses] = useState<YTTLiveClass[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<LiveClassStatus | "ALL">("ALL");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<YTTLiveClass | null>(null);
+
+  useEffect(() => {
+    const handle = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(handle);
+  }, [search]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    listYTTLiveClasses(courseId, {
+      q: debouncedSearch || undefined,
+      status: statusFilter === "ALL" ? undefined : statusFilter,
+    })
+      .then((items) => { if (!cancelled) setClasses(items); })
+      .catch((err: unknown) => {
+        if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load classes");
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [courseId, debouncedSearch, statusFilter]);
+
+  function handleSaved(saved: YTTLiveClass) {
+    setClasses((cs) => {
+      const idx = cs.findIndex((c) => c.id === saved.id);
+      if (idx === -1) return [saved, ...cs];
+      const next = cs.slice();
+      next[idx] = saved;
+      return next;
+    });
+    setFormOpen(false);
+    setEditing(null);
+  }
+
+  async function handleDelete(cls: YTTLiveClass) {
+    if (!confirm(`Delete class "${cls.title}"? This cannot be undone.`)) return;
+    try {
+      await deleteYTTLiveClass(courseId, cls.id);
+      toast.success("Class deleted");
+      setClasses((cs) => cs.filter((c) => c.id !== cls.id));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete class");
+    }
+  }
+
+  const isEmpty = !loading && classes.length === 0;
+  const isFiltered = !!debouncedSearch || statusFilter !== "ALL";
+
+  return (
+    <Card>
+      <CardHeader className="pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <CardTitle className="text-base">Live Sessions</CardTitle>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10 pointer-events-none" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search title…"
+                className="pl-9 h-9 w-full sm:w-56"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as LiveClassStatus | "ALL")}>
+              <SelectTrigger className="h-9 w-full sm:w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All statuses</SelectItem>
+                {STATUSES.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              className="h-9 gap-1.5"
+              style={{ background: BRAND }}
+              onClick={() => { setEditing(null); setFormOpen(true); }}
+            >
+              <Plus className="w-4 h-4" />
+              New Class
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">Loading classes…</div>
+        ) : isEmpty ? (
+          <div className="flex flex-col items-center justify-center py-12 rounded-xl border border-dashed border-border/60 gap-2 text-center px-6">
+            <Radio className="w-8 h-8 text-[#610981]/25" />
+            <p className="text-sm font-medium text-muted-foreground">
+              {isFiltered ? "No classes match your filters" : "No classes scheduled yet"}
+            </p>
+            {!isFiltered && (
+              <Button
+                size="sm"
+                className="mt-2 gap-1.5"
+                style={{ background: BRAND }}
+                onClick={() => { setEditing(null); setFormOpen(true); }}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Schedule first class
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {classes.map((cls) => (
+              <div
+                key={cls.id}
+                className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 rounded-lg border border-border/60 hover:border-[#610981]/40 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-medium truncate">{cls.title}</p>
+                    <Badge variant="outline" className={statusTone(cls.status)}>
+                      {statusLabel(cls.status)}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
+                    <span className="capitalize">{cls.yogaType} · {cls.difficulty.toLowerCase()}</span>
+                    <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{formatDuration(cls.duration)}</span>
+                    <span className="inline-flex items-center gap-1"><CalendarDays className="w-3 h-3" />{formatScheduled(cls.scheduledAt)}</span>
+                    {cls.link && (
+                      <a
+                        href={cls.link}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="inline-flex items-center gap-1 text-[#610981] hover:underline"
+                      >
+                        <Link2 className="w-3 h-3" />Join link
+                      </a>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 sm:shrink-0">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={() => { setEditing(cls); setFormOpen(true); }}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => handleDelete(cls)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+
+      <ClassFormDialog
+        open={formOpen}
+        courseId={courseId}
+        initial={editing}
+        onClose={() => { setFormOpen(false); setEditing(null); }}
+        onSaved={handleSaved}
+      />
+    </Card>
+  );
+}
+
 // ─── COURSE DETAIL PANEL ──────────────────────────────────────────────────────
 
 interface CourseDetailProps {
   course: YTTCourse;
   onBack: () => void;
   onEdit: () => void;
-  onDelete: () => void;
 }
 
-function CourseDetail({ course, onBack, onEdit, onDelete }: CourseDetailProps) {
-  const [detail, setDetail] = useState<YTTLiveCourseDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    getYTTLiveCourse(course.id)
-      .then(setDetail)
-      .catch((err: unknown) => toast.error(err instanceof Error ? err.message : "Failed to load course"))
-      .finally(() => setLoading(false));
-  }, [course.id]);
-
+function CourseDetail({ course, onBack, onEdit }: CourseDetailProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -233,9 +714,6 @@ function CourseDetail({ course, onBack, onEdit, onDelete }: CourseDetailProps) {
         <Button size="sm" variant="outline" onClick={onEdit} className="gap-1">
           <Pencil className="w-3.5 h-3.5" />Edit
         </Button>
-        <Button size="sm" variant="outline" onClick={onDelete} className="gap-1 text-destructive hover:text-destructive">
-          <Trash2 className="w-3.5 h-3.5" />Delete
-        </Button>
       </div>
 
       {course.description && (
@@ -244,52 +722,11 @@ function CourseDetail({ course, onBack, onEdit, onDelete }: CourseDetailProps) {
         </Card>
       )}
 
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold">Plans</h3>
-          <span className="text-xs text-muted-foreground">Manage in Plans → YTT Live</span>
-        </div>
+      <CourseClasses courseId={course.id} />
 
-        {loading ? (
-          <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">Loading…</div>
-        ) : !detail || detail.plans.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 rounded-2xl border border-dashed border-border/60 gap-2">
-            <IndianRupee className="w-8 h-8 text-[#610981]/25" />
-            <p className="text-sm text-muted-foreground">No plans linked to this course yet.</p>
-          </div>
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {detail.plans.map((plan) => (
-              <div key={plan.id} className={`p-3 border rounded-xl space-y-2 ${!plan.isActive ? "opacity-60" : ""}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium text-sm leading-tight">{plan.name}</p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                      <Clock className="w-3 h-3" />{plan.validity} days
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-bold">{formatINR(plan.price)}</p>
-                    {plan.originalPrice && (
-                      <p className="text-xs text-muted-foreground line-through">{formatINR(plan.originalPrice)}</p>
-                    )}
-                  </div>
-                </div>
-                {plan.features.length > 0 && (
-                  <ul className="space-y-0.5">
-                    {plan.features.slice(0, 3).map((f, i) => (
-                      <li key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <CheckCircle2 className="w-3 h-3 text-green-500 shrink-0" />{f}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {!plan.isActive && <Badge variant="secondary" className="text-xs">Inactive</Badge>}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <p className="text-xs text-muted-foreground text-center">
+        Plans for this course are managed under <span className="font-medium">Plans → YTT Live</span>.
+      </p>
     </div>
   );
 }
@@ -300,10 +737,9 @@ interface CourseCardProps {
   course: YTTCourse;
   onSelect: () => void;
   onEdit: () => void;
-  onDelete: () => void;
 }
 
-function CourseCard({ course, onSelect, onEdit, onDelete }: CourseCardProps) {
+function CourseCard({ course, onSelect, onEdit }: CourseCardProps) {
   return (
     <Card className="hover:shadow-md transition-shadow group">
       <CardHeader className="pb-3">
@@ -335,14 +771,6 @@ function CourseCard({ course, onSelect, onEdit, onDelete }: CourseCardProps) {
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
             >
               <Pencil className="w-3.5 h-3.5" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 text-destructive hover:text-destructive"
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
             </Button>
             <Button
               size="sm"
@@ -387,18 +815,6 @@ export function ClassesYTTLive() {
   function openEdit(course: YTTCourse) {
     setEditing(course);
     setFormOpen(true);
-  }
-
-  async function handleDelete(course: YTTCourse) {
-    if (!confirm(`Delete course "${course.title}"? This cannot be undone.`)) return;
-    try {
-      await deleteYTTLiveCourse(course.id);
-      toast.success("Course deleted");
-      setCourses((cs) => cs.filter((c) => c.id !== course.id));
-      if (selected?.id === course.id) setSelected(null);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete course");
-    }
   }
 
   function handleSaved(saved: YTTCourse) {
@@ -452,7 +868,6 @@ export function ClassesYTTLive() {
                   course={course}
                   onSelect={() => setSelected(course)}
                   onEdit={() => openEdit(course)}
-                  onDelete={() => handleDelete(course)}
                 />
               ))}
             </div>
@@ -465,7 +880,6 @@ export function ClassesYTTLive() {
           course={selected}
           onBack={() => setSelected(null)}
           onEdit={() => openEdit(selected)}
-          onDelete={() => handleDelete(selected)}
         />
       )}
 

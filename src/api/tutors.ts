@@ -24,6 +24,7 @@ export type TutorCreateBody = {
   specializations?: string[];
   bio?: string;
   avatar?: string;
+  referredByCode?: string;
 };
 
 export type TutorUpdateBody = Partial<Omit<TutorCreateBody, "password" | "avatar" | "bio">> & {

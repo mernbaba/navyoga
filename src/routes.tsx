@@ -16,7 +16,6 @@ import { ClassesSelfPaced } from "./pages/superadmin/classes/ClassesSelfPaced";
 import { SelfPacedModules } from "./pages/superadmin/classes/SelfPacedModules";
 import { ClassesYTTLive } from "./pages/superadmin/classes/ClassesYTTLive";
 import { ClassesYTTRecorded } from "./pages/superadmin/classes/ClassesYTTRecorded";
-import { ClassesBatches } from "./pages/superadmin/classes/ClassesBatches";
 import { ClassesEvents } from "./pages/superadmin/classes/ClassesEvents";
 import { Attendance } from "./pages/superadmin/Attendance";
 import { Financials } from "./pages/superadmin/Financials";
@@ -137,7 +136,6 @@ export const router = createBrowserRouter([
           },
           { path: "ytt-live", Component: ClassesYTTLive },
           { path: "ytt-recorded", Component: ClassesYTTRecorded },
-          { path: "batches", Component: ClassesBatches },
           { path: "events", Component: ClassesEvents },
         ],
       },

@@ -53,6 +53,7 @@ import {
 import { listTutors } from "@/api/tutors";
 import { listBatches } from "@/api/batches";
 import type { LiveClass, LiveClassStatus, ClassDifficulty, Tutor, Batch } from "@/api/types";
+import { BatchesDialog } from "./BatchesDialog";
 
 const STATUS_CONFIG: Record<
   LiveClassStatus,
@@ -110,6 +111,7 @@ const BLANK_FORM = {
   batchId: "",
   scheduledAt: "",
   link: "",
+  recording: "",
   status: "DRAFT" as LiveClassStatus,
 };
 
@@ -151,6 +153,8 @@ export function ClassesLive() {
 
   const [deleteTarget, setDeleteTarget] = useState<LiveClass | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [batchesDialogOpen, setBatchesDialogOpen] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -205,6 +209,7 @@ export function ClassesLive() {
         ? new Date(cls.scheduledAt).toISOString().slice(0, 16)
         : "",
       link: cls.link ?? "",
+      recording: cls.recording ?? "",
       status: cls.status,
     });
     setDialogOpen(true);
@@ -232,6 +237,7 @@ export function ClassesLive() {
         batchId: form.batchId || null,
         scheduledAt: form.scheduledAt ? new Date(form.scheduledAt).toISOString() : null,
         link: form.link || null,
+        recording: form.recording || null,
         status: form.status,
       };
 
@@ -245,6 +251,8 @@ export function ClassesLive() {
           tutorId: payload.tutorId ?? undefined,
           batchId: payload.batchId ?? undefined,
           scheduledAt: payload.scheduledAt ?? undefined,
+          link: payload.link ?? undefined,
+          recording: payload.recording ?? undefined,
         });
         setClasses((prev) => [created, ...prev]);
         toast.success("Live class created");
@@ -284,14 +292,24 @@ export function ClassesLive() {
             Schedule and manage live yoga sessions with tutors
           </p>
         </div>
-        <Button
-          onClick={openCreate}
-          className="gap-2 shrink-0"
-          style={{ background: "#610981" }}
-        >
-          <Plus className="w-4 h-4" />
-          New Live Class
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            onClick={() => setBatchesDialogOpen(true)}
+            className="gap-2"
+          >
+            <Layers className="w-4 h-4" />
+            Batches
+          </Button>
+          <Button
+            onClick={openCreate}
+            className="gap-2"
+            style={{ background: "#610981" }}
+          >
+            <Plus className="w-4 h-4" />
+            New Live Class
+          </Button>
+        </div>
       </div>
 
       {/* Stat chips */}
@@ -326,7 +344,7 @@ export function ClassesLive() {
       {/* Filter bar */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10 pointer-events-none" />
           <Input
             className="pl-9 pr-8"
             placeholder="Search classes..."
@@ -446,7 +464,7 @@ export function ClassesLive() {
                   value={form.difficulty}
                   onValueChange={(v) => setField("difficulty", v as ClassDifficulty)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
                     <SelectValue placeholder="Select level" />
                   </SelectTrigger>
                   <SelectContent>
@@ -479,8 +497,8 @@ export function ClassesLive() {
                   value={form.status}
                   onValueChange={(v) => setField("status", v as LiveClassStatus)}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
+                  <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
+                    <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="DRAFT">Draft</SelectItem>
@@ -513,6 +531,16 @@ export function ClassesLive() {
               />
             </div>
 
+            {/* Recording */}
+            <div className="space-y-1.5">
+              <Label>Recording URL</Label>
+              <Input
+                placeholder="https://… (paste recording link after class)"
+                value={form.recording}
+                onChange={(e) => setField("recording", e.target.value)}
+              />
+            </div>
+
             {/* Tutor */}
             <div className="space-y-1.5">
               <Label>Tutor</Label>
@@ -520,7 +548,7 @@ export function ClassesLive() {
                 value={form.tutorId || "__none__"}
                 onValueChange={(v) => setField("tutorId", v === "__none__" ? "" : v)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
                   <SelectValue placeholder="Assign a tutor" />
                 </SelectTrigger>
                 <SelectContent>
@@ -547,7 +575,7 @@ export function ClassesLive() {
                 value={form.batchId || "__none__"}
                 onValueChange={(v) => setField("batchId", v === "__none__" ? "" : v)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
                   <SelectValue placeholder="Assign to a batch" />
                 </SelectTrigger>
                 <SelectContent>
@@ -569,6 +597,7 @@ export function ClassesLive() {
                 placeholder="Class description (optional)"
                 value={form.description}
                 onChange={(e) => setField("description", e.target.value)}
+                className="rounded-xl bg-input-background/50"
               />
             </div>
           </div>
@@ -613,6 +642,18 @@ export function ClassesLive() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <BatchesDialog
+        open={batchesDialogOpen}
+        onOpenChange={(open) => {
+          setBatchesDialogOpen(open);
+          if (!open) {
+            listBatches("SUPERADMIN", { limit: 100 })
+              .then((r) => setBatches(r.items))
+              .catch(() => {});
+          }
+        }}
+      />
     </div>
   );
 }

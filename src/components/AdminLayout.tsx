@@ -13,7 +13,6 @@ import {
   Menu,
   UserPlus,
   Briefcase,
-  Sparkles,
   LogOut,
   ChevronDown,
   ChevronRight,
@@ -44,7 +43,6 @@ const classesSubNav = [
   { name: "Self Paced", href: "/superadmin/classes/self-paced" },
   { name: "YTT Live", href: "/superadmin/classes/ytt-live" },
   { name: "YTT Recorded", href: "/superadmin/classes/ytt-recorded" },
-  { name: "Batches", href: "/superadmin/classes/batches" },
   { name: "Events", href: "/superadmin/classes/events" },
 ];
 
@@ -172,7 +170,7 @@ export function AdminLayout() {
               <div className="p-6 border-b border-border/50">
                 <div className="flex items-center gap-3">
                   <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-lg shadow-[#ffac96]/40">
-                    <Sparkles className="w-5 h-5 text-white" />
+                    <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="NavYoga" className="w-10 h-10 object-contain" />
                   </div>
                   <div>
                     <h2
@@ -195,7 +193,7 @@ export function AdminLayout() {
 
           <div className="flex items-center gap-3">
             <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-lg shadow-[#ffac96]/40">
-              <Sparkles className="w-5 h-5 text-white" />
+              <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="NavYoga" className="w-10 h-10 object-contain" />
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse" />
             </div>
             <div className="hidden lg:block">

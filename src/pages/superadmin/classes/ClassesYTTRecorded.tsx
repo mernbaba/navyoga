@@ -18,7 +18,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "../../../components/ui/accordion";
-import { Video, Plus, Trash2, ChevronRight, FolderOpen, Clock } from "lucide-react";
+import { Video, Plus, Pencil, Trash2, ChevronRight, FolderOpen, Clock, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import {
   listYTTRecordedCourses,
@@ -26,9 +26,12 @@ import {
   createYTTRecordedModule,
   deleteYTTRecordedModule,
   createYTTRecordedClass,
+  updateYTTRecordedClass,
   deleteYTTRecordedClass,
+  reorderYTTRecordedModules,
+  reorderYTTRecordedClasses,
 } from "../../../api/plans";
-import type { YTTCourse, YTTCourseDetail, YTTModule } from "../../../api/types";
+import type { YTTCourse, YTTCourseDetail, YTTModule, YTTClass } from "../../../api/types";
 
 const BRAND = "#610981";
 
@@ -185,6 +188,100 @@ function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreat
   );
 }
 
+// ─── EDIT CLASS DIALOG ────────────────────────────────────────────────────────
+
+interface EditClassDialogProps {
+  open: boolean;
+  courseId: string;
+  moduleId: string;
+  moduleName: string;
+  cls: YTTClass;
+  onClose: () => void;
+  onUpdated: (updated: YTTClass) => void;
+}
+
+function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, onUpdated }: EditClassDialogProps) {
+  const [form, setForm] = useState({
+    title: cls.title,
+    videoUrl: cls.videoUrl,
+    duration: String(cls.duration),
+    description: cls.description ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  // Reset the form when the target class changes (e.g. user opens edit on a different class).
+  useEffect(() => {
+    setForm({
+      title: cls.title,
+      videoUrl: cls.videoUrl,
+      duration: String(cls.duration),
+      description: cls.description ?? "",
+    });
+    setSaving(false);
+  }, [cls.id]);
+
+  function set(field: keyof typeof form, value: string) {
+    setForm((f) => ({ ...f, [field]: value }));
+  }
+
+  const valid = form.title.trim() && form.videoUrl.trim() && Number(form.duration) > 0;
+
+  async function handleSave() {
+    if (!valid) return;
+    setSaving(true);
+    try {
+      const dur = Number(form.duration);
+      const trimmedDesc = form.description.trim();
+      const updated = await updateYTTRecordedClass(courseId, moduleId, cls.id, {
+        title: form.title.trim(),
+        videoUrl: form.videoUrl.trim(),
+        duration: dur,
+        description: trimmedDesc.length > 0 ? trimmedDesc : undefined,
+      });
+      toast.success("Class updated");
+      onUpdated(updated);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update class");
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Class</DialogTitle>
+          <DialogDescription>Editing in module: <span className="font-medium">{moduleName}</span></DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label htmlFor="edit-cls-title">Title *</Label>
+            <Input id="edit-cls-title" value={form.title} onChange={(e) => set("title", e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="edit-cls-url">Video URL *</Label>
+            <Input id="edit-cls-url" placeholder="https://…" value={form.videoUrl} onChange={(e) => set("videoUrl", e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="edit-cls-dur">Duration (minutes) *</Label>
+            <Input id="edit-cls-dur" type="number" min="1" value={form.duration} onChange={(e) => set("duration", e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="edit-cls-desc">Description</Label>
+            <Input id="edit-cls-desc" placeholder="Optional description" value={form.description} onChange={(e) => set("description", e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button disabled={!valid || saving} onClick={handleSave} style={{ background: BRAND }}>
+            {saving ? "Saving…" : "Save Changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── COURSE DETAIL PANEL ──────────────────────────────────────────────────────
 
 interface CourseDetailProps {
@@ -197,8 +294,10 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
   const [loading, setLoading] = useState(true);
   const [addModuleOpen, setAddModuleOpen] = useState(false);
   const [addClassFor, setAddClassFor] = useState<YTTModule | null>(null);
+  const [editingClass, setEditingClass] = useState<{ mod: YTTModule; cls: YTTClass } | null>(null);
   const [deletingModuleId, setDeletingModuleId] = useState<string | null>(null);
   const [deletingClassId, setDeletingClassId] = useState<string | null>(null);
+  const [isReordering, setIsReordering] = useState(false);
 
   async function loadDetail() {
     try {
@@ -249,6 +348,70 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
     }
   }
 
+  async function moveModule(index: number, direction: "up" | "down") {
+    if (!detail || isReordering) return;
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= detail.modules.length) return;
+
+    const previous = detail.modules;
+    const reordered = [...previous];
+    [reordered[index], reordered[swapIndex]] = [reordered[swapIndex], reordered[index]];
+    setDetail({ ...detail, modules: reordered });
+    setIsReordering(true);
+    try {
+      await reorderYTTRecordedModules(
+        course.id,
+        reordered.map((m, i) => ({ id: m.id, sortOrder: i + 1 })),
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to reorder modules");
+      setDetail((d) => (d ? { ...d, modules: previous } : d));
+    } finally {
+      setIsReordering(false);
+    }
+  }
+
+  async function moveClass(mod: YTTModule, index: number, direction: "up" | "down") {
+    if (!detail || isReordering) return;
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= mod.classes.length) return;
+
+    const previousClasses = mod.classes;
+    const reorderedClasses = [...previousClasses];
+    [reorderedClasses[index], reorderedClasses[swapIndex]] = [
+      reorderedClasses[swapIndex],
+      reorderedClasses[index],
+    ];
+    setDetail({
+      ...detail,
+      modules: detail.modules.map((m) =>
+        m.id === mod.id ? { ...m, classes: reorderedClasses } : m,
+      ),
+    });
+    setIsReordering(true);
+    try {
+      await reorderYTTRecordedClasses(
+        course.id,
+        mod.id,
+        reorderedClasses.map((c, i) => ({ id: c.id, sortOrder: i + 1 })),
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to reorder classes");
+      setDetail((d) =>
+        d
+          ? {
+              ...d,
+              modules: d.modules.map((m) =>
+                m.id === mod.id ? { ...m, classes: previousClasses } : m,
+              ),
+            }
+          : d,
+      );
+    } finally {
+      setIsReordering(false);
+    }
+  }
+
   const totalClasses = detail?.modules.reduce((acc, m) => acc + m.classes.length, 0) ?? 0;
 
   return (
@@ -288,26 +451,51 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
 
       {!loading && detail && detail.modules.length > 0 && (
         <Accordion type="multiple" defaultValue={detail.modules.map((m) => m.id)} className="space-y-3">
-          {detail.modules.map((mod) => (
+          {detail.modules.map((mod, modIdx) => (
             <AccordionItem
               key={mod.id}
               value={mod.id}
               className="border rounded-xl overflow-hidden"
             >
-              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/30">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <FolderOpen className="w-4 h-4 shrink-0" style={{ color: BRAND }} />
-                  <span className="font-medium text-sm truncate">{mod.title}</span>
-                  <Badge variant="secondary" className="ml-1 shrink-0">{mod.classes.length} class{mod.classes.length !== 1 ? "es" : ""}</Badge>
+              <div className="flex items-center">
+                <AccordionTrigger className="px-4 py-3 flex-1 hover:no-underline hover:bg-muted/30">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span className="text-xs text-muted-foreground w-5 shrink-0">{modIdx + 1}.</span>
+                    <FolderOpen className="w-4 h-4 shrink-0" style={{ color: BRAND }} />
+                    <span className="font-medium text-sm truncate">{mod.title}</span>
+                    <Badge variant="secondary" className="ml-1 shrink-0">{mod.classes.length} class{mod.classes.length !== 1 ? "es" : ""}</Badge>
+                  </div>
+                </AccordionTrigger>
+                <div className="flex items-center gap-0.5 pr-3 shrink-0">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    disabled={modIdx === 0 || isReordering}
+                    onClick={(e) => { e.stopPropagation(); moveModule(modIdx, "up"); }}
+                    title="Move up"
+                  >
+                    <ArrowUp className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    disabled={modIdx === detail.modules.length - 1 || isReordering}
+                    onClick={(e) => { e.stopPropagation(); moveModule(modIdx, "down"); }}
+                    title="Move down"
+                  >
+                    <ArrowDown className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
-              </AccordionTrigger>
+              </div>
               <AccordionContent className="px-4 pb-4 pt-0">
                 <div className="space-y-2">
                   {mod.classes.length === 0 && (
                     <p className="text-xs text-muted-foreground py-2">No classes in this module yet.</p>
                   )}
                   {mod.classes.map((cls, idx) => (
-                    <div key={cls.id} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-muted/30 group">
+                    <div key={cls.id} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-muted/30">
                       <span className="text-xs text-muted-foreground w-5 shrink-0">{idx + 1}.</span>
                       <Video className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
                       <span className="text-sm flex-1 truncate">{cls.title}</span>
@@ -317,9 +505,39 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                        className="w-6 h-6"
+                        disabled={idx === 0 || isReordering}
+                        onClick={() => moveClass(mod, idx, "up")}
+                        title="Move up"
+                      >
+                        <ArrowUp className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="w-6 h-6"
+                        disabled={idx === mod.classes.length - 1 || isReordering}
+                        onClick={() => moveClass(mod, idx, "down")}
+                        title="Move down"
+                      >
+                        <ArrowDown className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="w-6 h-6"
+                        onClick={() => setEditingClass({ mod, cls })}
+                        title="Edit"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="w-6 h-6 text-destructive hover:text-destructive"
                         disabled={deletingClassId === cls.id}
                         onClick={() => handleDeleteClass(mod, cls.id, cls.title)}
+                        title="Delete"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
@@ -335,16 +553,18 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
                       <Plus className="w-3.5 h-3.5 mr-1" />
                       Add Class
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 text-xs text-destructive hover:text-destructive ml-auto"
-                      disabled={deletingModuleId === mod.id}
-                      onClick={() => handleDeleteModule(mod)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5 mr-1" />
-                      Delete Module
-                    </Button>
+                    {mod.classes.length === 0 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs text-destructive hover:text-destructive ml-auto"
+                        disabled={deletingModuleId === mod.id}
+                        onClick={() => handleDeleteModule(mod)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1" />
+                        Delete Module
+                      </Button>
+                    )}
                   </div>
                 </div>
               </AccordionContent>
@@ -373,6 +593,32 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
           onCreated={() => {
             setAddClassFor(null);
             loadDetail();
+          }}
+        />
+      )}
+
+      {editingClass && (
+        <EditClassDialog
+          open={!!editingClass}
+          courseId={course.id}
+          moduleId={editingClass.mod.id}
+          moduleName={editingClass.mod.title}
+          cls={editingClass.cls}
+          onClose={() => setEditingClass(null)}
+          onUpdated={(updated) => {
+            const targetModuleId = editingClass.mod.id;
+            setDetail((d) => {
+              if (!d) return d;
+              return {
+                ...d,
+                modules: d.modules.map((m) =>
+                  m.id === targetModuleId
+                    ? { ...m, classes: m.classes.map((c) => (c.id === updated.id ? updated : c)) }
+                    : m,
+                ),
+              };
+            });
+            setEditingClass(null);
           }}
         />
       )}

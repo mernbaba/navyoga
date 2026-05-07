@@ -328,7 +328,7 @@ export function Referrals() {
       if (userItems.length === 0) {
         return (
           <TableRow>
-            <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
               {isLoading ? "Loading..." : "No referrals found"}
             </TableCell>
           </TableRow>
@@ -337,8 +337,6 @@ export function Referrals() {
       return userItems.map((row) => {
         const ui = statusToUI(row.status);
         const StatusIcon = statusStyle[ui].icon;
-        const subscriptionLabel = row.subscription?.name ?? "Not subscribed yet";
-        const subscriptionMuted = !row.subscription;
         const reward = Number(row.reward) || 0;
         return (
           <TableRow key={row.id} className="border-border/40">
@@ -351,9 +349,6 @@ export function Referrals() {
               <div className="text-xs text-muted-foreground">{row.referee.email}</div>
             </TableCell>
             <TableCell className="text-sm">{formatDate(row.date)}</TableCell>
-            <TableCell className={subscriptionMuted ? "text-sm text-muted-foreground" : "text-sm"}>
-              {subscriptionLabel}
-            </TableCell>
             <TableCell>
               <span
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white ${statusStyle[ui].pill}`}
@@ -377,7 +372,7 @@ export function Referrals() {
     if (tutorItems.length === 0) {
       return (
         <TableRow>
-          <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
             {isLoading ? "Loading..." : "No referrals found"}
           </TableCell>
         </TableRow>
@@ -386,9 +381,6 @@ export function Referrals() {
     return tutorItems.map((row) => {
       const ui = statusToUI(row.status);
       const StatusIcon = statusStyle[ui].icon;
-      const specs = row.referee.specializations ?? [];
-      const specializationLabel = specs.length > 0 ? specs.join(", ") : "Not verified yet";
-      const specializationMuted = specs.length === 0;
       const reward = Number(row.reward) || 0;
       return (
         <TableRow key={row.id} className="border-border/40">
@@ -401,14 +393,6 @@ export function Referrals() {
             <div className="text-xs text-muted-foreground">{row.referee.email}</div>
           </TableCell>
           <TableCell className="text-sm">{formatDate(row.date)}</TableCell>
-          <TableCell className={specializationMuted ? "text-sm text-muted-foreground" : "text-sm"}>
-            {specializationLabel}
-          </TableCell>
-          <TableCell>
-            <span className="inline-flex items-center justify-center min-w-[2.25rem] px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#610981]/10 text-[#610981]">
-              {row.referee.classes ?? 0}
-            </span>
-          </TableCell>
           <TableCell>
             <span
               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white ${statusStyle[ui].pill}`}
@@ -516,14 +500,6 @@ export function Referrals() {
                   <TableHead className="text-gray-700 font-bold">Referrer</TableHead>
                   <TableHead className="text-gray-700 font-bold">Referee</TableHead>
                   <TableHead className="text-gray-700 font-bold">Date</TableHead>
-                  {category === "users" ? (
-                    <TableHead className="text-gray-700 font-bold">Subscription</TableHead>
-                  ) : (
-                    <>
-                      <TableHead className="text-gray-700 font-bold">Specialization</TableHead>
-                      <TableHead className="text-gray-700 font-bold">Classes</TableHead>
-                    </>
-                  )}
                   <TableHead className="text-gray-700 font-bold">Status</TableHead>
                   <TableHead className="text-gray-700 font-bold">Reward</TableHead>
                 </TableRow>

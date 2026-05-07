@@ -151,13 +151,13 @@ export function Employees() {
               <Plus className="w-4 h-4 mr-2" />Add Employee
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-2xl">
             <form onSubmit={handleAdd}>
               <DialogHeader>
                 <DialogTitle>Add New Employee</DialogTitle>
                 <DialogDescription>Enter the details of the new employee</DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input id="name" value={addForm.name} onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} required />
@@ -182,7 +182,7 @@ export function Employees() {
                   <Label htmlFor="joinDate">Join Date</Label>
                   <Input id="joinDate" type="date" value={addForm.joinDate} onChange={(e) => setAddForm({ ...addForm, joinDate: e.target.value })} required />
                 </div>
-                <div className="grid gap-2">
+                <div className="grid gap-2 sm:col-span-2">
                   <Label htmlFor="salary">Salary (₹)</Label>
                   <Input id="salary" type="number" min={0} value={addForm.salary} onChange={(e) => setAddForm({ ...addForm, salary: e.target.value })} required />
                 </div>
@@ -229,7 +229,7 @@ export function Employees() {
         <CardContent>
           <div className="mb-4 flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
               <Input
                 placeholder="Search by name, email, or employee ID..."
                 value={searchQuery}
@@ -238,7 +238,9 @@ export function Employees() {
               />
             </div>
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as StaffStatus | "ALL"); setPage(1); }}>
-              <SelectTrigger className="md:w-48"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="md:w-48 h-9 rounded-xl bg-input-background/50">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All statuses</SelectItem>
                 {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace("_", " ")}</SelectItem>)}
@@ -323,14 +325,14 @@ export function Employees() {
       </Card>
 
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl">
           {editing && (
             <form onSubmit={handleEdit}>
               <DialogHeader>
                 <DialogTitle>Edit Employee</DialogTitle>
                 <DialogDescription>Update employee information</DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="edit-name">Full Name</Label>
                   <Input id="edit-name" name="name" defaultValue={editing.name} required />
@@ -358,7 +360,9 @@ export function Employees() {
                 <div className="grid gap-2">
                   <Label htmlFor="edit-status">Status</Label>
                   <Select name="status" defaultValue={editing.status}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
                     <SelectContent>
                       {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace("_", " ")}</SelectItem>)}
                     </SelectContent>

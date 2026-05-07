@@ -1,5 +1,5 @@
 import { authedRequest } from "../lib/apiClient";
-import { unwrap, type ApiSuccess, type MembershipPeriod, type SubscriptionPlan, type SelfPacedPlan, type YTTCourse, type YTTPlan, type YTTCourseDetail, type YTTModule, type YTTClass, type YTTLiveCourseDetail, type YTTCourseBody } from "./types";
+import { unwrap, type ApiSuccess, type LiveClassStatus, type MembershipPeriod, type SubscriptionPlan, type SelfPacedPlan, type YTTCourse, type YTTPlan, type YTTCourseDetail, type YTTModule, type YTTClass, type YTTLiveClass, type YTTLiveClassBody, type YTTLiveCourseDetail, type YTTCourseBody } from "./types";
 
 // ─── SUBSCRIPTION PLANS ───────────────────────────────────────────────────────
 
@@ -216,11 +216,53 @@ export function createYTTRecordedClass(courseId: string, moduleId: string, body:
   );
 }
 
+export function updateYTTRecordedClass(
+  courseId: string,
+  moduleId: string,
+  classId: string,
+  body: Partial<YTTClassBody>,
+) {
+  return unwrap<YTTClass>(
+    authedRequest<ApiSuccess<YTTClass>>("SUPERADMIN", {
+      method: "PATCH",
+      url: `/api/ytt-recorded/${courseId}/modules/${moduleId}/classes/${classId}`,
+      data: body,
+    }),
+  );
+}
+
 export function deleteYTTRecordedClass(courseId: string, moduleId: string, classId: string) {
   return unwrap<null>(
     authedRequest<ApiSuccess<null>>("SUPERADMIN", {
       method: "DELETE",
       url: `/api/ytt-recorded/${courseId}/modules/${moduleId}/classes/${classId}`,
+    }),
+  );
+}
+
+export function reorderYTTRecordedModules(
+  courseId: string,
+  items: { id: string; sortOrder: number }[],
+) {
+  return unwrap<null>(
+    authedRequest<ApiSuccess<null>>("SUPERADMIN", {
+      method: "PATCH",
+      url: `/api/ytt-recorded/${courseId}/modules/reorder`,
+      data: { items },
+    }),
+  );
+}
+
+export function reorderYTTRecordedClasses(
+  courseId: string,
+  moduleId: string,
+  items: { id: string; sortOrder: number }[],
+) {
+  return unwrap<null>(
+    authedRequest<ApiSuccess<null>>("SUPERADMIN", {
+      method: "PATCH",
+      url: `/api/ytt-recorded/${courseId}/modules/${moduleId}/classes/reorder`,
+      data: { items },
     }),
   );
 }
@@ -308,6 +350,61 @@ export function deleteYTTLivePlan(courseId: string, planId: string) {
     authedRequest<ApiSuccess<null>>("SUPERADMIN", {
       method: "DELETE",
       url: `/api/ytt-live/${courseId}/plans/${planId}`,
+    }),
+  );
+}
+
+// ─── YTT LIVE CLASSES ────────────────────────────────────────────────────────
+
+export type YTTLiveClassListParams = {
+  status?: LiveClassStatus;
+  q?: string;
+};
+
+export function listYTTLiveClasses(courseId: string, params: YTTLiveClassListParams = {}) {
+  return unwrap<YTTLiveClass[]>(
+    authedRequest<ApiSuccess<YTTLiveClass[]>>("SUPERADMIN", {
+      method: "GET",
+      url: `/api/ytt-live/${courseId}/classes`,
+      params,
+    }),
+  );
+}
+
+export function getYTTLiveClass(courseId: string, classId: string) {
+  return unwrap<YTTLiveClass>(
+    authedRequest<ApiSuccess<YTTLiveClass>>("SUPERADMIN", {
+      method: "GET",
+      url: `/api/ytt-live/${courseId}/classes/${classId}`,
+    }),
+  );
+}
+
+export function createYTTLiveClass(courseId: string, body: YTTLiveClassBody) {
+  return unwrap<YTTLiveClass>(
+    authedRequest<ApiSuccess<YTTLiveClass>>("SUPERADMIN", {
+      method: "POST",
+      url: `/api/ytt-live/${courseId}/classes`,
+      data: body,
+    }),
+  );
+}
+
+export function updateYTTLiveClass(courseId: string, classId: string, body: Partial<YTTLiveClassBody>) {
+  return unwrap<YTTLiveClass>(
+    authedRequest<ApiSuccess<YTTLiveClass>>("SUPERADMIN", {
+      method: "PATCH",
+      url: `/api/ytt-live/${courseId}/classes/${classId}`,
+      data: body,
+    }),
+  );
+}
+
+export function deleteYTTLiveClass(courseId: string, classId: string) {
+  return unwrap<null>(
+    authedRequest<ApiSuccess<null>>("SUPERADMIN", {
+      method: "DELETE",
+      url: `/api/ytt-live/${courseId}/classes/${classId}`,
     }),
   );
 }

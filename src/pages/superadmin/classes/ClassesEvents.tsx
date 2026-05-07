@@ -347,7 +347,7 @@ export function ClassesEvents() {
         <CardContent className="pt-4 pb-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
               <Input
                 placeholder="Search by title or location..."
                 value={searchQuery}
@@ -929,7 +929,7 @@ export function ClassesEvents() {
           </DialogHeader>
 
           <div className="relative mt-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
             <Input
               placeholder="Search by name, email or phone..."
               value={enrollmentsSearch}
