@@ -17,6 +17,16 @@ import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { useState } from "react";
 import { Badge } from "./ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { performLogout, useRoleSession } from "../lib/session";
 
 const navigation = [
@@ -36,7 +46,13 @@ export function UserLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
   useRoleSession("STUDENT");
+
+  const requestLogout = () => {
+    setOpen(false);
+    setLogoutOpen(true);
+  };
 
   const handleLogout = async () => {
     await performLogout("STUDENT");
@@ -104,10 +120,10 @@ export function UserLayout() {
                   <NavContent />
                 </div>
                 <div className="p-4 border-t border-border/50">
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="w-full justify-start gap-2 text-muted-foreground hover:text-red-600 hover:bg-red-50"
-                    onClick={handleLogout}
+                    onClick={requestLogout}
                   >
                     <LogOut className="w-4 h-4" />
                     Logout
@@ -123,16 +139,16 @@ export function UserLayout() {
             </div>
             <div>
               <h1 className="font-semibold text-lg" style={{ color: '#ff691d' }}>NavYoga Academy</h1>
-              <Badge variant="secondary" className="text-xs hidden sm:inline-flex">Sandeep Sandy</Badge>
+              <Badge variant="secondary" className="text-xs hidden sm:inline-flex">Student Portal</Badge>
             </div>
           </div>
 
           <div className="ml-auto flex items-center gap-2">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               className="hidden lg:flex gap-2 text-muted-foreground hover:text-red-600 hover:bg-red-50"
-              onClick={handleLogout}
+              onClick={requestLogout}
             >
               <LogOut className="w-4 h-4" />
               Logout
@@ -152,6 +168,26 @@ export function UserLayout() {
       <main className="lg:pl-64">
         <Outlet />
       </main>
+
+      <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Log out of your account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will be returned to the login page and need to sign in again to continue.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Log out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

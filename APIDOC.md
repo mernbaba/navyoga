@@ -1423,9 +1423,11 @@ Hard-delete.
 
 A plan defines a price + validity (in days) for accessing the entire self-paced catalog.
 
+> **Auth:** `GET /plans` and `GET /plans/:id` are **public** (no token required). Mutations stay `SUPERADMIN` / `OPERATIONS`.
+
 #### `GET /plans`
 
-List, sorted by `validity asc`.
+Public. List, sorted by `validity asc`.
 
 #### `POST /plans`
 
@@ -1441,7 +1443,7 @@ List, sorted by `validity asc`.
 
 #### `GET /plans/:id` / `PATCH /plans/:id` / `DELETE /plans/:id`
 
-Standard CRUD.
+Standard CRUD. `GET /plans/:id` is public; `PATCH` / `DELETE` require admin.
 
 ---
 
@@ -1449,7 +1451,7 @@ Standard CRUD.
 
 Yoga Teacher Training **recorded** courses. Each course has reorderable modules → classes, plus its own set of plans. Same primitives as Self-Paced, but scoped per course.
 
-**All endpoints require `SUPERADMIN` or `OPERATIONS` auth.**
+**Endpoints require `SUPERADMIN` or `OPERATIONS` auth, except the public flat-plan fetch routes documented below (`GET /plans`, `GET /plans/:planId`).**
 
 > The Prisma model is `YTTRecordedCourse` / `YTTRecordedModule` / `YTTRecordedClass` / `YTTRecordedPlan` with `@@unique([studentId, courseId])` on enrollments (one course per student).
 
@@ -1517,7 +1519,7 @@ PATCH  /:courseId/modules/:moduleId/classes/:classId
 DELETE /:courseId/modules/:moduleId/classes/:classId
 ```
 
-### Plans — `/api/ytt-recorded/:courseId/plans`
+### Plans — `/api/ytt-recorded/plans` (public flat) and `/api/ytt-recorded/:courseId/plans` (admin nested)
 
 | Field           | Type     | Required | Notes                                |
 | --------------- | -------- | :------: | ------------------------------------ |
@@ -1528,6 +1530,17 @@ DELETE /:courseId/modules/:moduleId/classes/:classId
 | `originalPrice` | number   |    ⬜    | Decimal                              |
 | `features`      | string[] |    ⬜    |                                      |
 | `isActive`      | boolean  |    ⬜    | Default `true`                       |
+
+#### Public flat fetch (no auth)
+
+```
+GET    /plans                  # all YTT-recorded plans across courses
+GET    /plans/:planId          # single plan by id
+```
+
+`GET /plans` accepts an optional `?courseId=<uuid>` query param to scope to a single course. Items are ordered by `(courseId asc, validity asc)`. Each plan includes its parent `courseId` so clients can group/link.
+
+#### Admin nested CRUD (`SUPERADMIN` / `OPERATIONS`)
 
 ```
 GET    /:courseId/plans
@@ -1545,7 +1558,7 @@ The plan must belong to the course; cross-course access returns `404`.
 
 Yoga Teacher Training **live** courses. Each course is a live cohort with one or more priced plans, plus a flat list of live class sessions (no modules).
 
-**All endpoints require `SUPERADMIN` or `OPERATIONS` auth.**
+**Endpoints require `SUPERADMIN` or `OPERATIONS` auth, except the public flat-plan fetch routes documented below (`GET /plans`, `GET /plans/:planId`).**
 
 ### Courses
 
@@ -1563,6 +1576,19 @@ DELETE /:courseId
 
 ### Plans
 
+Plan body matches YTT-Recorded plan: `name`, `validity`, `price` required; `description`, `originalPrice`, `features`, `isActive` optional.
+
+#### Public flat fetch (no auth)
+
+```
+GET    /plans                  # all YTT-live plans across courses
+GET    /plans/:planId          # single plan by id
+```
+
+`GET /plans` accepts an optional `?courseId=<uuid>` query param. Items are ordered by `(courseId asc, validity asc)`. Each plan includes its parent `courseId`.
+
+#### Admin nested CRUD (`SUPERADMIN` / `OPERATIONS`)
+
 ```
 GET    /:courseId/plans
 POST   /:courseId/plans
@@ -1570,8 +1596,6 @@ GET    /:courseId/plans/:planId
 PATCH  /:courseId/plans/:planId
 DELETE /:courseId/plans/:planId
 ```
-
-Plan body matches YTT-Recorded plan: `name`, `validity`, `price` required; `description`, `originalPrice`, `features`, `isActive` optional.
 
 ### Classes
 
@@ -1689,11 +1713,11 @@ Hard-delete the batch. **Side effect:** all `LiveClass` rows referencing this ba
 
 ---
 
-## Live Classes — `/api/live`
+## Live Classes & Live Plans — `/api/live`
 
-Per-session live classes within the shared live-class catalog. Each class belongs to (at most) one tutor and one batch.
+Per-session live classes within the shared live-class catalog plus the priced `LivePlan` catalog (validity-based access to all live classes). Each class belongs to (at most) one tutor and one batch; plans are unscoped (apply to the whole live catalog).
 
-**All endpoints require `SUPERADMIN` or `OPERATIONS` auth.**
+**Live-class endpoints require `SUPERADMIN` or `OPERATIONS` auth. Plan GETs (`GET /plans`, `GET /plans/:id`) are public; plan mutations require admin.**
 
 ### `GET /`
 
@@ -1736,6 +1760,35 @@ Partial update. Accepts all `POST /` fields as optional. `tutorId`, `batchId`, `
 ### `DELETE /:id`
 
 Hard-delete the live class.
+
+### Plans — `/api/live/plans`
+
+A `LivePlan` defines a price + validity (days) for accessing the entire live-class catalog, optionally with a `recordingAccess` window.
+
+#### `GET /plans`
+
+Public. List all live plans, sorted by `validity asc`.
+
+#### `GET /plans/:id`
+
+Public. Single plan by id; `404` if not found.
+
+#### `POST /plans` *(admin)*
+
+| Field             | Type     | Required | Notes                                        |
+| ----------------- | -------- | :------: | -------------------------------------------- |
+| `name`            | string   |    ✅    | ≤ 100 chars                                  |
+| `validity`        | integer  |    ✅    | Days                                         |
+| `price`           | number   |    ✅    | Decimal                                      |
+| `description`     | string   |    ⬜    |                                              |
+| `originalPrice`   | number   |    ⬜    | Decimal                                      |
+| `features`        | string[] |    ⬜    |                                              |
+| `recordingAccess` | integer  |    ⬜    | Days of recording access; default `0`        |
+| `isActive`        | boolean  |    ⬜    | Default `true`                               |
+
+#### `PATCH /plans/:id` *(admin)* / `DELETE /plans/:id` *(admin)*
+
+Standard partial update / delete.
 
 ---
 

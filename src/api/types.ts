@@ -582,6 +582,20 @@ export type YTTLiveCourseDetail = YTTCourse & {
   classes: YTTLiveClass[];
 };
 
+export type LivePlan = {
+  id: string;
+  name: string;
+  description: string | null;
+  validity: number;
+  price: string;
+  originalPrice: string | null;
+  features: string[];
+  recordingAccess: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type MembershipPeriod = "MONTHLY" | "QUARTERLY" | "HALF_YEARLY" | "YEARLY";
 
 export type SubscriptionPlan = {

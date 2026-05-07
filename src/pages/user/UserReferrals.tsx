@@ -42,9 +42,6 @@ interface ReferredUser {
   rewardStatus: 'pending' | 'earned' | 'redeemed';
 }
 
-// not from API: backend has no base URL setting for referral links — built client-side
-const REFERRAL_LINK_BASE = "https://navyoga.academy/join";
-
 const PAGE_SIZE = 5;
 
 const statusFromApi = (s: ReferralStatus): ReferredUser["status"] =>
@@ -182,7 +179,7 @@ export function UserReferrals() {
         if (cancelled) return;
         const code = res.referralCode ?? "";
         setReferralCode(code);
-        setReferralLink(code ? `${REFERRAL_LINK_BASE}/${code}` : "");
+        setReferralLink(code ? `${window.location.origin}/register?ref=${code}` : "");
         setReferredUsers(res.items.map(mapReferred));
         setTotalReferred(res.total);
         setTotalPages(Math.max(1, res.totalPages));
@@ -231,6 +228,33 @@ export function UserReferrals() {
     }
     navigator.clipboard.writeText(referralLink);
     toast.success('Referral link copied to clipboard!');
+  };
+
+  const handleShareLink = async () => {
+    if (!referralLink) {
+      toast.error("Referral link not available yet");
+      return;
+    }
+    const shareData = {
+      title: "Join me on Navyoga",
+      text: "Join me on Navyoga and start your yoga journey!",
+      url: referralLink,
+    };
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        toast.error("Unable to open share dialog");
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      toast.success("Referral link copied to clipboard!");
+    } catch {
+      toast.error("Sharing not supported on this device");
+    }
   };
 
   // Frontend-only: share is a UI-only mailto/wa.me action
@@ -816,7 +840,7 @@ export function UserReferrals() {
                   The more you share, the more you earn. No limits on referrals!
                 </p>
                 <Button
-                  onClick={handleCopyCode}
+                  onClick={handleShareLink}
                   className="w-full bg-white text-[#610981] hover:bg-gray-100 gap-2"
                 >
                   <Share2 className="w-4 h-4" />

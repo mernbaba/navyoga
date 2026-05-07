@@ -94,3 +94,42 @@ export function deleteEvent(role: Role, id: string) {
     }),
   );
 }
+
+export type UpcomingEventListParams = {
+  q?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type MyEnrollmentResponse = {
+  enrolled: boolean;
+  enrollment: { id: string; enrolledAt: string } | null;
+};
+
+export function listUpcomingEvents(role: Role, params: UpcomingEventListParams = {}) {
+  return unwrap<Paginated<AppEvent>>(
+    authedRequest<ApiSuccess<Paginated<AppEvent>>>(role, {
+      method: "GET",
+      url: "/api/events/upcoming",
+      params,
+    }),
+  );
+}
+
+export function getMyEventEnrollment(role: Role, eventId: string) {
+  return unwrap<MyEnrollmentResponse>(
+    authedRequest<ApiSuccess<MyEnrollmentResponse>>(role, {
+      method: "GET",
+      url: `/api/events/${eventId}/enrollment`,
+    }),
+  );
+}
+
+export function enrollInFreeEvent(role: Role, eventId: string) {
+  return unwrap<MyEnrollmentResponse>(
+    authedRequest<ApiSuccess<MyEnrollmentResponse>>(role, {
+      method: "POST",
+      url: `/api/events/${eventId}/enrollment`,
+    }),
+  );
+}

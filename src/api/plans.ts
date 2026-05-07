@@ -1,5 +1,6 @@
 import { authedRequest } from "../lib/apiClient";
-import { unwrap, type ApiSuccess, type LiveClassStatus, type MembershipPeriod, type SubscriptionPlan, type SelfPacedPlan, type YTTCourse, type YTTPlan, type YTTCourseDetail, type YTTModule, type YTTClass, type YTTLiveClass, type YTTLiveClassBody, type YTTLiveCourseDetail, type YTTCourseBody } from "./types";
+import type { LoginRole } from "../components/auth/RoleLoginPage";
+import { unwrap, type ApiSuccess, type LiveClassStatus, type LivePlan, type MembershipPeriod, type SubscriptionPlan, type SelfPacedPlan, type YTTCourse, type YTTPlan, type YTTCourseDetail, type YTTModule, type YTTClass, type YTTLiveClass, type YTTLiveClassBody, type YTTLiveCourseDetail, type YTTCourseBody } from "./types";
 
 // ─── SUBSCRIPTION PLANS ───────────────────────────────────────────────────────
 
@@ -18,11 +19,62 @@ export type SubscriptionPlanBody = {
   isActive?: boolean;
 };
 
-export function listSubscriptionPlans() {
+export function listSubscriptionPlans(role: LoginRole = "SUPERADMIN") {
   return unwrap<SubscriptionPlan[]>(
-    authedRequest<ApiSuccess<SubscriptionPlan[]>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<SubscriptionPlan[]>>(role, {
       method: "GET",
       url: "/api/subscription-plans",
+    }),
+  );
+}
+
+// ─── LIVE PLANS (validity-based access to all live classes) ──────────────────
+
+export type LivePlanBody = {
+  name: string;
+  description?: string;
+  validity: number;
+  price: number;
+  originalPrice?: number;
+  features?: string[];
+  recordingAccess?: number;
+  isActive?: boolean;
+};
+
+export function listLivePlans(role: LoginRole = "STUDENT") {
+  return unwrap<LivePlan[]>(
+    authedRequest<ApiSuccess<LivePlan[]>>(role, {
+      method: "GET",
+      url: "/api/live/plans",
+    }),
+  );
+}
+
+export function createLivePlan(body: LivePlanBody) {
+  return unwrap<LivePlan>(
+    authedRequest<ApiSuccess<LivePlan>>("SUPERADMIN", {
+      method: "POST",
+      url: "/api/live/plans",
+      data: body,
+    }),
+  );
+}
+
+export function updateLivePlan(id: string, body: Partial<LivePlanBody>) {
+  return unwrap<LivePlan>(
+    authedRequest<ApiSuccess<LivePlan>>("SUPERADMIN", {
+      method: "PATCH",
+      url: `/api/live/plans/${id}`,
+      data: body,
+    }),
+  );
+}
+
+export function deleteLivePlan(id: string) {
+  return unwrap<null>(
+    authedRequest<ApiSuccess<null>>("SUPERADMIN", {
+      method: "DELETE",
+      url: `/api/live/plans/${id}`,
     }),
   );
 }
@@ -68,9 +120,9 @@ export type SelfPacedPlanBody = {
   isActive?: boolean;
 };
 
-export function listSelfPacedPlans() {
+export function listSelfPacedPlans(role: LoginRole = "SUPERADMIN") {
   return unwrap<SelfPacedPlan[]>(
-    authedRequest<ApiSuccess<SelfPacedPlan[]>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<SelfPacedPlan[]>>(role, {
       method: "GET",
       url: "/api/self-paced/plans",
     }),
@@ -120,20 +172,31 @@ export type YTTPlanBody = {
 
 // ─── YTT RECORDED PLANS ───────────────────────────────────────────────────────
 
-export function listYTTRecordedCourses() {
+export function listYTTRecordedCourses(role: LoginRole = "SUPERADMIN") {
   return unwrap<YTTCourse[]>(
-    authedRequest<ApiSuccess<YTTCourse[]>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<YTTCourse[]>>(role, {
       method: "GET",
       url: "/api/ytt-recorded",
     }),
   );
 }
 
-export function listYTTRecordedPlans(courseId: string) {
+export function listYTTRecordedPlans(courseId: string, role: LoginRole = "SUPERADMIN") {
   return unwrap<YTTPlan[]>(
-    authedRequest<ApiSuccess<YTTPlan[]>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<YTTPlan[]>>(role, {
       method: "GET",
       url: `/api/ytt-recorded/${courseId}/plans`,
+    }),
+  );
+}
+
+// Public flat fetch — all YTT-recorded plans across courses
+export function listAllYTTRecordedPlans(role: LoginRole = "STUDENT", courseId?: string) {
+  return unwrap<YTTPlan[]>(
+    authedRequest<ApiSuccess<YTTPlan[]>>(role, {
+      method: "GET",
+      url: "/api/ytt-recorded/plans",
+      params: courseId ? { courseId } : undefined,
     }),
   );
 }
@@ -269,9 +332,9 @@ export function reorderYTTRecordedClasses(
 
 // ─── YTT LIVE COURSES + PLANS ────────────────────────────────────────────────
 
-export function listYTTLiveCourses() {
+export function listYTTLiveCourses(role: LoginRole = "SUPERADMIN") {
   return unwrap<YTTCourse[]>(
-    authedRequest<ApiSuccess<YTTCourse[]>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<YTTCourse[]>>(role, {
       method: "GET",
       url: "/api/ytt-live",
     }),
@@ -316,11 +379,22 @@ export function deleteYTTLiveCourse(courseId: string) {
   );
 }
 
-export function listYTTLivePlans(courseId: string) {
+export function listYTTLivePlans(courseId: string, role: LoginRole = "SUPERADMIN") {
   return unwrap<YTTPlan[]>(
-    authedRequest<ApiSuccess<YTTPlan[]>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<YTTPlan[]>>(role, {
       method: "GET",
       url: `/api/ytt-live/${courseId}/plans`,
+    }),
+  );
+}
+
+// Public flat fetch — all YTT-live plans across courses
+export function listAllYTTLivePlans(role: LoginRole = "STUDENT", courseId?: string) {
+  return unwrap<YTTPlan[]>(
+    authedRequest<ApiSuccess<YTTPlan[]>>(role, {
+      method: "GET",
+      url: "/api/ytt-live/plans",
+      params: courseId ? { courseId } : undefined,
     }),
   );
 }

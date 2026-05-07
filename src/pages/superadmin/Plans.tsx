@@ -23,9 +23,9 @@ import {
 import { Edit, Trash2, IndianRupee, Clock, Zap, Tag, CheckCircle2, Video, Radio, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import {
-  listSubscriptionPlans,
-  updateSubscriptionPlan,
-  deleteSubscriptionPlan,
+  listLivePlans,
+  updateLivePlan,
+  deleteLivePlan,
   listSelfPacedPlans,
   updateSelfPacedPlan,
   deleteSelfPacedPlan,
@@ -38,16 +38,7 @@ import {
   updateYTTLivePlan,
   deleteYTTLivePlan,
 } from "../../api/plans";
-import type { SubscriptionPlan, SelfPacedPlan, MembershipPeriod, YTTCourse, YTTPlan } from "../../api/types";
-
-const PERIODS: { value: MembershipPeriod; label: string; months: number }[] = [
-  { value: "MONTHLY", label: "Monthly", months: 1 },
-  { value: "QUARTERLY", label: "Quarterly", months: 3 },
-  { value: "HALF_YEARLY", label: "Half-Yearly", months: 6 },
-  { value: "YEARLY", label: "Yearly", months: 12 },
-];
-
-const periodLabel = (p: MembershipPeriod) => PERIODS.find((x) => x.value === p)?.label ?? p;
+import type { LivePlan, SelfPacedPlan, YTTCourse, YTTPlan } from "../../api/types";
 
 const formatINR = (val: string | number) =>
   `₹${Number(val).toLocaleString("en-IN")}`;

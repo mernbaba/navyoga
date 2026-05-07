@@ -166,12 +166,9 @@ const emptyReferralData: ReferralData = {
   totalPages: 1,
 };
 
-// Frontend-only: backend uses base URL from env, link is constructed client-side
-const REFERRAL_LINK_BASE = "https://navyoga.academy/join";
-
 const PAGE_SIZE = 5;
 
-const buildLink = (code: string) => (code ? `${REFERRAL_LINK_BASE}/${code}` : "");
+const buildLink = (code: string) => (code ? `${window.location.origin}/register?ref=${code}` : "");
 
 const tagBadgeStyle = () =>
   "bg-[#ede4f5] text-[#610981] border-0 hover:bg-[#ede4f5]";

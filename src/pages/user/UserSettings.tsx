@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Button } from "../../components/ui/button";
 import { Label } from "../../components/ui/label";
 import { Switch } from "../../components/ui/switch";
-import { Bell, CreditCard, Shield } from "lucide-react";
+import { Bell, CreditCard } from "lucide-react";
 import { Link } from "react-router";
 import { PasswordChangeCard } from "../../components/settings/PasswordChangeCard";
 
@@ -108,32 +108,6 @@ export function UserSettings() {
                   View Full Payment Details
                 </Button>
               </Link>
-            </div>
-          </CardContent>
-        </Card>
- 
-        <Card className="relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[#ffac96]/5 rounded-full blur-3xl" />
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Shield className="w-5 h-5" style={{ color: '#ff691d' }} />
-              <CardTitle style={{ color: '#ff691d' }}>Privacy & Data</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <Button variant="outline" className="w-full justify-start">
-                Download My Data
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                Privacy Policy
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                Terms of Service
-              </Button>
-              <Button variant="outline" className="w-full justify-start text-red-600 hover:text-red-600 hover:bg-red-50">
-                Delete Account
-              </Button>
             </div>
           </CardContent>
         </Card>
