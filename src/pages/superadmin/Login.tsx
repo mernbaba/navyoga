@@ -198,14 +198,7 @@ export function Login() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                      <input 
-                        type="checkbox" 
-                        className="w-4 h-4 rounded border-2 border-gray-300 text-[#610981] focus:ring-[#610981]" 
-                      />
-                      <span className="text-gray-600 group-hover:text-gray-900">Remember me</span>
-                    </label>
+                  <div className="flex items-center justify-end text-sm">
                     <a 
                       href="#" 
                       className="font-semibold hover:underline transition-colors" 
