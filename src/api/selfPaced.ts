@@ -82,7 +82,7 @@ export function listClasses(role: Role, moduleId: string) {
 
 export type ClassCreateBody = {
   title: string;
-  video: string;
+  video?: string;
   duration: number;
   description?: string;
   thumbnail?: string;
@@ -116,6 +116,25 @@ export function deleteClass(role: Role, moduleId: string, id: string) {
     authedRequest<ApiSuccess<null>>(role, {
       method: "DELETE",
       url: `${BASE}/modules/${moduleId}/classes/${id}`,
+    }),
+  );
+}
+
+export function requestPresignedUrl(role: Role, moduleId: string, classId: string, filename: string, contentType: string) {
+  return unwrap<{ url: string; storePath: string; expiresIn: number }>(
+    authedRequest<ApiSuccess<{ url: string; storePath: string; expiresIn: number }>>(role, {
+      method: "POST",
+      url: `${BASE}/modules/${moduleId}/classes/${classId}/presign`,
+      data: { filename, contentType },
+    }),
+  );
+}
+
+export function deleteClassMedia(role: Role, moduleId: string, classId: string) {
+  return unwrap<SelfPacedClass>(
+    authedRequest<ApiSuccess<SelfPacedClass>>(role, {
+      method: "DELETE",
+      url: `${BASE}/modules/${moduleId}/classes/${classId}/media`,
     }),
   );
 }

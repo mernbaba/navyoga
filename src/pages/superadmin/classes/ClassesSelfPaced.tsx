@@ -28,6 +28,8 @@ import {
   FolderOpen,
   Video,
   Clock,
+  Upload,
+  FileVideo,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -41,6 +43,8 @@ import {
   updateClass,
   deleteClass,
   reorderClasses,
+  requestPresignedUrl,
+  deleteClassMedia,
 } from "../../../api/selfPaced";
 import type { ClassCreateBody } from "../../../api/selfPaced";
 import type { SelfPacedModule, SelfPacedClass } from "../../../api/types";
@@ -601,15 +605,6 @@ function ClassFormView({
           placeholder="e.g. Sun Salutation — Part 1"
         />
       </div>
-      <div className="space-y-1">
-        <Label htmlFor="cf-video">Video URL *</Label>
-        <Input
-          id="cf-video"
-          value={form.video}
-          onChange={(e) => onChange({ video: e.target.value })}
-          placeholder="https://..."
-        />
-      </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label htmlFor="cf-dur">Duration (min) *</Label>
@@ -655,16 +650,16 @@ function ClassFormView({
 function buildClassBody(form: ClassFormFields): ClassCreateBody {
   return {
     title: form.title.trim(),
-    video: form.video.trim(),
     duration: Number(form.duration),
     isActive: form.isActive,
+    ...(form.video.trim() ? { video: form.video.trim() } : {}),
     ...(form.description.trim() ? { description: form.description.trim() } : {}),
     ...(form.thumbnail.trim() ? { thumbnail: form.thumbnail.trim() } : {}),
   };
 }
 
 function isClassFormValid(form: ClassFormFields): boolean {
-  return Boolean(form.title.trim() && form.video.trim() && Number(form.duration) > 0);
+  return Boolean(form.title.trim() && Number(form.duration) > 0);
 }
 
 // ─── ADD CLASS DIALOG ─────────────────────────────────────────────────────────
@@ -676,16 +671,39 @@ function AddClassDialog({
   onCreated,
 }: {
   open: boolean;
-  mod: SelfPacedModule;
+  mod: ModuleWithClasses;
   onClose: () => void;
   onCreated: (cls: SelfPacedClass) => void;
 }) {
   const [form, setForm] = useState<ClassFormFields>(EMPTY_CLASS_FORM);
   const [saving, setSaving] = useState(false);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   function reset() {
     setForm(EMPTY_CLASS_FORM);
     setSaving(false);
+    setVideoFile(null);
+    setUploading(false);
+  }
+
+  async function uploadVideo(clsId: string) {
+    if (!videoFile) return;
+    setUploading(true);
+    try {
+      const { url, storePath } = await requestPresignedUrl("SUPERADMIN", mod.id, clsId, videoFile.name, videoFile.type);
+      await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": videoFile.type },
+        body: videoFile,
+      });
+      await updateClass("SUPERADMIN", mod.id, clsId, { video: storePath });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload video");
+      throw err;
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function handleSave() {
@@ -693,11 +711,14 @@ function AddClassDialog({
     setSaving(true);
     try {
       const cls = await createClass("SUPERADMIN", mod.id, buildClassBody(form));
+      if (videoFile) {
+        await uploadVideo(cls.id);
+      }
       toast.success("Class added");
       onCreated(cls);
       reset();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add class");
+      if (!videoFile) toast.error(err instanceof Error ? err.message : "Failed to add class");
       setSaving(false);
     }
   }
@@ -713,11 +734,29 @@ function AddClassDialog({
         </DialogHeader>
         <div className="space-y-3">
           <ClassFormView form={form} onChange={(patch) => setForm((f) => ({ ...f, ...patch }))} />
+          <div className="space-y-1">
+            <Label>Video (optional)</Label>
+            <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-input bg-background hover:bg-muted/50 transition-colors">
+              <Upload className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground flex-1">
+                {videoFile ? videoFile.name : "Choose a video file..."}
+              </span>
+              <input
+                type="file"
+                accept=".mp4"
+                className="hidden"
+                onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+            {videoFile && (
+              <p className="text-xs text-muted-foreground mt-1">Uploaded after class is created</p>
+            )}
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => { reset(); onClose(); }}>Cancel</Button>
-          <Button disabled={!isClassFormValid(form) || saving} onClick={handleSave} style={{ background: BRAND }}>
-            {saving ? "Adding…" : "Add Class"}
+          <Button disabled={!isClassFormValid(form) || saving || uploading} onClick={handleSave} style={{ background: BRAND }}>
+            {uploading ? "Uploading video…" : saving ? "Adding…" : "Add Class"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -749,6 +788,8 @@ function EditClassDialog({
     isActive: cls.isActive,
   });
   const [saving, setSaving] = useState(false);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     setForm({
@@ -759,8 +800,45 @@ function EditClassDialog({
       description: cls.description ?? "",
       isActive: cls.isActive,
     });
+    setVideoFile(null);
     setSaving(false);
+    setUploading(false);
   }, [cls.id]);
+
+  async function handleUploadVideo() {
+    if (!videoFile) return;
+    setUploading(true);
+    try {
+      if (cls.video) {
+        await deleteClassMedia("SUPERADMIN", mod.id, cls.id);
+      }
+      const { url, storePath } = await requestPresignedUrl("SUPERADMIN", mod.id, cls.id, videoFile.name, videoFile.type);
+      await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": videoFile.type },
+        body: videoFile,
+      });
+      const updated = await updateClass("SUPERADMIN", mod.id, cls.id, { video: storePath });
+      toast.success("Video uploaded");
+      onUpdated(updated);
+      setVideoFile(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload video");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleDeleteMedia() {
+    if (!confirm("Remove the video from this class?")) return;
+    try {
+      const updated = await deleteClassMedia("SUPERADMIN", mod.id, cls.id);
+      onUpdated(updated);
+      toast.success("Video removed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete video");
+    }
+  }
 
   async function handleSave() {
     if (!isClassFormValid(form)) return;
@@ -786,6 +864,52 @@ function EditClassDialog({
         </DialogHeader>
         <div className="space-y-3">
           <ClassFormView form={form} onChange={(patch) => setForm((f) => ({ ...f, ...patch }))} />
+          <div className="space-y-1">
+            <Label>Video</Label>
+            {cls.video ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/30">
+                  <FileVideo className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground truncate flex-1">Video uploaded</span>
+                  <Button size="sm" variant="outline" className="h-7 text-xs" disabled={uploading} onClick={handleDeleteMedia}>
+                    <Trash2 className="w-3 h-3 mr-1" /> Remove
+                  </Button>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-input bg-background hover:bg-muted/50 transition-colors">
+                  <Upload className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground flex-1">
+                    {videoFile ? videoFile.name : "Replace video..."}
+                  </span>
+                  <input
+                    type="file"
+                    accept=".mp4"
+                    className="hidden"
+                    onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+              </div>
+            ) : (
+              <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-input bg-background hover:bg-muted/50 transition-colors">
+                <Upload className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground flex-1">
+                  {videoFile ? videoFile.name : "Upload video..."}
+                </span>
+                <input
+                  type="file"
+                  accept=".mp4"
+                  className="hidden"
+                  onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
+            )}
+            {videoFile && (
+              <div className="flex justify-end">
+                <Button size="sm" className="h-7 text-xs" style={{ background: BRAND }} disabled={uploading} onClick={handleUploadVideo}>
+                  {uploading ? "Uploading…" : "Upload"}
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>

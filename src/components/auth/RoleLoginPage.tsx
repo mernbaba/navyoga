@@ -156,14 +156,7 @@ export function RoleLoginPage({ role }: { role: LoginRole }) {
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <input
-                type="checkbox"
-                className="w-4 h-4 rounded border-gray-300 text-[#ff691d] focus:ring-[#ff691d]"
-              />
-              <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">Remember me</span>
-            </label>
+          <div className="flex items-center justify-end">
             <a href="#" className="text-sm font-medium hover:underline transition-colors" style={{ color: "#ff691d" }}>
               Forgot password?
             </a>
