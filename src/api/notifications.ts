@@ -4,14 +4,12 @@ import {
   type ApiSuccess,
   type Notification,
   type NotificationAudience,
-  type NotificationStatus,
   type Paginated,
   type Role,
 } from "./types";
 
 export type NotificationListParams = {
   q?: string;
-  status?: NotificationStatus;
   targetAudience?: NotificationAudience;
   page?: number;
   limit?: number;
@@ -21,7 +19,6 @@ export type NotificationCreateBody = {
   title: string;
   message: string;
   targetAudience: NotificationAudience;
-  status?: NotificationStatus;
   scheduledDate?: string;
 };
 
@@ -29,9 +26,7 @@ export type NotificationUpdateBody = {
   title?: string;
   message?: string;
   targetAudience?: NotificationAudience;
-  status?: NotificationStatus;
   scheduledDate?: string | null;
-  openRate?: string | number | null;
 };
 
 export function listNotifications(role: Role, params: NotificationListParams = {}) {

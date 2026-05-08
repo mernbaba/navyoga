@@ -191,7 +191,7 @@ function LivePlansTab() {
         originalPrice: fd.get("originalPrice") ? Number(fd.get("originalPrice")) : undefined,
         features: featuresFromString(editFeaturesRaw),
         recordingAccess: Number(fd.get("recordingAccess") || 0),
-        isActive: fd.get("isActive") === "on",
+        batchRestricted: fd.get("batchRestricted") === "on",
       });
       toast.success("Plan updated");
       setEditing(null);
@@ -225,13 +225,18 @@ function LivePlansTab() {
               features={plan.features}
               isActive={plan.isActive}
               badgeRow={
-                plan.recordingAccess > 0 ? (
-                  <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1">
+                  {plan.batchRestricted && (
+                    <Badge variant="secondary" className="text-xs">
+                      Batch Restricted
+                    </Badge>
+                  )}
+                  {plan.recordingAccess > 0 && (
                     <Badge variant="secondary" className="text-xs">
                       Recordings: {plan.recordingAccess}d
                     </Badge>
-                  </div>
-                ) : undefined
+                  )}
+                </div>
               }
               onEdit={() => openEdit(plan)}
             />
@@ -286,10 +291,13 @@ function LivePlansTab() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label className="font-normal">Active</Label>
-                  <input type="checkbox" name="isActive" defaultChecked={editing.isActive} className="sr-only peer" id="edit-live-isActive" />
+                  <div>
+                    <Label className="font-normal">Batch Restricted</Label>
+                    <p className="text-xs text-muted-foreground">Students must select a batch</p>
+                  </div>
+                  <input type="checkbox" name="batchRestricted" defaultChecked={editing.batchRestricted} className="sr-only peer" id="edit-live-batchRestricted" />
                   <label
-                    htmlFor="edit-live-isActive"
+                    htmlFor="edit-live-batchRestricted"
                     className="relative inline-flex h-5 w-9 cursor-pointer items-center rounded-full bg-muted peer-checked:bg-primary transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4"
                   />
                 </div>
@@ -348,7 +356,6 @@ function SelfPacedPlansTab() {
         price: Number(fd.get("price")),
         originalPrice: fd.get("originalPrice") ? Number(fd.get("originalPrice")) : undefined,
         features: featuresFromString(editFeaturesRaw),
-        isActive: fd.get("isActive") === "on",
       });
       toast.success("Plan updated");
       setEditing(null);
@@ -426,14 +433,7 @@ function SelfPacedPlansTab() {
                     onChange={(e) => setEditFeaturesRaw(e.target.value)}
                   />
                 </div>
-                <div className="flex items-center justify-between">
-                  <Label className="font-normal">Active</Label>
-                  <input type="checkbox" name="isActive" defaultChecked={editing.isActive} className="sr-only peer" id="edit-sp-isActive" />
-                  <label
-                    htmlFor="edit-sp-isActive"
-                    className="relative inline-flex h-5 w-9 cursor-pointer items-center rounded-full bg-muted peer-checked:bg-primary transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4"
-                  />
-                </div>
+
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
@@ -519,7 +519,6 @@ function YTTPlansTab({ label, listCoursesFn, listPlansFn, updatePlanFn }: YTTPla
         price: Number(fd.get("price")),
         originalPrice: fd.get("originalPrice") ? Number(fd.get("originalPrice")) : undefined,
         features: featuresFromString(editFeaturesRaw),
-        isActive: fd.get("isActive") === "on",
       });
       toast.success("Plan updated");
       refetchPlans(editing.course.id, editing.course);
@@ -598,11 +597,7 @@ function YTTPlansTab({ label, listCoursesFn, listPlansFn, updatePlanFn }: YTTPla
                     onChange={(e) => setEditFeaturesRaw(e.target.value)}
                   />
                 </div>
-                <div className="flex items-center justify-between">
-                  <Label className="font-normal">Active</Label>
-                  <input type="checkbox" name="isActive" defaultChecked={editing.plan.isActive} className="sr-only peer" id="edit-ytt-isActive" />
-                  <label htmlFor="edit-ytt-isActive" className="relative inline-flex h-5 w-9 cursor-pointer items-center rounded-full bg-muted peer-checked:bg-primary transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4" />
-                </div>
+
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>

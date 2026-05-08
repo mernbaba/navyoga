@@ -416,7 +416,7 @@ Public — anyone can self-register.
 | `areasOfInterest`   | string  |    ⬜    | ≤ 500 chars                                                 |
 | `referredByCode`    | string  |    ⬜    | ≤ 50 chars; must match an existing student's `referralCode` |
 
-The server auto-assigns `studentId` (`S001`, …) and a unique `referralCode` (`<NAME>-<HASH>`, e.g. `ARJU-AB12CD`). If `referredByCode` is supplied and matches an existing student, a `Referral` row is created linking referrer → new student. An invalid code returns `400`.
+The server auto-assigns a unique `referralCode` (`<NAME>-<HASH>`, e.g. `ARJU-AB12CD`). If `referredByCode` is supplied and matches an existing student, a `Referral` row is created linking referrer → new student. An invalid code returns `400`.
 
 > **Note:** The Student model no longer has `joinDate`, a `status` enum, or `fitnessGoals`. Active state is tracked on the `isActive` boolean alone.
 
@@ -429,7 +429,6 @@ The server auto-assigns `studentId` (`S001`, …) and a unique `referralCode` (`
   "data": {
     "user": {
       "id": "uuid",
-      "studentId": "S001",
       "email": "…",
       "name": "…",
       "phone": "…",
@@ -454,13 +453,12 @@ See [Login](#login-all-roles-same-shape). Inactive students return `401`.
 
 **Auth:** `STUDENT`.
 
-Update the current student profile. **Immutable fields:** `password`, `referralCode`, `isActive`. (`studentId` _is_ updatable; uniqueness is rechecked.)
+Update the current student profile. **Immutable fields:** `id`, `password`, `referralCode`, `isActive`.
 
 **Body fields:**
 
 | Field               | Type    | Required | Constraints                          |
 | ------------------- | ------- | :------: | ------------------------------------ |
-| `studentId`         | string  |    ⬜    | 1–50 chars; must remain unique       |
 | `email`             | string  |    ⬜    | Valid email; unique                  |
 | `name`              | string  |    ⬜    | 1–100 chars                          |
 | `phone`             | string  |    ⬜    | 7–15 chars                           |
@@ -680,13 +678,13 @@ Partial update. `location`, `lastContactDate`, `notes`, and `assignedToId` may b
 
 ## Platform Settings — `/api/platform`
 
-Single-row business / platform configuration (center name, contact info, locale). The first read auto-seeds a dummy row if none exists.
+Single-row business / platform configuration (center name, contact info).
 
 ### `GET /`
 
 **Auth:** **Public** — no token required.
 
-Returns the current settings. Auto-seeds the `BusinessSettings` table if empty.
+Returns the current settings, or `404` if none have been created yet.
 
 **200 Response:**
 
@@ -699,9 +697,6 @@ Returns the current settings. Auto-seeds the `BusinessSettings` table if empty.
     "email": "hello@navyoga.com",
     "phone": "9999999999",
     "address": "123 Yoga Lane, Indiranagar, Bengaluru, Karnataka 560038, India",
-    "timezone": "Asia/Kolkata",
-    "currency": "INR",
-    "language": "English",
     "createdAt": "…",
     "updatedAt": "…"
   }
@@ -710,7 +705,7 @@ Returns the current settings. Auto-seeds the `BusinessSettings` table if empty.
 
 ### `PATCH /`
 
-**Auth:** `SUPERADMIN`. At least one field is required. Auto-seeds the row if missing, then applies the patch.
+**Auth:** `SUPERADMIN`. At least one field is required. Returns `404` if no settings record exists — one must exist before it can be updated.
 
 **Body fields:** (all optional, but at least one required)
 
@@ -720,9 +715,6 @@ Returns the current settings. Auto-seeds the `BusinessSettings` table if empty.
 | `email`      | string | Lowercased + trimmed |
 | `phone`      | string |                      |
 | `address`    | string |                      |
-| `timezone`   | string | e.g. `"Asia/Kolkata"`|
-| `currency`   | string | e.g. `"INR"`         |
-| `language`   | string | e.g. `"English"`     |
 
 **Responses:** `200` — `{ data: <BusinessSettings> }`, `400` — empty body, `401` / `403` — missing or non-SUPERADMIN token.
 
@@ -732,11 +724,11 @@ Returns the current settings. Auto-seeds the `BusinessSettings` table if empty.
 
 Admin-facing student collection. **All endpoints require `SUPERADMIN` or `OPERATIONS` auth.**
 
-The Student model exposes: `id`, `studentId`, `email`, `name`, `phone`, `avatar`, `address`, `age`, `bloodGroup`, `emergencyContact`, `medicalConditions`, `yogaExperience`, `currentLevel`, `areasOfInterest`, `referralCode`, `isActive`, `createdAt`, `updatedAt`.
+The Student model exposes: `id`, `email`, `name`, `phone`, `avatar`, `address`, `age`, `bloodGroup`, `emergencyContact`, `medicalConditions`, `yogaExperience`, `currentLevel`, `areasOfInterest`, `referralCode`, `isActive`, `createdAt`, `updatedAt`.
 
 ### `POST /`
 
-Create a student record (auto-assigns `studentId` and `referralCode`). Same body as `/api/auth/student/register`, plus an optional `isActive` boolean. Respects `referredByCode` — creates a `Referral` row when valid.
+Create a student record (auto-assigns a `referralCode`). Same body as `/api/auth/student/register`, plus an optional `isActive` boolean. Respects `referredByCode` — creates a `Referral` row when valid.
 
 **Responses:** `201` — `{ data: <Student> }`, `400` — required field missing or invalid `referredByCode`, `409` — email already registered.
 
@@ -748,7 +740,7 @@ List students, paginated.
 
 | Param   | Type    | Required | Notes                                                              |
 | ------- | ------- | :------: | ------------------------------------------------------------------ |
-| `q`     | string  |    ⬜    | Case-insensitive match on `name` / `email` / `studentId` / `phone` |
+| `q`     | string  |    ⬜    | Case-insensitive match on `name` / `email` / `phone`               |
 | `page`  | integer |    ⬜    | Default `1`                                                        |
 | `limit` | integer |    ⬜    | Default `20`; clamped to `[1, 100]`                                |
 
@@ -758,9 +750,9 @@ Get a student by primary key (`id`, the UUID). `404` if not found.
 
 ### `PATCH /:id`
 
-Partial update. Accepts the same fields as `POST /` as optional, plus `studentId` (must remain unique), `password` (rehashed if a non-empty string is provided), and `isActive` (boolean). All `null`-clearable fields from `PATCH /api/auth/student/me` may be passed as `null` here too. `referralCode` is immutable.
+Partial update. Accepts the same fields as `POST /` as optional, plus `password` (rehashed if a non-empty string is provided), and `isActive` (boolean). All `null`-clearable fields from `PATCH /api/auth/student/me` may be passed as `null` here too. `id` and `referralCode` are immutable.
 
-**Responses:** `200` — `{ data: <Student> }`, `400` — empty body, `404` — not found, `409` — email or `studentId` collides with another row.
+**Responses:** `200` — `{ data: <Student> }`, `400` — empty body, `404` — not found, `409` — email collides with another row.
 
 ### `DELETE /:id`
 
@@ -833,17 +825,17 @@ Notifications are broadcast messages targeted at student audiences. Read endpoin
 - **`recipientCount`** is auto-computed by the server from `targetAudience` on create and on any `targetAudience` change. Clients should not send it.
   - `ALL_USERS` → count of all students
   - `ACTIVE_STUDENTS` → count of `Student` rows where `isActive = true`
-  - `PREMIUM_MEMBERS` → count of students with at least one `ACTIVE` subscription
-- **`sentAt`** is auto-set to `now()` when `status` transitions to `SENT`.
+  - `PREMIUM_MEMBERS` → count of students with at least one active `LiveEnrollment`
+- **`sentAt`** is set to `now()` on create when no `scheduledDate` is provided, or left `null` when the notification is scheduled for a future date.
 
 ### Student visibility
 
 When the caller's role is `STUDENT`:
 
-- Only notifications with `status = SENT` are visible.
-- Only `targetAudience` values matching the student are visible: `ALL_USERS` is universal; active students additionally see `ACTIVE_STUDENTS`; students with an `ACTIVE` subscription additionally see `PREMIUM_MEMBERS`.
-- `GET /:id` returns `404` if the notification isn't `SENT` and `403` if the audience doesn't match.
-- The `status` and `targetAudience` query params on `GET /` are ignored for STUDENT callers.
+- Only notifications with `sentAt` set (already sent) are visible.
+- Only `targetAudience` values matching the student are visible: `ALL_USERS` is universal; active students additionally see `ACTIVE_STUDENTS`; students with an active `LiveEnrollment` additionally see `PREMIUM_MEMBERS`.
+- `GET /:id` returns `404` if the notification hasn't been sent yet (`sentAt` is null), and `403` if the audience doesn't match.
+- The `targetAudience` query param on `GET /` is ignored for STUDENT callers.
 
 ### `GET /`
 
@@ -854,7 +846,6 @@ When the caller's role is `STUDENT`:
 | Param            | Type    | Required | Notes                                                                              |
 | ---------------- | ------- | :------: | ---------------------------------------------------------------------------------- |
 | `q`              | string  |    ⬜    | Case-insensitive match on `title` / `message`                                      |
-| `status`         | string  |    ⬜    | `DRAFT` \| `SCHEDULED` \| `SENT`. Ignored for STUDENT.                             |
 | `targetAudience` | string  |    ⬜    | `ALL_USERS` \| `ACTIVE_STUDENTS` \| `PREMIUM_MEMBERS`. Ignored for STUDENT.        |
 | `page`           | integer |    ⬜    | Default `1`                                                                        |
 | `limit`          | integer |    ⬜    | Default `20`; clamped to `[1, 100]`                                                |
@@ -863,7 +854,7 @@ Items are ordered by `createdAt desc` for staff, `sentAt desc` for students.
 
 ### `GET /:id`
 
-`200` / `403` (audience mismatch for STUDENT) / `404` (not found, or STUDENT and not `SENT`).
+`200` / `403` (audience mismatch for STUDENT) / `404` (not found, or STUDENT and `sentAt` is null).
 
 ### `POST /`
 
@@ -874,14 +865,13 @@ Items are ordered by `createdAt desc` for staff, `sentAt desc` for students.
 | `title`          | string |    ✅    |                                                                                    |
 | `message`        | string |    ✅    |                                                                                    |
 | `targetAudience` | string |    ✅    | `ALL_USERS` \| `ACTIVE_STUDENTS` \| `PREMIUM_MEMBERS`                              |
-| `status`         | string |    ⬜    | `DRAFT` \| `SCHEDULED` \| `SENT`. Default `DRAFT`. If `SENT`, `sentAt` is auto-set.|
-| `scheduledDate`  | string |    ⬜    | ISO date or datetime; rejected with `400` if unparseable                           |
+| `scheduledDate`  | string |    ⬜    | ISO date or datetime; if omitted the notification is sent immediately (`sentAt` is set to now). Rejected with `400` if unparseable |
 
 **Responses:** `201` — `{ data: <Notification> }`, `400` — validation.
 
 ### `PATCH /:id`
 
-**Auth:** `SUPERADMIN | OPERATIONS`. All `POST /` fields accepted as optional; additionally `openRate` (string, may be `null`). Changing `targetAudience` re-runs the audience count. Changing `status` to `SENT` (when not already `SENT`) sets `sentAt = now()`.
+**Auth:** `SUPERADMIN | OPERATIONS`. All `POST /` fields accepted as optional. Changing `targetAudience` re-runs the audience count.
 
 **Responses:** `200`, `400`, `404`.
 
@@ -956,7 +946,7 @@ One record per student per calendar day (`@@unique([studentId, date])`). The `su
 
 | Param       | Type    | Required | Notes                                                                  |
 | ----------- | ------- | :------: | ---------------------------------------------------------------------- |
-| `q`         | string  |    ⬜    | Case-insensitive match on student `name` or `studentId`                |
+| `q`         | string  |    ⬜    | Case-insensitive match on student `name` or `email`                    |
 | `status`    | string  |    ⬜    | `PRESENT` \| `ABSENT`                                                  |
 | `date`      | string  |    ⬜    | Exact date match. Takes priority over `startDate`/`endDate`            |
 | `startDate` | string  |    ⬜    | Lower bound (inclusive) when `date` is absent                          |
@@ -1113,7 +1103,7 @@ Aggregated KPI snapshots. Read-only.
 - **`cards.recorded`** — placeholder.
 - **`team`** — flat totals (same numbers as the matching `cards.*.total`).
 - **`system.coupons`** — count of `Coupon` rows with `status = ACTIVE`.
-- **`system.notifications`** — count of `AppNotification` rows with `status = SENT`.
+- **`system.notifications`** — count of `AppNotification` rows that have been sent (`sentAt` is not null).
 - **`system.classes` / `system.recorded`** — placeholders.
 
 ```json
@@ -1172,7 +1162,6 @@ The four SuperAdmin endpoints split data by referee type — `/user/*` lists ref
     "id": "uuid",
     "referrer": { "id": "uuid", "name": "Asha", "email": "a@x.com", "type": "student" },
     "referee":  { "id": "uuid", "name": "Bina", "email": "b@x.com" },
-    "subscription": { "period": "MONTHLY", "name": "Basic", "status": "ACTIVE" },
     "status": "ACTIVE",
     "reward": "100",
     "date": "2026-04-21T12:00:00.000Z"
@@ -1181,7 +1170,7 @@ The four SuperAdmin endpoints split data by referee type — `/user/*` lists ref
 }
 ```
 
-`referrer.type` is `"student"` or `"tutor"`. `subscription` is the referee's most recent subscription (or `null`).
+`referrer.type` is `"student"` or `"tutor"`.
 
 #### `GET /tutor/overview`
 
@@ -1203,7 +1192,7 @@ The four SuperAdmin endpoints split data by referee type — `/user/*` lists ref
 }
 ```
 
-`classes` is the count of subscription classes linked to the referred tutor.
+`classes` is the count of live classes conducted by the referred tutor.
 
 ### Tutor views
 
@@ -1315,7 +1304,7 @@ List students enrolled in the event, paginated.
 | `page`  | integer |    ⬜    | Default `1`                                                      |
 | `limit` | integer |    ⬜    | Default `20`; clamped to `[1, 100]`                              |
 
-Each item: `{ id, enrolledAt, student: { id, studentId, name, email, phone } }`.
+Each item: `{ id, enrolledAt, student: { id, name, email, phone } }`.
 
 `404` if the event itself does not exist.
 
@@ -1343,6 +1332,33 @@ Each item: `{ id, enrolledAt, student: { id, studentId, name, email, phone } }`.
 ```
 
 `enrollment` is `null` when `enrolled` is `false`. `404` if the event does not exist.
+
+#### `POST /:id/enrollment`
+
+**Auth:** `STUDENT`. Self-enroll the calling student in a **free** event (`price = 0`). Paid events must use the payment flow — this endpoint will reject them.
+
+No request body.
+
+**Success — `201 Created`:**
+
+```json
+{
+  "enrolled": true,
+  "enrollment": { "id": "uuid", "enrolledAt": "2026-04-30T…" }
+}
+```
+
+On success, `Event.occupancy` is incremented by `1` in the same transaction as the enrollment row creation.
+
+**Errors:**
+
+| Status | Cause                                                        |
+| ------ | ------------------------------------------------------------ |
+| `400`  | Event is paid (`price > 0`) — must enroll via payment flow.  |
+| `400`  | Event has already started or ended (`date <= now()`).        |
+| `404`  | Event does not exist.                                        |
+| `409`  | Event is full (`occupancy >= capacity`).                     |
+| `409`  | Caller is already enrolled in this event.                    |
 
 ---
 
@@ -1451,15 +1467,18 @@ Standard CRUD. `GET /plans/:id` is public; `PATCH` / `DELETE` require admin.
 
 Yoga Teacher Training **recorded** courses. Each course has reorderable modules → classes, plus its own set of plans. Same primitives as Self-Paced, but scoped per course.
 
-**Endpoints require `SUPERADMIN` or `OPERATIONS` auth, except the public flat-plan fetch routes documented below (`GET /plans`, `GET /plans/:planId`).**
+**Endpoints require `SUPERADMIN` or `OPERATIONS` auth, except the public flat-plan fetch routes (`GET /plans`, `GET /plans/:planId`) and the role-aware student endpoints documented below.**
 
 > The Prisma model is `YTTRecordedCourse` / `YTTRecordedModule` / `YTTRecordedClass` / `YTTRecordedPlan` with `@@unique([studentId, courseId])` on enrollments (one course per student).
+
+`GET /`, `GET /:courseId`, `GET /:courseId/modules`, and `GET /:courseId/modules/:moduleId/classes` are **role-aware**: when the caller is a `STUDENT`, the response is filtered (active rows only, classes/videoUrls gated by an active enrollment); when the caller is `SUPERADMIN` / `OPERATIONS`, the full admin view is returned.
 
 ### Courses
 
 #### `GET /`
 
-List courses, sorted by `createdAt desc`.
+Admin: list courses sorted by `createdAt desc`.
+Student: list **active** courses only (`isActive = true`), same sort.
 
 #### `POST /`
 
@@ -1474,7 +1493,8 @@ List courses, sorted by `createdAt desc`.
 
 #### `GET /:courseId`
 
-Returns the course with nested `modules` (each containing **active** `classes`) and `plans` (sorted by `validity asc`).
+Admin: returns the course with nested `modules` (each containing **active** `classes`) and `plans` (sorted by `validity asc`).
+Student: course must be `isActive`. Returns the course shell, active `plans`, and `modules` (sorted by `sortOrder asc`). **Modules omit their `classes` array entirely until the student has an active enrollment** — at which point each module includes its active classes (with `videoUrl`). The response also includes a top-level `enrolled` boolean.
 
 #### `PATCH /:courseId`
 
@@ -1488,7 +1508,8 @@ Hard-delete the course (cascades subject to Prisma rules).
 
 #### `GET /:courseId/modules`
 
-List modules with their active classes. `404` if the course does not exist.
+Admin: list modules with their active classes. `404` if the course does not exist.
+Student: course must be `isActive`. Returns modules sorted by `sortOrder asc`; **each module's `classes` array is omitted until the caller has an active enrollment**, then includes active classes with `videoUrl`.
 
 #### `POST /:courseId/modules`
 
@@ -1510,6 +1531,8 @@ Standard partial update / delete. The module must belong to the course.
 Same shape as Self-Paced classes — `title`, `videoUrl`, `duration` (minutes) required; `description`, `thumbnailUrl`, `sortOrder`, `isActive` optional.
 
 `POST` validates that the module belongs to the course; class operations validate that the class belongs to the module.
+
+`GET /:courseId/modules/:moduleId/classes` is **role-aware**: students must have an active enrollment for the course (otherwise `403`), then receive only active classes; admins see the full list.
 
 ```
 GET    /:courseId/modules/:moduleId/classes
@@ -1552,13 +1575,102 @@ DELETE /:courseId/plans/:planId
 
 The plan must belong to the course; cross-course access returns `404`.
 
+### Student endpoints
+
+All student endpoints require `STUDENT` auth. The student is resolved from the JWT — paths never contain `studentId`.
+
+#### `GET /my-enrollments`
+
+List the caller's currently active YTT Recorded enrollments (`status = ACTIVE` AND `endDate > now`), ordered by `endDate desc`.
+
+```jsonc
+{
+  "data": [
+    {
+      "id": "uuid",
+      "courseId": "uuid",
+      "planId": "uuid",
+      "planName": "3-Month Access",
+      "startDate": "2026-04-01T00:00:00.000Z",
+      "expiresAt": "2026-07-01T00:00:00.000Z",
+      "status": "ACTIVE",
+      "course": { "id": "...", "title": "...", "thumbnailUrl": "...", "yogaType": "Hatha", "level": "BEGINNER" }
+    }
+  ]
+}
+```
+
+#### `GET /:courseId/my-enrollment`
+
+Returns the caller's active enrollment for a single course, or `null` when none.
+
+```jsonc
+{ "data": { "enrolled": true, "enrollment": { /* same shape as above */ } } }
+```
+
+When inactive/expired/missing: `{ "enrolled": false, "enrollment": null }`.
+
+#### `POST /:courseId/enrollments`
+
+Self-enroll the caller in `:courseId`.
+
+| Field    | Type   | Required | Notes                                          |
+| -------- | ------ | :------: | ---------------------------------------------- |
+| `planId` | string |    ✅    | Plan must belong to `:courseId` and be active. |
+
+`endDate = now + plan.validity` days.
+
+Behaviour against `@@unique([studentId, courseId])`:
+
+- No existing enrollment → row is created.
+- Existing row, currently `ACTIVE` and not yet expired → `409 Conflict`.
+- Existing row that is `EXPIRED` / `CANCELLED` (or whose `endDate` has passed) → row is **reactivated** with the new plan, `startDate = now`, recomputed `endDate`, and `status = ACTIVE`.
+
+**Errors:** `400` missing `planId`, `404` plan not found / inactive for this course, `409` already actively enrolled.
+
+#### `GET /:courseId/my-progress`
+
+Returns the caller's per-class progress rows for the active enrollment on `:courseId`. Empty array `[]` when there is no active enrollment.
+
+```jsonc
+{
+  "data": [
+    {
+      "id": "uuid",
+      "classId": "uuid",
+      "progress": 75,
+      "isCompleted": false,
+      "lastWatchedAt": "2026-05-08T12:00:00.000Z",
+      "updatedAt": "2026-05-08T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+#### `POST /:courseId/classes/:classId/progress`
+
+Upsert progress for one class within an enrolled course. Requires an active enrollment on `:courseId` and that the class belongs to a module in that course.
+
+| Field         | Type    | Required | Notes                                                                  |
+| ------------- | ------- | :------: | ---------------------------------------------------------------------- |
+| `progress`    | integer |   one of | 0–100. Rounded to nearest integer.                                     |
+| `isCompleted` | boolean |   one of | When `progress` is omitted, this flag toggles completion explicitly.   |
+
+If `progress` reaches `100` and `isCompleted` is omitted, completion is auto-set to `true`. `lastWatchedAt` is always set to `now`.
+
+**Errors:** `400` missing both fields or `progress` out of range, `403` no active enrollment for the course, `404` class does not belong to the course (or is inactive).
+
 ---
 
 ## YTT Live — `/api/ytt-live`
 
 Yoga Teacher Training **live** courses. Each course is a live cohort with one or more priced plans, plus a flat list of live class sessions (no modules).
 
-**Endpoints require `SUPERADMIN` or `OPERATIONS` auth, except the public flat-plan fetch routes documented below (`GET /plans`, `GET /plans/:planId`).**
+**Endpoints require `SUPERADMIN` or `OPERATIONS` auth, except the public flat-plan fetch routes (`GET /plans`, `GET /plans/:planId`) and the role-aware student endpoints documented below.**
+
+> The Prisma model is `YTTLiveCourse` / `YTTLivePlan` / `YTTLiveClass` / `YTTLiveEnrollment` with `@@unique([studentId, courseId])` on enrollments (one course per student). Class visibility is gated on a per-course active enrollment — there is no progress model.
+
+`GET /`, `GET /:courseId`, and `GET /:courseId/classes` are **role-aware**: when the caller is a `STUDENT` the response is filtered (active courses only, classes only when enrolled in that course); when the caller is `SUPERADMIN` / `OPERATIONS` the full admin view is returned.
 
 ### Courses
 
@@ -1572,7 +1684,11 @@ DELETE /:courseId
 
 `POST /` body matches YTT-Recorded course (`title`, `yogaType` required; `description`, `thumbnailUrl`, `level`, `isActive` optional).
 
-`GET /:courseId` includes the nested `plans` (sorted by `validity asc`) and `classes` (sorted by `scheduledAt asc`).
+`GET /` (admin): list all courses sorted by `createdAt desc`.
+`GET /` (student): list **active** courses only.
+
+`GET /:courseId` (admin): includes the nested `plans` (sorted by `validity asc`) and `classes` (sorted by `scheduledAt asc`).
+`GET /:courseId` (student): course must be `isActive`. Returns the course shell, active `plans` (sorted by `validity asc`), and a top-level `enrolled` boolean. **The `classes` array is only included when the student has an active enrollment for this course** — otherwise it is omitted entirely.
 
 ### Plans
 
@@ -1607,63 +1723,78 @@ PATCH  /:courseId/classes/:classId
 DELETE /:courseId/classes/:classId
 ```
 
-`GET /:courseId/classes` query params: `status` (filter on `SubscriptionClassStatus`), `q` (case-insensitive substring on `title`).
+`GET /:courseId/classes` (admin) query params: `q` (case-insensitive substring on `title`).
+`GET /:courseId/classes` (student): requires an active enrollment for `:courseId`, otherwise responds `403 Forbidden`. When enrolled, returns the full class list (including `link` and `recording`) sorted by `scheduledAt asc`. The admin-only `q` query filter is not applied.
 
 `POST` body:
 
-| Field          | Type    | Required | Notes                                                              |
-| -------------- | ------- | :------: | ------------------------------------------------------------------ |
-| `title`        | string  |    ✅    | ≤ 200 chars                                                        |
-| `yogaType`     | string  |    ✅    | ≤ 50 chars                                                         |
-| `difficulty`   | string  |    ✅    | `EASY` \| `MEDIUM` \| `HARD`                                       |
-| `duration`     | number  |    ✅    | Minutes                                                            |
-| `description`  | string  |    ⬜    |                                                                    |
-| `thumbnailUrl` | string  |    ⬜    |                                                                    |
-| `link`         | string  |    ⬜    | Live-session URL                                                   |
-| `scheduledAt`  | string  |    ⬜    | ISO datetime                                                       |
-| `startedAt`    | string  |    ⬜    | ISO datetime                                                       |
-| `endedAt`      | string  |    ⬜    | ISO datetime                                                       |
-| `recording`    | string  |    ⬜    | Recording URL                                                      |
-| `status`       | string  |    ⬜    | `DRAFT` \| `SCHEDULED` \| `LIVE` \| `COMPLETED` \| `CANCELLED`. Default `DRAFT`. |
+| Field         | Type    | Required | Notes                                  |
+| ------------- | ------- | :------: | -------------------------------------- |
+| `title`       | string  |    ✅    | ≤ 200 chars                            |
+| `yogaType`    | string  |    ✅    | ≤ 50 chars                             |
+| `difficulty`  | string  |    ✅    | `EASY` \| `MEDIUM` \| `HARD`           |
+| `duration`    | number  |    ✅    | Minutes                                |
+| `description` | string  |    ⬜    |                                        |
+| `link`        | string  |    ⬜    | Live-session URL                       |
+| `scheduledAt` | string  |    ⬜    | ISO datetime                           |
+| `startedAt`   | string  |    ⬜    | ISO datetime                           |
+| `endedAt`     | string  |    ⬜    | ISO datetime                           |
+| `recording`   | string  |    ⬜    | Recording URL                          |
 
-`PATCH` accepts the same fields as partial; nullable fields (`description`, `thumbnailUrl`, `link`, `scheduledAt`, `startedAt`, `endedAt`, `recording`) accept `null` to clear.
+`PATCH` accepts the same fields as partial; nullable fields (`description`, `link`, `scheduledAt`, `startedAt`, `endedAt`, `recording`) accept `null` to clear.
 
----
+### Student endpoints
 
-## Subscription Plans — `/api/subscription-plans`
+All student endpoints require `STUDENT` auth. The student is resolved from the JWT — paths never contain `studentId`.
 
-Recurring subscription plans (`MONTHLY` / `QUARTERLY` / `HALF_YEARLY` / `YEARLY`) granting access to live classes and recordings via entitlement flags.
+#### `GET /my-enrollments`
 
-**All endpoints require `SUPERADMIN`** (note: stricter than other content routes — Operations cannot manage these).
+List the caller's currently active YTT Live enrollments (`status = ACTIVE` AND `endDate > now`), ordered by `endDate desc`.
 
-> **Note:** Server enforces required fields on create, the `period` enum on create/update, and at least one field on update.
+```jsonc
+{
+  "data": [
+    {
+      "id": "uuid",
+      "courseId": "uuid",
+      "planId": "uuid",
+      "planName": "3-Month Cohort",
+      "startDate": "2026-04-01T00:00:00.000Z",
+      "expiresAt": "2026-07-01T00:00:00.000Z",
+      "status": "ACTIVE",
+      "course": { "id": "...", "title": "...", "thumbnailUrl": "...", "yogaType": "Hatha", "level": "BEGINNER" }
+    }
+  ]
+}
+```
 
-### `GET /`
+#### `GET /:courseId/my-enrollment`
 
-List plans, sorted by `price asc`.
+Returns the caller's active enrollment for a single course, or `null` when none.
 
-### `POST /`
+```jsonc
+{ "data": { "enrolled": true, "enrollment": { /* same shape as above */ } } }
+```
 
-| Field                  | Type     | Required | Notes                                                                |
-| ---------------------- | -------- | :------: | -------------------------------------------------------------------- |
-| `name`                 | string   |    ✅    | ≤ 100 chars                                                          |
-| `period`               | string   |    ✅    | `MONTHLY` \| `QUARTERLY` \| `HALF_YEARLY` \| `YEARLY`                |
-| `price`                | number   |    ✅    | Decimal                                                              |
-| `description`          | string   |    ⬜    |                                                                      |
-| `originalPrice`        | number   |    ⬜    | Decimal                                                              |
-| `features`             | string[] |    ⬜    |                                                                      |
-| `canAccessLiveClasses` | boolean  |    ⬜    | Default `true`                                                       |
-| `canAccessRecordings`  | boolean  |    ⬜    | Default `true`                                                       |
-| `isPopular`            | boolean  |    ⬜    | Display flag; default `false`                                        |
-| `isBestValue`          | boolean  |    ⬜    | Display flag; default `false`                                        |
-| `isInaugural`          | boolean  |    ⬜    | Display flag; default `false`                                        |
-| `isActive`             | boolean  |    ⬜    | Default `true`                                                       |
+When inactive/expired/missing: `{ "enrolled": false, "enrollment": null }`.
 
-**Responses:** `201`, `400` — required field missing or invalid `period`.
+#### `POST /:courseId/enrollments`
 
-### `GET /:id` / `PATCH /:id` / `DELETE /:id`
+Self-enroll the caller in `:courseId`.
 
-Standard CRUD. `PATCH` rejects an unknown `period`.
+| Field    | Type   | Required | Notes                                          |
+| -------- | ------ | :------: | ---------------------------------------------- |
+| `planId` | string |    ✅    | Plan must belong to `:courseId` and be active. |
+
+`endDate = now + plan.validity` days.
+
+Behaviour against `@@unique([studentId, courseId])`:
+
+- No existing enrollment → row is created.
+- Existing row, currently `ACTIVE` and not yet expired → `409 Conflict`.
+- Existing row that is `EXPIRED` / `CANCELLED` (or whose `endDate` has passed) → row is **reactivated** with the new plan, `startDate = now`, recomputed `endDate`, and `status = ACTIVE`.
+
+**Errors:** `400` missing `planId`, `404` plan not found / inactive for this course, `409` already actively enrolled.
 
 ---
 
@@ -1760,6 +1891,68 @@ Partial update. Accepts all `POST /` fields as optional. `tutorId`, `batchId`, `
 ### `DELETE /:id`
 
 Hard-delete the live class.
+
+### Student endpoints
+
+Read-only access for the calling `STUDENT`. Both endpoints require `STUDENT` auth and resolve the student from the JWT (no path/query identifiers).
+
+#### `GET /my-enrollment`
+
+Returns the student's currently active `LiveEnrollment` (`status = ACTIVE` AND `endDate > now`), or `null` if none.
+
+```jsonc
+{
+  "data": {
+    "enrolled": true,
+    "enrollment": {
+      "id": "uuid",
+      "planId": "uuid",
+      "batchId": "uuid",
+      "startDate": "2026-04-01T00:00:00.000Z",
+      "endDate":   "2026-07-01T00:00:00.000Z",
+      "status": "ACTIVE",
+      "plan":  { "id": "...", "name": "Quarterly", "validity": 90, "recordingAccess": 1, "...": "..." },
+      "batch": { "id": "uuid", "name": "Morning 7am Bengaluru" }
+    }
+  }
+}
+```
+
+When the student has no active enrollment: `{ "enrolled": false, "enrollment": null }`.
+
+#### `GET /my-classes`
+
+Returns the entire live-class catalog (`status IN (SCHEDULED, LIVE, COMPLETED)`, ordered by `scheduledAt desc`) with each item using the same join shape as the admin `GET /` (nested `tutor` and `batch`). The student's plan controls recording visibility:
+
+- `recording` is preserved only on classes with `scheduledAt >= now − recordingAccess days`.
+- For all older classes, `recording` is forced to `null`.
+- Monthly (`recordingAccess = 0`) ⇒ every past recording is hidden.
+
+When the student has no active enrollment, the response is `{ "enrolled": false, "recordingDays": 0, "classes": [] }`.
+
+```jsonc
+{
+  "data": {
+    "enrolled": true,
+    "recordingDays": 1,
+    "classes": [
+      {
+        "id": "uuid",
+        "title": "Morning Hatha",
+        "yogaType": "Hatha",
+        "difficulty": "MEDIUM",
+        "scheduledAt": "...",
+        "duration": 60,
+        "link": "https://...",
+        "recording": "https://...",
+        "status": "COMPLETED",
+        "tutor": { "id": "...", "name": "...", "avatar": "...", "specializations": ["..."] },
+        "batch": { "id": "...", "name": "Morning 7am Bengaluru" }
+      }
+    ]
+  }
+}
+```
 
 ### Plans — `/api/live/plans`
 

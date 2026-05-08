@@ -567,18 +567,18 @@ function RenameModuleDialog({
 
 type ClassFormFields = {
   title: string;
-  videoUrl: string;
+  video: string;
   duration: string;
-  thumbnailUrl: string;
+  thumbnail: string;
   description: string;
   isActive: boolean;
 };
 
 const EMPTY_CLASS_FORM: ClassFormFields = {
   title: "",
-  videoUrl: "",
+  video: "",
   duration: "",
-  thumbnailUrl: "",
+  thumbnail: "",
   description: "",
   isActive: true,
 };
@@ -605,8 +605,8 @@ function ClassFormView({
         <Label htmlFor="cf-video">Video URL *</Label>
         <Input
           id="cf-video"
-          value={form.videoUrl}
-          onChange={(e) => onChange({ videoUrl: e.target.value })}
+          value={form.video}
+          onChange={(e) => onChange({ video: e.target.value })}
           placeholder="https://..."
         />
       </div>
@@ -625,8 +625,8 @@ function ClassFormView({
           <Label htmlFor="cf-thumb">Thumbnail URL</Label>
           <Input
             id="cf-thumb"
-            value={form.thumbnailUrl}
-            onChange={(e) => onChange({ thumbnailUrl: e.target.value })}
+            value={form.thumbnail}
+            onChange={(e) => onChange({ thumbnail: e.target.value })}
             placeholder="optional"
           />
         </div>
@@ -655,16 +655,16 @@ function ClassFormView({
 function buildClassBody(form: ClassFormFields): ClassCreateBody {
   return {
     title: form.title.trim(),
-    videoUrl: form.videoUrl.trim(),
+    video: form.video.trim(),
     duration: Number(form.duration),
     isActive: form.isActive,
     ...(form.description.trim() ? { description: form.description.trim() } : {}),
-    ...(form.thumbnailUrl.trim() ? { thumbnailUrl: form.thumbnailUrl.trim() } : {}),
+    ...(form.thumbnail.trim() ? { thumbnail: form.thumbnail.trim() } : {}),
   };
 }
 
 function isClassFormValid(form: ClassFormFields): boolean {
-  return Boolean(form.title.trim() && form.videoUrl.trim() && Number(form.duration) > 0);
+  return Boolean(form.title.trim() && form.video.trim() && Number(form.duration) > 0);
 }
 
 // ─── ADD CLASS DIALOG ─────────────────────────────────────────────────────────
@@ -742,9 +742,9 @@ function EditClassDialog({
 }) {
   const [form, setForm] = useState<ClassFormFields>({
     title: cls.title,
-    videoUrl: cls.videoUrl,
+    video: cls.video,
     duration: String(cls.duration),
-    thumbnailUrl: cls.thumbnailUrl ?? "",
+    thumbnail: cls.thumbnail ?? "",
     description: cls.description ?? "",
     isActive: cls.isActive,
   });
@@ -753,9 +753,9 @@ function EditClassDialog({
   useEffect(() => {
     setForm({
       title: cls.title,
-      videoUrl: cls.videoUrl,
+      video: cls.video,
       duration: String(cls.duration),
-      thumbnailUrl: cls.thumbnailUrl ?? "",
+      thumbnail: cls.thumbnail ?? "",
       description: cls.description ?? "",
       isActive: cls.isActive,
     });

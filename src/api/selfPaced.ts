@@ -82,10 +82,10 @@ export function listClasses(role: Role, moduleId: string) {
 
 export type ClassCreateBody = {
   title: string;
-  videoUrl: string;
+  video: string;
   duration: number;
   description?: string;
-  thumbnailUrl?: string;
+  thumbnail?: string;
   isActive?: boolean;
 };
 

@@ -4,13 +4,12 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
-import { Badge } from "../../components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Bell, Plus, Search, Send, Eye, Trash2, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { listNotifications, createNotification, updateNotification, deleteNotification } from "../../api/notifications";
-import type { Notification, NotificationAudience, NotificationStatus } from "../../api/types";
+import type { Notification, NotificationAudience } from "../../api/types";
 
 const AUDIENCES: { value: NotificationAudience; label: string }[] = [
   { value: "ALL_USERS", label: "All Users" },
@@ -18,29 +17,13 @@ const AUDIENCES: { value: NotificationAudience; label: string }[] = [
   { value: "PREMIUM_MEMBERS", label: "Premium Members" },
 ];
 
-const STATUSES: { value: NotificationStatus; label: string }[] = [
-  { value: "DRAFT", label: "Draft" },
-  { value: "SCHEDULED", label: "Scheduled" },
-  { value: "SENT", label: "Sent" },
-];
-
 const audienceLabel = (value: string | undefined | null): string =>
   AUDIENCES.find((a) => a.value === value)?.label ?? "All users";
-
-const statusLabel = (value: string | undefined | null): string =>
-  STATUSES.find((s) => s.value === value)?.label ?? value ?? "Draft";
-
-const statusBadgeVariant = (status: NotificationStatus): "default" | "secondary" | "outline" => {
-  if (status === "SENT") return "default";
-  if (status === "SCHEDULED") return "outline";
-  return "secondary";
-};
 
 type FormState = {
   title: string;
   message: string;
   targetAudience: NotificationAudience;
-  status: NotificationStatus;
   scheduledDate: string;
 };
 
@@ -48,7 +31,6 @@ const emptyForm: FormState = {
   title: "",
   message: "",
   targetAudience: "ALL_USERS",
-  status: "DRAFT",
   scheduledDate: "",
 };
 
@@ -100,7 +82,6 @@ export function OperationsNotifications() {
     title: form.title,
     message: form.message,
     targetAudience: form.targetAudience,
-    status: form.status,
     scheduledDate: form.scheduledDate ? new Date(form.scheduledDate).toISOString() : undefined,
   });
 
@@ -127,7 +108,6 @@ export function OperationsNotifications() {
       title: notification.title,
       message: notification.message,
       targetAudience: notification.targetAudience,
-      status: notification.status,
       scheduledDate: notification.scheduledDate ? notification.scheduledDate.slice(0, 16) : "",
     });
   };
@@ -164,15 +144,8 @@ export function OperationsNotifications() {
     }
   };
 
-  const draftCount = notifications.filter((n) => n.status === "DRAFT").length;
-  const sentCount = notifications.filter((n) => n.status === "SENT").length;
-  const scheduledCount = notifications.filter((n) => n.status === "SCHEDULED").length;
-
   const metrics = [
     { title: "Total", value: String(total), icon: Bell, color: "#ff691d" },
-    { title: "Sent (page)", value: String(sentCount), icon: Send, color: "#10b981" },
-    { title: "Scheduled (page)", value: String(scheduledCount), icon: Eye, color: "#f59e0b" },
-    { title: "Drafts (page)", value: String(draftCount), icon: Eye, color: "#64748b" },
   ];
 
   return (
@@ -183,7 +156,7 @@ export function OperationsNotifications() {
           <p className="text-muted-foreground mt-1">Send messages to students and staff</p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-1">
           {metrics.map((metric) => {
             const Icon = metric.icon;
             return (
@@ -230,15 +203,14 @@ export function OperationsNotifications() {
                     <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Audience</th>
                     <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Recipients</th>
                     <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Scheduled</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Status</th>
                     <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading && notifications.length === 0 ? (
-                    <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Loading...</td></tr>
+                    <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">Loading...</td></tr>
                   ) : notifications.length === 0 ? (
-                    <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No notifications found.</td></tr>
+                    <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">No notifications found.</td></tr>
                   ) : (
                     notifications.map((notification) => (
                       <tr key={notification.id} className="border-b hover:bg-gray-50">
@@ -250,9 +222,6 @@ export function OperationsNotifications() {
                         <td className="py-3 px-4 text-sm">{notification.recipientCount}</td>
                         <td className="py-3 px-4 text-sm">
                           {notification.scheduledDate ? new Date(notification.scheduledDate).toLocaleString() : "—"}
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge variant={statusBadgeVariant(notification.status)}>{statusLabel(notification.status)}</Badge>
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
@@ -338,14 +307,12 @@ export function OperationsNotifications() {
                 <p className="text-sm font-medium text-muted-foreground mb-1">Message</p>
                 <p className="whitespace-pre-wrap">{viewing.message}</p>
               </div>
-              <div className="flex gap-2">
-                <Badge variant={statusBadgeVariant(viewing.status)}>{statusLabel(viewing.status)}</Badge>
-                {viewing.sentAt && (
-                  <span className="text-xs text-muted-foreground self-center">
-                    Sent {new Date(viewing.sentAt).toLocaleString()}
-                  </span>
-                )}
-              </div>
+              {viewing.sentAt && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Sent</p>
+                  <p>{new Date(viewing.sentAt).toLocaleString()}</p>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
@@ -393,35 +360,19 @@ function NotificationForm({
           required
         />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="targetAudience" style={{ color: "#ffac96" }}>Audience</Label>
-          <Select
-            value={form.targetAudience}
-            onValueChange={(v) => setForm({ ...form, targetAudience: v as NotificationAudience })}
-          >
-            <SelectTrigger id="targetAudience" className="mt-1"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {AUDIENCES.map((a) => (
-                <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="status" style={{ color: "#ffac96" }}>Status</Label>
-          <Select
-            value={form.status}
-            onValueChange={(v) => setForm({ ...form, status: v as NotificationStatus })}
-          >
-            <SelectTrigger id="status" className="mt-1"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {STATUSES.map((s) => (
-                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div>
+        <Label htmlFor="targetAudience" style={{ color: "#ffac96" }}>Audience</Label>
+        <Select
+          value={form.targetAudience}
+          onValueChange={(v) => setForm({ ...form, targetAudience: v as NotificationAudience })}
+        >
+          <SelectTrigger id="targetAudience" className="mt-1"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {AUDIENCES.map((a) => (
+              <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <Label htmlFor="scheduledDate" style={{ color: "#ffac96" }}>Scheduled Date</Label>
@@ -432,7 +383,6 @@ function NotificationForm({
           onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })}
           className="mt-1"
         />
-        <p className="text-xs text-muted-foreground mt-1">Leave blank to send immediately when status moves to Sent.</p>
       </div>
       <div className="flex justify-end gap-3 pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>

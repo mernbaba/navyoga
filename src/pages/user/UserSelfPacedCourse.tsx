@@ -236,15 +236,15 @@ export function UserSelfPacedCourse() {
               <video
                 key={currentClass.id}
                 className="w-full h-full"
-                src={currentClass.videoUrl}
-                poster={currentClass.thumbnailUrl ?? FALLBACK_POSTER}
+                src={currentClass.video}
+                poster={currentClass.thumbnail ?? FALLBACK_POSTER}
                 controls
               />
             ) : (
               <div
                 className="w-full h-full bg-cover bg-center flex items-center justify-center"
                 style={{
-                  backgroundImage: `url(${currentClass?.thumbnailUrl ?? FALLBACK_POSTER})`,
+                  backgroundImage: `url(${currentClass?.thumbnail ?? FALLBACK_POSTER})`,
                 }}
               >
                 <div className="absolute inset-0 bg-black/70" />

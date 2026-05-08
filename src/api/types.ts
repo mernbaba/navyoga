@@ -195,7 +195,6 @@ export type Coupon = {
 };
 
 export type NotificationAudience = "ALL_USERS" | "ACTIVE_STUDENTS" | "PREMIUM_MEMBERS";
-export type NotificationStatus = "DRAFT" | "SCHEDULED" | "SENT";
 
 export type Notification = {
   id: string;
@@ -203,8 +202,6 @@ export type Notification = {
   message: string;
   targetAudience: NotificationAudience;
   recipientCount: number;
-  openRate: string | null;
-  status: NotificationStatus;
   scheduledDate: string | null;
   sentAt: string | null;
   createdAt: string;
@@ -442,8 +439,8 @@ export type SelfPacedClass = {
   moduleId: string;
   title: string;
   description: string | null;
-  videoUrl: string;
-  thumbnailUrl: string | null;
+  video: string;
+  thumbnail: string | null;
   duration: number;
   sortOrder: number;
   isActive: boolean;
@@ -584,6 +581,7 @@ export type LivePlan = {
   features: string[];
   recordingAccess: number;
   isActive: boolean;
+  batchRestricted: boolean;
   createdAt: string;
   updatedAt: string;
 };

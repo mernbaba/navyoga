@@ -39,6 +39,7 @@ export type LivePlanBody = {
   features?: string[];
   recordingAccess?: number;
   isActive?: boolean;
+  batchRestricted?: boolean;
 };
 
 export function listLivePlans(role: LoginRole = "STUDENT") {
