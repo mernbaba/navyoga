@@ -13,6 +13,16 @@ import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { useState } from "react";
 import { Badge } from "./ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { performLogout, useRoleSession } from "../lib/session";
 
 const navigation = [
@@ -28,7 +38,13 @@ export function TutorLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
   useRoleSession("TUTOR");
+
+  const requestLogout = () => {
+    setOpen(false);
+    setLogoutOpen(true);
+  };
 
   const handleLogout = async () => {
     await performLogout("TUTOR");
@@ -120,10 +136,10 @@ export function TutorLayout() {
                 Priya Sharma
               </Badge>
             </div>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
-              onClick={handleLogout}
+              onClick={requestLogout}
               className="relative group overflow-hidden"
             >
               <LogOut className="w-4 h-4 mr-2" />
@@ -146,6 +162,26 @@ export function TutorLayout() {
           <Outlet />
         </main>
       </div>
+
+      <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Log out of your account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will be returned to the login page and need to sign in again to continue.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Log out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -17,13 +17,29 @@ import {
   LogOut
 } from 'lucide-react';
 import { Button } from './ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 import { performLogout, useRoleSession } from '../lib/session';
 
 export function OperationsLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   useRoleSession("OPERATIONS");
+
+  const requestLogout = () => {
+    setSidebarOpen(false);
+    setLogoutOpen(true);
+  };
 
   const handleLogout = async () => {
     await performLogout("OPERATIONS");
@@ -115,7 +131,7 @@ export function OperationsLayout() {
               </div>
             </div>
             <Button
-              onClick={handleLogout}
+              onClick={requestLogout}
               variant="outline"
               className="w-full justify-start gap-2"
             >
@@ -143,6 +159,26 @@ export function OperationsLayout() {
           <Outlet />
         </main>
       </div>
+
+      <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Log out of your account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will be returned to the login page and need to sign in again to continue.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Log out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

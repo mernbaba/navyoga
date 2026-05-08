@@ -36,7 +36,7 @@ type DerivedStatus = "LIVE" | "SCHEDULED" | "COMPLETED" | "UNSCHEDULED";
 
 function deriveStatus(c: LiveClass): DerivedStatus {
   if (c.startedAt && !c.endedAt) return "LIVE";
-  if (c.endedAt) return "COMPLETED";
+  if (c.endedAt || c.recording) return "COMPLETED";
   if (c.scheduledAt) return "SCHEDULED";
   return "UNSCHEDULED";
 }

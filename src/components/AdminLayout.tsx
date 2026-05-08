@@ -21,6 +21,16 @@ import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { useState, useEffect } from "react";
 import { Badge } from "./ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { performLogout, useRoleSession } from "../lib/session";
 
 const navigation = [
@@ -40,9 +50,9 @@ const navigation = [
 
 const classesSubNav = [
   { name: "Live", href: "/superadmin/classes/live" },
-  { name: "Self Paced", href: "/superadmin/classes/self-paced" },
-  { name: "YTT Live", href: "/superadmin/classes/ytt-live" },
-  { name: "YTT Recorded", href: "/superadmin/classes/ytt-recorded" },
+  //{ name: "Self Paced", href: "/superadmin/classes/self-paced" },
+  //{ name: "YTT Live", href: "/superadmin/classes/ytt-live" },
+  //{ name: "YTT Recorded", href: "/superadmin/classes/ytt-recorded" },
   { name: "Events", href: "/superadmin/classes/events" },
 ];
 
@@ -50,10 +60,16 @@ export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
   const [classesOpen, setClassesOpen] = useState(
     location.pathname.startsWith("/superadmin/classes")
   );
   useRoleSession("SUPERADMIN");
+
+  const requestLogout = () => {
+    setOpen(false);
+    setLogoutOpen(true);
+  };
 
   useEffect(() => {
     if (location.pathname.startsWith("/superadmin/classes")) {
@@ -225,7 +241,7 @@ export function AdminLayout() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleLogout}
+              onClick={requestLogout}
               className="relative group overflow-hidden"
             >
               <LogOut className="w-4 h-4 mr-2" />
@@ -236,16 +252,39 @@ export function AdminLayout() {
         </div>
       </header>
 
-      <div className="flex">
-        <aside className="hidden lg:block w-64 border-r border-border/50 bg-white/60 backdrop-blur-xl min-h-[calc(100vh-4rem)] sticky top-16 shadow-sm">
-          <div className="p-4">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-64 lg:flex-col lg:pt-16">
+        <div className="flex flex-col flex-1 min-h-0 bg-white/60 backdrop-blur-xl border-r border-border/50 shadow-sm">
+          <div className="flex-1 overflow-y-auto p-4">
             <NavContent />
           </div>
-        </aside>
-        <main className="flex-1 p-6 lg:p-8">
-          <Outlet />
-        </main>
+        </div>
       </div>
+
+      <main className="lg:pl-64">
+        <div className="p-6 lg:p-8">
+          <Outlet />
+        </div>
+      </main>
+
+      <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Log out of your account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will be returned to the login page and need to sign in again to continue.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Log out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

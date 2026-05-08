@@ -1,6 +1,17 @@
 import { NavLink, Outlet, useNavigate } from "react-router";
 import { Phone, Users, ClipboardList, Settings, LogOut, LayoutDashboard, PhoneCall } from "lucide-react";
+import { useState } from "react";
 import { Button } from "./ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { performLogout, useRoleSession } from "../lib/session";
 
 const navigation = [
@@ -13,6 +24,7 @@ const navigation = [
 
 export function FrontlineLayout() {
   const navigate = useNavigate();
+  const [logoutOpen, setLogoutOpen] = useState(false);
   useRoleSession("FRONTLINE");
 
   const handleLogout = async () => {
@@ -63,7 +75,7 @@ export function FrontlineLayout() {
             <p className="text-xs text-muted-foreground">Lead Generation Specialist</p>
           </div>
           <Button
-            onClick={handleLogout}
+            onClick={() => setLogoutOpen(true)}
             variant="outline"
             className="w-full justify-start gap-2 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
           >
@@ -75,6 +87,26 @@ export function FrontlineLayout() {
       <main className="flex-1">
         <Outlet />
       </main>
+
+      <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Log out of your account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will be returned to the login page and need to sign in again to continue.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Log out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
