@@ -3,7 +3,7 @@ import { unwrap, type ApiSuccess, type Role } from "./types";
 
 export type InitiatePaymentInput =
   | { type: "SELF_PACED"; planId: string }
-  | { type: "LIVE"; planId: string; batchId: string }
+  | { type: "LIVE"; planId: string; batchId?: string }
   | { type: "YTT_LIVE"; planId: string; courseId: string }
   | { type: "YTT_RECORDED"; planId: string; courseId: string }
   | { type: "EVENT"; entityId: string }

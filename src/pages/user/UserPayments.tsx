@@ -11,19 +11,27 @@ import {
   DialogDescription,
   DialogFooter,
 } from "../../components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { motion } from "motion/react";
 import { toast } from "sonner";
+import { useRazorpay } from "react-razorpay";
 import {
   listLivePlans,
   listSelfPacedPlans,
   listAllYTTRecordedPlans,
   listAllYTTLivePlans,
 } from "../../api/plans";
-import { enrollInSelfPacedPlan } from "../../api/selfPaced";
-import { enrollInYTTLiveCourse } from "../../api/yttLive";
-import { enrollInYTTRecordedCourse } from "../../api/yttRecorded";
-import type { LivePlan, SelfPacedPlan, YTTPlan } from "../../api/types";
+import { initiatePayment, verifyPayment } from "../../api/payments";
+import type { InitiatePaymentInput } from "../../api/payments";
+import { listBatches } from "../../api/batches";
+import type { LivePlan, SelfPacedPlan, YTTPlan, Batch } from "../../api/types";
 
 type PlanCategory = "live" | "self-paced" | "ytt-recorded" | "ytt-live";
 
@@ -109,6 +117,9 @@ export function UserPayments() {
   const [selfPacedPlans, setSelfPacedPlans] = useState<UiPlan[]>([]);
   const [yttSelfPacedPlans, setYttSelfPacedPlans] = useState<UiPlan[]>([]);
   const [yttLivePlans, setYttLivePlans] = useState<UiPlan[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [selectedBatchId, setSelectedBatchId] = useState<string>("");
+  const [isLoadingBatches, setIsLoadingBatches] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,41 +152,96 @@ export function UserPayments() {
   }, []);
 
 const [isEnrolling, setIsEnrolling] = useState(false);
+  const { Razorpay } = useRazorpay();
 
   const handleUpgrade = (plan: UiPlan) => {
     setSelectedPlan(plan);
     setShowUpgradeDialog(true);
+
+    if (plan.category === "live") {
+      setSelectedBatchId("");
+      setIsLoadingBatches(true);
+      listBatches("STUDENT", { limit: 50 })
+        .then((page) => {
+          setBatches(page.items);
+          if (page.items.length > 0) setSelectedBatchId(page.items[0].id);
+        })
+        .catch(() => {
+          toast.error("Failed to load batches.");
+        })
+        .finally(() => setIsLoadingBatches(false));
+    }
   };
 
   const handleConfirmPay = async () => {
     if (!selectedPlan) return;
+
+    if (
+      (selectedPlan.category === "ytt-live" || selectedPlan.category === "ytt-recorded") &&
+      !selectedPlan.courseId
+    ) {
+      toast.error("This plan is not linked to a course.");
+      return;
+    }
+
     setIsEnrolling(true);
+    setShowUpgradeDialog(false);
+
     try {
-      if (selectedPlan.category === "self-paced") {
-        await enrollInSelfPacedPlan(selectedPlan.id);
-        toast.success("Self-paced subscription activated");
-        setShowUpgradeDialog(false);
-      } else if (selectedPlan.category === "ytt-live") {
-        if (!selectedPlan.courseId) {
-          toast.error("This plan is not linked to a course.");
-          return;
+      const paymentInput: InitiatePaymentInput = (() => {
+        switch (selectedPlan.category) {
+          case "live":
+            return { type: "LIVE", planId: selectedPlan.id, batchId: selectedBatchId || undefined };
+          case "self-paced":
+            return { type: "SELF_PACED", planId: selectedPlan.id };
+          case "ytt-live":
+            return { type: "YTT_LIVE", planId: selectedPlan.id, courseId: selectedPlan.courseId! };
+          case "ytt-recorded":
+            return { type: "YTT_RECORDED", planId: selectedPlan.id, courseId: selectedPlan.courseId! };
         }
-        await enrollInYTTLiveCourse(selectedPlan.courseId, selectedPlan.id);
-        toast.success("YTT Live cohort enrollment activated");
-        setShowUpgradeDialog(false);
-      } else if (selectedPlan.category === "ytt-recorded") {
-        if (!selectedPlan.courseId) {
-          toast.error("This plan is not linked to a course.");
-          return;
-        }
-        await enrollInYTTRecordedCourse(selectedPlan.courseId, selectedPlan.id);
-        toast.success("YTT Recorded enrollment activated");
-        setShowUpgradeDialog(false);
-      } else {
-        toast.message("Payment integration for this plan is coming soon.");
+      })();
+
+      const paymentData = await initiatePayment("STUDENT", paymentInput);
+
+      document.body.style.overflow = "hidden";
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const rzp = new Razorpay({
+            key: paymentData.key,
+            amount: paymentData.amount,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            currency: paymentData.currency as any,
+            order_id: paymentData.orderId,
+            name: "NavYoga",
+            description: selectedPlan.name,
+            handler: async (response) => {
+              try {
+                await verifyPayment("STUDENT", {
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
+                });
+                toast.success(`Successfully subscribed to ${selectedPlan.name}!`);
+                resolve();
+              } catch (err) {
+                reject(err);
+              }
+            },
+            modal: {
+              ondismiss: () => reject(new Error("__dismissed__")),
+            },
+          });
+          rzp.open();
+        });
+      } finally {
+        document.body.style.overflow = "";
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to subscribe.");
+      if (err instanceof Error && err.message === "__dismissed__") {
+        toast.info("Payment cancelled.");
+      } else {
+        toast.error(err instanceof Error ? err.message : "Payment failed. Please try again.");
+      }
     } finally {
       setIsEnrolling(false);
     }
@@ -686,6 +752,30 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                   </ul>
                 </div>
               </div>
+
+              {selectedPlan.category === "live" && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Select Batch</label>
+                  {isLoadingBatches ? (
+                    <p className="text-sm text-muted-foreground">Loading batches…</p>
+                  ) : batches.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No batches available.</p>
+                  ) : (
+                    <Select value={selectedBatchId} onValueChange={setSelectedBatchId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a batch" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {batches.map((b) => (
+                          <SelectItem key={b.id} value={b.id}>
+                            {b.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
@@ -695,7 +785,10 @@ const [isEnrolling, setIsEnrolling] = useState(false);
             <Button
               style={{ backgroundColor: selectedPlan?.color, color: 'white' }}
               onClick={handleConfirmPay}
-              disabled={isEnrolling}
+              disabled={
+                isEnrolling ||
+                (selectedPlan?.category === "live" && (isLoadingBatches || !selectedBatchId))
+              }
             >
               {isEnrolling ? "Processing…" : "Confirm & Pay"}
             </Button>
