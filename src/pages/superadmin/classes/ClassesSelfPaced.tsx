@@ -240,9 +240,9 @@ export function ClassesSelfPaced() {
               value={mod.id}
               className="border rounded-xl overflow-hidden"
             >
-              <div className="flex items-center">
-                <AccordionTrigger className="px-4 py-3 flex-1 hover:no-underline hover:bg-muted/30">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="flex items-center w-full">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/30 [&>svg]:hidden">
+                  <div className="flex items-center gap-3 min-w-0">
                     <span className="text-xs text-muted-foreground w-5 shrink-0">{modIdx + 1}.</span>
                     <FolderOpen className="w-4 h-4 shrink-0" style={{ color: BRAND }} />
                     <span className="font-medium text-sm truncate">{mod.title}</span>
@@ -251,7 +251,7 @@ export function ClassesSelfPaced() {
                     </Badge>
                   </div>
                 </AccordionTrigger>
-                <div className="flex items-center gap-0.5 pr-3 shrink-0">
+                <div className="flex items-center gap-0.5 shrink-0">
                   <Button
                     size="icon"
                     variant="ghost"
@@ -281,16 +281,33 @@ export function ClassesSelfPaced() {
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 text-destructive hover:text-destructive"
-                    onClick={(e) => { e.stopPropagation(); handleDeleteModule(mod); }}
-                    title="Delete module"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
+                  {mod.classes.length === 0 && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteModule(mod); }}
+                      title="Delete module"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                 </div>
+                <div className="flex-1" />
+                {mod.classes.length > 0 && (
+                  <div className="pr-3 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2.5 text-xs font-medium gap-1 rounded-md border-[#610981]/30 text-[#610981] hover:bg-[#610981]/5 hover:text-[#610981] hover:border-[#610981]/50"
+                      onClick={(e) => { e.stopPropagation(); setAddClassFor(mod); }}
+                      title="Add class"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Add Class
+                    </Button>
+                  </div>
+                )}
               </div>
               <AccordionContent className="px-4 pb-4 pt-0">
                 <div className="space-y-2">
@@ -356,17 +373,19 @@ export function ClassesSelfPaced() {
                       </Button>
                     </div>
                   ))}
-                  <div className="pt-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs"
-                      onClick={() => setAddClassFor(mod)}
-                    >
-                      <Plus className="w-3.5 h-3.5 mr-1" />
-                      Add Class
-                    </Button>
-                  </div>
+                  {mod.classes.length === 0 && (
+                    <div className="pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => setAddClassFor(mod)}
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1" />
+                        Add Class
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -590,9 +609,11 @@ const EMPTY_CLASS_FORM: ClassFormFields = {
 function ClassFormView({
   form,
   onChange,
+  showActive = true,
 }: {
   form: ClassFormFields;
   onChange: (patch: Partial<ClassFormFields>) => void;
+  showActive?: boolean;
 }) {
   return (
     <>
@@ -612,9 +633,17 @@ function ClassFormView({
             id="cf-dur"
             type="number"
             min={1}
+            step={1}
             value={form.duration}
-            onChange={(e) => onChange({ duration: e.target.value })}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "" || /^\d+$/.test(v)) onChange({ duration: v });
+            }}
+            onKeyDown={(e) => { if (e.key === "-" || e.key === "e" || e.key === "+") e.preventDefault(); }}
           />
+          {form.duration !== "" && Number(form.duration) <= 0 && (
+            <p className="text-xs text-red-500">Duration must be a positive number</p>
+          )}
         </div>
         <div className="space-y-1">
           <Label htmlFor="cf-thumb">Thumbnail URL</Label>
@@ -622,27 +651,31 @@ function ClassFormView({
             id="cf-thumb"
             value={form.thumbnail}
             onChange={(e) => onChange({ thumbnail: e.target.value })}
-            placeholder="optional"
+            placeholder="optional · auto from video"
           />
         </div>
       </div>
       <div className="space-y-1">
         <Label htmlFor="cf-desc">Description</Label>
-        <Input
+        <textarea
           id="cf-desc"
           value={form.description}
           onChange={(e) => onChange({ description: e.target.value })}
-          placeholder="optional"
+          placeholder="optional · what students will learn"
+          rows={3}
+          className="w-full min-h-18 px-3 py-2 rounded-md border border-gray-200 bg-background text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring resize-y"
         />
       </div>
-      <div className="flex items-center gap-3">
-        <Switch
-          id="cf-active"
-          checked={form.isActive}
-          onCheckedChange={(v) => onChange({ isActive: v })}
-        />
-        <Label htmlFor="cf-active">Active</Label>
-      </div>
+      {showActive && (
+        <div className="flex items-center gap-3">
+          <Switch
+            id="cf-active"
+            checked={form.isActive}
+            onCheckedChange={(v) => onChange({ isActive: v })}
+          />
+          <Label htmlFor="cf-active">Active</Label>
+        </div>
+      )}
     </>
   );
 }
@@ -664,6 +697,75 @@ function isClassFormValid(form: ClassFormFields): boolean {
 
 // ─── ADD CLASS DIALOG ─────────────────────────────────────────────────────────
 
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "—";
+  const mb = bytes / (1024 * 1024);
+  if (mb < 1024) return `${mb.toFixed(mb < 10 ? 1 : 0)} MB`;
+  return `${(mb / 1024).toFixed(2)} GB`;
+}
+
+function extractVideoMeta(file: File): Promise<{ durationSec: number; thumbnail: Blob }> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.muted = true;
+    video.crossOrigin = "anonymous";
+    let settled = false;
+    const cleanup = () => {
+      URL.revokeObjectURL(url);
+      video.removeAttribute("src");
+      video.load();
+    };
+    const finish = (err: Error | null, payload?: { durationSec: number; thumbnail: Blob }) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      cleanup();
+      if (err || !payload) reject(err ?? new Error("Couldn't read video"));
+      else resolve(payload);
+    };
+    const timeout = window.setTimeout(() => finish(new Error("Couldn't read video metadata")), 8000);
+
+    video.onloadedmetadata = () => {
+      const seconds = video.duration;
+      if (!Number.isFinite(seconds) || seconds <= 0) {
+        finish(new Error("Video has no readable duration"));
+        return;
+      }
+      // Seek to ~10% in (or 1s, whichever larger) to skip black intros
+      const seekTo = Math.min(Math.max(seconds * 0.1, 1), seconds - 0.1);
+      video.currentTime = seekTo;
+    };
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        const w = video.videoWidth || 1280;
+        const h = video.videoHeight || 720;
+        const maxW = 1280;
+        const scale = w > maxW ? maxW / w : 1;
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { finish(new Error("Canvas not available")); return; }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) { finish(new Error("Couldn't capture thumbnail")); return; }
+            finish(null, { durationSec: video.duration, thumbnail: blob });
+          },
+          "image/jpeg",
+          0.85,
+        );
+      } catch (err) {
+        finish(err instanceof Error ? err : new Error("Thumbnail capture failed"));
+      }
+    };
+    video.onerror = () => finish(new Error("Couldn't read video"));
+    video.src = url;
+  });
+}
+
 function AddClassDialog({
   open,
   mod,
@@ -675,89 +777,248 @@ function AddClassDialog({
   onClose: () => void;
   onCreated: (cls: SelfPacedClass) => void;
 }) {
+  const [step, setStep] = useState<1 | 2>(1);
   const [form, setForm] = useState<ClassFormFields>(EMPTY_CLASS_FORM);
-  const [saving, setSaving] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [detectedDurationMin, setDetectedDurationMin] = useState<number | null>(null);
+  const [autoThumb, setAutoThumb] = useState<Blob | null>(null);
+  const [autoThumbUrl, setAutoThumbUrl] = useState<string | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!autoThumb) { setAutoThumbUrl(null); return; }
+    const url = URL.createObjectURL(autoThumb);
+    setAutoThumbUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [autoThumb]);
 
   function reset() {
+    setStep(1);
     setForm(EMPTY_CLASS_FORM);
-    setSaving(false);
     setVideoFile(null);
-    setUploading(false);
+    setDetectedDurationMin(null);
+    setAutoThumb(null);
+    setExtracting(false);
+    setSaving(false);
   }
 
-  async function uploadVideo(clsId: string) {
-    if (!videoFile) return;
-    setUploading(true);
+  async function handleVideoChosen(file: File | null) {
+    setVideoFile(file);
+    setDetectedDurationMin(null);
+    setAutoThumb(null);
+    if (!file) return;
+    setExtracting(true);
     try {
-      const { url, storePath } = await requestPresignedUrl("SUPERADMIN", mod.id, clsId, videoFile.name, videoFile.type);
-      await fetch(url, {
+      const { durationSec, thumbnail } = await extractVideoMeta(file);
+      const minutes = Math.max(1, Math.round(durationSec / 60));
+      setDetectedDurationMin(minutes);
+      setForm((f) => ({ ...f, duration: String(minutes) }));
+      // Keep the captured frame around even if a URL was given — user might clear the URL.
+      setAutoThumb(thumbnail);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't read the video");
+    } finally {
+      setExtracting(false);
+    }
+  }
+
+  async function handlePublish() {
+    if (!isClassFormValid(form) || !videoFile) return;
+    setSaving(true);
+    let createdId: string | null = null;
+    try {
+      const cls = await createClass("SUPERADMIN", mod.id, buildClassBody(form));
+      createdId = cls.id;
+
+      const videoPresign = await requestPresignedUrl(
+        "SUPERADMIN", mod.id, cls.id, videoFile.name, videoFile.type, "video",
+      );
+      await fetch(videoPresign.url, {
         method: "PUT",
         headers: { "Content-Type": videoFile.type },
         body: videoFile,
       });
-      await updateClass("SUPERADMIN", mod.id, clsId, { video: storePath });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to upload video");
-      throw err;
-    } finally {
-      setUploading(false);
-    }
-  }
+      let updated = await updateClass("SUPERADMIN", mod.id, cls.id, { video: videoPresign.storePath });
 
-  async function handleSave() {
-    if (!isClassFormValid(form)) return;
-    setSaving(true);
-    try {
-      const cls = await createClass("SUPERADMIN", mod.id, buildClassBody(form));
-      if (videoFile) {
-        await uploadVideo(cls.id);
+      // User-supplied URL wins (already in form.thumbnail and saved by createClass).
+      // Only auto-upload the captured frame if no URL was provided.
+      if (autoThumb && !form.thumbnail.trim()) {
+        try {
+          const thumbPresign = await requestPresignedUrl(
+            "SUPERADMIN", mod.id, cls.id, "thumbnail.jpg", "image/jpeg", "thumbnail",
+          );
+          await fetch(thumbPresign.url, {
+            method: "PUT",
+            headers: { "Content-Type": "image/jpeg" },
+            body: autoThumb,
+          });
+          updated = await updateClass("SUPERADMIN", mod.id, cls.id, { thumbnail: thumbPresign.storePath });
+        } catch (thumbErr) {
+          toast.error(
+            thumbErr instanceof Error
+              ? `Class created, but thumbnail upload failed: ${thumbErr.message}.`
+              : "Thumbnail upload failed.",
+          );
+        }
       }
+
       toast.success("Class added");
-      onCreated(cls);
+      onCreated(updated);
       reset();
     } catch (err) {
-      if (!videoFile) toast.error(err instanceof Error ? err.message : "Failed to add class");
+      if (createdId) {
+        try { await deleteClass("SUPERADMIN", mod.id, createdId); } catch { /* swallow */ }
+      }
+      toast.error(err instanceof Error ? err.message : "Failed to add class");
       setSaving(false);
     }
   }
 
+  const detailsValid = isClassFormValid(form);
+  const previewImageUrl = form.thumbnail.trim() || autoThumbUrl;
+  const displayDuration = detectedDurationMin ?? (form.duration ? Number(form.duration) : null);
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add Class</DialogTitle>
+    <Dialog open={open} onOpenChange={(v) => { if (!v && !saving) { reset(); onClose(); } }}>
+      <DialogContent
+        className={`${step === 2 ? "max-w-lg" : "max-w-md"} max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden`}
+      >
+        <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
+          <DialogTitle style={step === 2 ? { color: BRAND } : undefined}>
+            {step === 2 ? "Upload Class Video" : "Add Class"}
+          </DialogTitle>
           <DialogDescription>
-            Adding to module: <span className="font-medium">{mod.title}</span>
+            {step === 2
+              ? "Upload the video file for this class"
+              : <>Adding to module: <span className="font-medium">{mod.title}</span></>}
+            <span className="ml-2 text-xs text-muted-foreground">· Step {step} of 2</span>
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
-          <ClassFormView form={form} onChange={(patch) => setForm((f) => ({ ...f, ...patch }))} />
-          <div className="space-y-1">
-            <Label>Video (optional)</Label>
-            <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-input bg-background hover:bg-muted/50 transition-colors">
-              <Upload className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground flex-1">
-                {videoFile ? videoFile.name : "Choose a video file..."}
-              </span>
-              <input
-                type="file"
-                accept=".mp4"
-                className="hidden"
-                onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
+
+        <div className="flex-1 overflow-y-auto px-6 py-2 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+          {step === 1 ? (
+            <div className="space-y-3">
+              <ClassFormView
+                form={form}
+                onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+                showActive={false}
               />
-            </label>
-            {videoFile && (
-              <p className="text-xs text-muted-foreground mt-1">Uploaded after class is created</p>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* Class preview header — 16:9 banner */}
+              <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+                {previewImageUrl ? (
+                  <img
+                    src={previewImageUrl}
+                    alt="Thumbnail preview"
+                    className="w-full h-full object-cover opacity-90"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                  />
+                ) : null}
+                {!previewImageUrl && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Video className="w-10 h-10 text-white/30" />
+                  </div>
+                )}
+                <div className="absolute bottom-2 left-2 right-2">
+                  <div className="bg-black/80 backdrop-blur-sm rounded-md px-3 py-2">
+                    <p className="text-white text-sm font-medium truncate">
+                      {form.title.trim() || "Untitled class"}
+                    </p>
+                    <p className="text-white/70 text-xs mt-0.5 truncate">
+                      {mod.title} · {displayDuration ? `${displayDuration} min` : "—"} · MP4
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Video upload */}
+              <div className="space-y-2">
+                <Label htmlFor="sp-video-pick">
+                  Video File <span className="text-red-500">*</span>
+                </Label>
+                <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors">
+                  <input
+                    id="sp-video-pick"
+                    type="file"
+                    accept=".mp4,video/mp4"
+                    className="hidden"
+                    disabled={saving}
+                    onChange={(e) => handleVideoChosen(e.target.files?.[0] ?? null)}
+                  />
+                  <label htmlFor="sp-video-pick" className="cursor-pointer flex flex-col items-center gap-1.5">
+                    {videoFile ? (
+                      <>
+                        <FileVideo className="w-6 h-6" style={{ color: BRAND }} />
+                        <p className="text-sm font-medium truncate max-w-full px-2">{videoFile.name}</p>
+                        <p className="text-xs text-muted-foreground">Click to choose a different file</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">Click to upload video (MP4)</p>
+                      </>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              {/* Metadata grid — only after video is picked */}
+              {videoFile && (
+                <div className="grid grid-cols-2 gap-3 p-3 bg-muted/40 rounded-lg">
+                  <div>
+                    <p className="text-xs text-muted-foreground">File Size</p>
+                    <p className="font-medium text-sm mt-0.5">{formatBytes(videoFile.size)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Duration</p>
+                    <p className="font-medium text-sm mt-0.5">
+                      {displayDuration ? `${displayDuration} min` : extracting ? "reading…" : "—"}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {videoFile && extracting && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Capturing thumbnail from video…
+                </p>
+              )}
+            </div>
+          )}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => { reset(); onClose(); }}>Cancel</Button>
-          <Button disabled={!isClassFormValid(form) || saving || uploading} onClick={handleSave} style={{ background: BRAND }}>
-            {uploading ? "Uploading video…" : saving ? "Adding…" : "Add Class"}
-          </Button>
+
+        <DialogFooter className="px-6 py-4 border-t bg-background shrink-0">
+          {step === 1 ? (
+            <>
+              <Button variant="outline" onClick={() => { reset(); onClose(); }}>Cancel</Button>
+              <Button
+                disabled={!detailsValid}
+                onClick={() => setStep(2)}
+                style={{ background: BRAND, color: "white" }}
+              >
+                Next
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setStep(1)}
+                disabled={saving}
+              >
+                Back
+              </Button>
+              <Button
+                onClick={handlePublish}
+                disabled={!videoFile || saving}
+                style={{ background: BRAND, color: "white" }}
+              >
+                {saving ? "Publishing…" : "Publish"}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -789,6 +1050,10 @@ function EditClassDialog({
   });
   const [saving, setSaving] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [detectedDurationMin, setDetectedDurationMin] = useState<number | null>(null);
+  const [autoThumb, setAutoThumb] = useState<Blob | null>(null);
+  const [autoThumbUrl, setAutoThumbUrl] = useState<string | null>(null);
+  const [extracting, setExtracting] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -801,9 +1066,38 @@ function EditClassDialog({
       isActive: cls.isActive,
     });
     setVideoFile(null);
+    setDetectedDurationMin(null);
+    setAutoThumb(null);
+    setExtracting(false);
     setSaving(false);
     setUploading(false);
   }, [cls.id]);
+
+  useEffect(() => {
+    if (!autoThumb) { setAutoThumbUrl(null); return; }
+    const url = URL.createObjectURL(autoThumb);
+    setAutoThumbUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [autoThumb]);
+
+  async function handleVideoChosen(file: File | null) {
+    setVideoFile(file);
+    setDetectedDurationMin(null);
+    setAutoThumb(null);
+    if (!file) return;
+    setExtracting(true);
+    try {
+      const { durationSec, thumbnail } = await extractVideoMeta(file);
+      const minutes = Math.max(1, Math.round(durationSec / 60));
+      setDetectedDurationMin(minutes);
+      setForm((f) => ({ ...f, duration: String(minutes) }));
+      setAutoThumb(thumbnail);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't read the video");
+    } finally {
+      setExtracting(false);
+    }
+  }
 
   async function handleUploadVideo() {
     if (!videoFile) return;
@@ -812,16 +1106,41 @@ function EditClassDialog({
       if (cls.video) {
         await deleteClassMedia("SUPERADMIN", mod.id, cls.id);
       }
-      const { url, storePath } = await requestPresignedUrl("SUPERADMIN", mod.id, cls.id, videoFile.name, videoFile.type);
-      await fetch(url, {
+      const videoPresign = await requestPresignedUrl(
+        "SUPERADMIN", mod.id, cls.id, videoFile.name, videoFile.type, "video",
+      );
+      await fetch(videoPresign.url, {
         method: "PUT",
         headers: { "Content-Type": videoFile.type },
         body: videoFile,
       });
-      const updated = await updateClass("SUPERADMIN", mod.id, cls.id, { video: storePath });
+      let updated = await updateClass("SUPERADMIN", mod.id, cls.id, { video: videoPresign.storePath });
+
+      // Auto-upload captured thumbnail if user hasn't supplied a custom URL
+      if (autoThumb && !form.thumbnail.trim()) {
+        try {
+          const thumbPresign = await requestPresignedUrl(
+            "SUPERADMIN", mod.id, cls.id, "thumbnail.jpg", "image/jpeg", "thumbnail",
+          );
+          await fetch(thumbPresign.url, {
+            method: "PUT",
+            headers: { "Content-Type": "image/jpeg" },
+            body: autoThumb,
+          });
+          updated = await updateClass("SUPERADMIN", mod.id, cls.id, { thumbnail: thumbPresign.storePath });
+        } catch { /* non-fatal */ }
+      }
+
+      // Persist auto-detected duration if it changed
+      if (detectedDurationMin && detectedDurationMin !== updated.duration) {
+        updated = await updateClass("SUPERADMIN", mod.id, cls.id, { duration: detectedDurationMin });
+      }
+
       toast.success("Video uploaded");
       onUpdated(updated);
       setVideoFile(null);
+      setDetectedDurationMin(null);
+      setAutoThumb(null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to upload video");
     } finally {
@@ -853,69 +1172,180 @@ function EditClassDialog({
     }
   }
 
+  const [step, setStep] = useState<1 | 2>(1);
+  useEffect(() => { setStep(1); }, [cls.id]);
+
+  const previewImageUrl = autoThumbUrl ?? (form.thumbnail.trim() || cls.thumbnail || null);
+  const displayDuration = detectedDurationMin ?? (form.duration ? Number(form.duration) : null);
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit Class</DialogTitle>
+    <Dialog open={open} onOpenChange={(v) => { if (!v && !saving && !uploading) onClose(); }}>
+      <DialogContent className={`${step === 2 ? "max-w-lg" : "max-w-md"} max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden`}>
+        <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
+          <DialogTitle style={step === 2 ? { color: BRAND } : undefined}>
+            {step === 2 ? "Class Video" : "Edit Class"}
+          </DialogTitle>
           <DialogDescription>
-            Editing in module: <span className="font-medium">{mod.title}</span>
+            {step === 2
+              ? "Replace or remove the uploaded video"
+              : <>Editing in module: <span className="font-medium">{mod.title}</span></>}
+            <span className="ml-2 text-xs text-muted-foreground">· Step {step} of 2</span>
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
-          <ClassFormView form={form} onChange={(patch) => setForm((f) => ({ ...f, ...patch }))} />
-          <div className="space-y-1">
-            <Label>Video</Label>
-            {cls.video ? (
-              <div className="space-y-2">
+
+        <div className="flex-1 overflow-y-auto px-6 py-2 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+          {step === 1 ? (
+            <div className="space-y-3">
+              <ClassFormView form={form} onChange={(patch) => setForm((f) => ({ ...f, ...patch }))} />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* Class preview header — 16:9 banner */}
+              <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+                {previewImageUrl ? (
+                  <img
+                    src={previewImageUrl}
+                    alt="Thumbnail preview"
+                    className="w-full h-full object-cover opacity-90"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                  />
+                ) : null}
+                {!previewImageUrl && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Video className="w-10 h-10 text-white/30" />
+                  </div>
+                )}
+                <div className="absolute bottom-2 left-2 right-2">
+                  <div className="bg-black/80 backdrop-blur-sm rounded-md px-3 py-2">
+                    <p className="text-white text-sm font-medium truncate">
+                      {form.title.trim() || "Untitled class"}
+                    </p>
+                    <p className="text-white/70 text-xs mt-0.5 truncate">
+                      {mod.title} · {displayDuration ? `${displayDuration} min` : "—"} · MP4
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Existing video status (only when no new pick) */}
+              {cls.video && !videoFile && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/30">
                   <FileVideo className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground truncate flex-1">Video uploaded</span>
-                  <Button size="sm" variant="outline" className="h-7 text-xs" disabled={uploading} onClick={handleDeleteMedia}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    disabled={uploading}
+                    onClick={handleDeleteMedia}
+                  >
                     <Trash2 className="w-3 h-3 mr-1" /> Remove
                   </Button>
                 </div>
-                <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-input bg-background hover:bg-muted/50 transition-colors">
-                  <Upload className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground flex-1">
-                    {videoFile ? videoFile.name : "Replace video..."}
-                  </span>
+              )}
+
+              {/* Video upload (replace or new) */}
+              <div className="space-y-2">
+                <Label htmlFor="ec-video-pick">
+                  {cls.video ? "Replace Video" : "Video File"}
+                </Label>
+                <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors">
                   <input
+                    id="ec-video-pick"
                     type="file"
-                    accept=".mp4"
+                    accept=".mp4,video/mp4"
                     className="hidden"
-                    onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
+                    disabled={uploading}
+                    onChange={(e) => handleVideoChosen(e.target.files?.[0] ?? null)}
                   />
-                </label>
+                  <label htmlFor="ec-video-pick" className="cursor-pointer flex flex-col items-center gap-1.5">
+                    {videoFile ? (
+                      <>
+                        <FileVideo className="w-6 h-6" style={{ color: BRAND }} />
+                        <p className="text-sm font-medium truncate max-w-full px-2">{videoFile.name}</p>
+                        <p className="text-xs text-muted-foreground">Click to choose a different file</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          {cls.video ? "Click to replace video (MP4)" : "Click to upload video (MP4)"}
+                        </p>
+                      </>
+                    )}
+                  </label>
+                </div>
               </div>
-            ) : (
-              <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-input bg-background hover:bg-muted/50 transition-colors">
-                <Upload className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground flex-1">
-                  {videoFile ? videoFile.name : "Upload video..."}
-                </span>
-                <input
-                  type="file"
-                  accept=".mp4"
-                  className="hidden"
-                  onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
-                />
-              </label>
-            )}
-            {videoFile && (
-              <div className="flex justify-end">
-                <Button size="sm" className="h-7 text-xs" style={{ background: BRAND }} disabled={uploading} onClick={handleUploadVideo}>
-                  {uploading ? "Uploading…" : "Upload"}
-                </Button>
-              </div>
-            )}
-          </div>
+
+              {/* Metadata grid — only after a new video is picked */}
+              {videoFile && (
+                <div className="grid grid-cols-2 gap-3 p-3 bg-muted/40 rounded-lg">
+                  <div>
+                    <p className="text-xs text-muted-foreground">File Size</p>
+                    <p className="font-medium text-sm mt-0.5">{formatBytes(videoFile.size)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Duration</p>
+                    <p className="font-medium text-sm mt-0.5">
+                      {displayDuration ? `${displayDuration} min` : extracting ? "reading…" : "—"}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {videoFile && extracting && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Capturing thumbnail from video…
+                </p>
+              )}
+
+              {/* Upload action — only after a new video is picked */}
+              {videoFile && (
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    style={{ background: BRAND, color: "white" }}
+                    disabled={uploading || extracting}
+                    onClick={handleUploadVideo}
+                  >
+                    {uploading ? "Uploading…" : cls.video ? "Replace Video" : "Upload Video"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button disabled={!isClassFormValid(form) || saving} onClick={handleSave} style={{ background: BRAND }}>
-            {saving ? "Saving…" : "Save Changes"}
-          </Button>
+
+        <DialogFooter className="px-6 py-4 border-t bg-background shrink-0">
+          {step === 1 ? (
+            <>
+              <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+              <Button
+                disabled={!isClassFormValid(form) || saving}
+                onClick={handleSave}
+                style={{ background: BRAND, color: "white" }}
+              >
+                {saving ? "Saving…" : "Save Changes"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setStep(2)}
+                disabled={saving}
+              >
+                Manage Video →
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setStep(1)}
+                disabled={uploading}
+              >
+                ← Back
+              </Button>
+              <Button variant="outline" onClick={onClose} disabled={uploading}>Close</Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

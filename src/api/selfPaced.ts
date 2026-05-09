@@ -120,12 +120,19 @@ export function deleteClass(role: Role, moduleId: string, id: string) {
   );
 }
 
-export function requestPresignedUrl(role: Role, moduleId: string, classId: string, filename: string, contentType: string) {
+export function requestPresignedUrl(
+  role: Role,
+  moduleId: string,
+  classId: string,
+  filename: string,
+  contentType: string,
+  kind: "video" | "thumbnail" = "video",
+) {
   return unwrap<{ url: string; storePath: string; expiresIn: number }>(
     authedRequest<ApiSuccess<{ url: string; storePath: string; expiresIn: number }>>(role, {
       method: "POST",
       url: `${BASE}/modules/${moduleId}/classes/${classId}/presign`,
-      data: { filename, contentType },
+      data: { filename, contentType, kind },
     }),
   );
 }
