@@ -115,7 +115,7 @@ interface AddClassDialogProps {
   onCreated: () => void;
 }
 
-const EMPTY_CLASS = { title: "", videoUrl: "", duration: "", description: "" };
+const EMPTY_CLASS = { title: "", video: "", duration: "", description: "" };
 
 function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreated }: AddClassDialogProps) {
   const [form, setForm] = useState(EMPTY_CLASS);
@@ -132,12 +132,12 @@ function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreat
 
   async function handleSave() {
     const dur = Number(form.duration);
-    if (!form.title.trim() || !form.videoUrl.trim() || !form.duration || isNaN(dur) || dur <= 0) return;
+    if (!form.title.trim() || !form.video.trim() || !form.duration || isNaN(dur) || dur <= 0) return;
     setSaving(true);
     try {
       await createYTTRecordedClass(courseId, moduleId, {
         title: form.title.trim(),
-        videoUrl: form.videoUrl.trim(),
+        video: form.video.trim(),
         duration: dur,
         ...(form.description.trim() ? { description: form.description.trim() } : {}),
       });
@@ -150,7 +150,7 @@ function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreat
     }
   }
 
-  const valid = form.title.trim() && form.videoUrl.trim() && Number(form.duration) > 0;
+  const valid = form.title.trim() && form.video.trim() && Number(form.duration) > 0;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
@@ -166,7 +166,7 @@ function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreat
           </div>
           <div className="space-y-1">
             <Label htmlFor="cls-url">Video URL *</Label>
-            <Input id="cls-url" placeholder="https://…" value={form.videoUrl} onChange={(e) => set("videoUrl", e.target.value)} />
+            <Input id="cls-url" placeholder="https://…" value={form.video} onChange={(e) => set("video", e.target.value)} />
           </div>
           <div className="space-y-1">
             <Label htmlFor="cls-dur">Duration (minutes) *</Label>
@@ -203,7 +203,7 @@ interface EditClassDialogProps {
 function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, onUpdated }: EditClassDialogProps) {
   const [form, setForm] = useState({
     title: cls.title,
-    videoUrl: cls.videoUrl,
+    video: cls.video,
     duration: String(cls.duration),
     description: cls.description ?? "",
   });
@@ -213,7 +213,7 @@ function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, o
   useEffect(() => {
     setForm({
       title: cls.title,
-      videoUrl: cls.videoUrl,
+      video: cls.video,
       duration: String(cls.duration),
       description: cls.description ?? "",
     });
@@ -224,7 +224,7 @@ function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, o
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  const valid = form.title.trim() && form.videoUrl.trim() && Number(form.duration) > 0;
+  const valid = form.title.trim() && form.video.trim() && Number(form.duration) > 0;
 
   async function handleSave() {
     if (!valid) return;
@@ -234,7 +234,7 @@ function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, o
       const trimmedDesc = form.description.trim();
       const updated = await updateYTTRecordedClass(courseId, moduleId, cls.id, {
         title: form.title.trim(),
-        videoUrl: form.videoUrl.trim(),
+        video: form.video.trim(),
         duration: dur,
         description: trimmedDesc.length > 0 ? trimmedDesc : undefined,
       });
@@ -260,7 +260,7 @@ function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, o
           </div>
           <div className="space-y-1">
             <Label htmlFor="edit-cls-url">Video URL *</Label>
-            <Input id="edit-cls-url" placeholder="https://…" value={form.videoUrl} onChange={(e) => set("videoUrl", e.target.value)} />
+            <Input id="edit-cls-url" placeholder="https://…" value={form.video} onChange={(e) => set("video", e.target.value)} />
           </div>
           <div className="space-y-1">
             <Label htmlFor="edit-cls-dur">Duration (minutes) *</Label>

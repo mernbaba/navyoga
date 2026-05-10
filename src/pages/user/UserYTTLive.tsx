@@ -158,12 +158,12 @@ export function UserYTTLive() {
   );
 
   return (
-    <div className="p-6 lg:p-8 min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50/30">
+    <div className="p-6 lg:p-8 min-h-screen bg-linear-to-br from-gray-50 via-white to-purple-50/30">
       <div className="space-y-6">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#ff691d] via-[#610981] to-[#8b0fa8] p-8 text-white shadow-2xl"
+          className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#ff691d] via-[#610981] to-[#8b0fa8] p-8 text-white shadow-2xl"
         >
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
@@ -232,7 +232,7 @@ export function UserYTTLive() {
         )}
 
         {!loading && !enrolled && !error && (
-          <Card className="border-2 border-[#ff691d]/30 bg-gradient-to-r from-[#ff691d]/10 to-[#610981]/10">
+          <Card className="border-2 border-[#ff691d]/30 bg-linear-to-r from-[#ff691d]/10 to-[#610981]/10">
             <CardContent className="pt-8 pb-8 flex flex-col items-center text-center">
               <div className="p-3 rounded-xl bg-[#ff691d]/15 mb-4">
                 <Lock className="w-7 h-7 text-[#ff691d]" />
@@ -245,7 +245,7 @@ export function UserYTTLive() {
                 sessions and recordings.
               </p>
               <Link to="/user/payments">
-                <Button className="bg-gradient-to-r from-[#ff691d] to-[#ff8c4d] text-white hover:from-[#ff5500] hover:to-[#ff691d] shadow-lg font-semibold">
+                <Button className="bg-linear-to-r from-[#ff691d] to-[#ff8c4d] text-white hover:from-[#ff5500] hover:to-[#ff691d] shadow-lg font-semibold">
                   <Crown className="w-4 h-4 mr-2" />
                   View YTT Live Plans
                 </Button>
@@ -289,7 +289,7 @@ export function UserYTTLive() {
             </Card>
 
             <Card className="relative overflow-hidden border-0 shadow-xl">
-              <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[#ff691d]/10 to-transparent rounded-full blur-3xl" />
+              <div className="absolute top-0 right-0 w-96 h-96 bg-linear-to-bl from-[#ff691d]/10 to-transparent rounded-full blur-3xl" />
               <CardContent className="relative z-10 pt-6">
                 <Tabs
                   value={activeTab}
@@ -350,7 +350,7 @@ function HeroEnrollmentInfo({
 }) {
   const remaining = daysRemaining(enrollment.expiresAt);
   return (
-    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 min-w-[260px]">
+    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 min-w-65">
       <div className="flex items-center gap-2 text-[#610981] text-xs uppercase tracking-wide font-semibold mb-1 md:justify-end">
         <Crown className="w-4 h-4" />
         Active enrollment
@@ -373,13 +373,13 @@ function HeroEnrollmentInfo({
 
 function HeroNoEnrollment() {
   return (
-    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 min-w-[260px] flex flex-col gap-3 md:items-end">
+    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 min-w-65 flex flex-col gap-3 md:items-end">
       <div className="flex items-center gap-2 text-gray-900">
         <Lock className="w-4 h-4" />
         <span className="font-semibold">Not enrolled</span>
       </div>
       <Link to="/user/payments">
-        <Button className="bg-gradient-to-r from-[#ff691d] to-[#ff8c4d] text-white hover:from-[#ff5500] hover:to-[#ff691d] shadow-lg font-semibold">
+        <Button className="bg-linear-to-r from-[#ff691d] to-[#ff8c4d] text-white hover:from-[#ff5500] hover:to-[#ff691d] shadow-lg font-semibold">
           <Crown className="w-4 h-4 mr-2" />
           Enroll
         </Button>
@@ -390,7 +390,7 @@ function HeroNoEnrollment() {
 
 function HeroPlanSkeleton() {
   return (
-    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 min-w-[260px] space-y-2">
+    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 min-w-65 space-y-2">
       <Skeleton className="h-3 w-20" />
       <Skeleton className="h-6 w-32" />
       <Skeleton className="h-3 w-40" />
@@ -445,7 +445,7 @@ function ClassCard({ liveClass: c }: { liveClass: ClassWithCourse }) {
 
   return (
     <Card className="group border-2 border-gray-100 hover:border-purple-200 shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden">
-      <div className={`h-2 bg-gradient-to-r ${difficultyGradient}`} />
+      <div className={`h-2 bg-linear-to-r ${difficultyGradient}`} />
       <CardContent className="pt-6">
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-3">
@@ -476,7 +476,7 @@ function ClassCard({ liveClass: c }: { liveClass: ClassWithCourse }) {
             </Badge>
           </div>
 
-          <div className="p-4 rounded-xl bg-gradient-to-br from-gray-50 to-white">
+          <div className="p-4 rounded-xl bg-linear-to-br from-gray-50 to-white">
             <p className="text-xs text-muted-foreground font-medium">Scheduled</p>
             <p className="text-sm font-semibold text-gray-700">
               {formatScheduledAt(c.scheduledAt)}
@@ -536,7 +536,7 @@ function ActionButton({ action }: { action: Action }) {
   if (action.kind === "join") {
     return (
       <a href={action.href} target="_blank" rel="noopener noreferrer">
-        <Button className="w-full bg-gradient-to-r from-[#ef4444] to-[#f97316] text-white shadow-lg">
+        <Button className="w-full bg-linear-to-r from-[#ef4444] to-[#f97316] text-white shadow-lg">
           <Radio className="w-4 h-4 mr-2" />
           Join Live
         </Button>
@@ -546,7 +546,7 @@ function ActionButton({ action }: { action: Action }) {
   if (action.kind === "watch") {
     return (
       <a href={action.href} target="_blank" rel="noopener noreferrer">
-        <Button className="w-full bg-gradient-to-r from-[#10b981] to-[#14b8a6] text-white shadow-lg">
+        <Button className="w-full bg-linear-to-r from-[#10b981] to-[#14b8a6] text-white shadow-lg">
           <Play className="w-4 h-4 mr-2" />
           Watch Recording
         </Button>

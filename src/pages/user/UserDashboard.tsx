@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+﻿import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { BookOpen, Video, Calendar, Award, Clock, TrendingUp, Sparkles, Target, Trophy, Flame, GraduationCap, Gift, Users, Copy, Share2, Star, Crown, IndianRupee } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -41,7 +41,7 @@ export function UserDashboard() {
   };
 
   return (
-    <div className="p-6 lg:p-8 min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50/30">
+    <div className="p-6 lg:p-8 min-h-screen bg-linear-to-br from-gray-50 via-white to-orange-50/30">
       <div className="space-y-6">
  
         <motion.div 
@@ -55,7 +55,7 @@ export function UserDashboard() {
               alt="NavYoga Academy Special Promotion"
               className="w-full h-48 md:h-64 lg:h-72 object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent flex items-center">
+            <div className="absolute inset-0 bg-linear-to-r from-black/60 via-black/40 to-transparent flex items-center">
               <div className="p-8 md:p-12">
                 <Badge className="mb-4 bg-[#ff691d] text-white border-0 px-4 py-1.5">
                   🎉 LIMITED TIME OFFER
@@ -95,12 +95,12 @@ export function UserDashboard() {
                     <CardTitle className="text-sm font-medium text-muted-foreground">
                       {metric.title}
                     </CardTitle>
-                    <div className={`p-3 rounded-xl bg-gradient-to-br ${metric.gradient} shadow-lg`}>
+                    <div className={`p-3 rounded-xl bg-linear-to-br ${metric.gradient} shadow-lg`}>
                       <Icon className="w-5 h-5 text-white" />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                    <div className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                       {metric.value}
                     </div>
                     <p className="text-xs font-medium mt-1" style={{ color: metric.color }}>{metric.change}</p>
@@ -119,10 +119,10 @@ export function UserDashboard() {
             transition={{ delay: 0.4 }}
           >
             <Card className="relative overflow-hidden border-0 shadow-xl">
-              <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[#ff691d]/10 to-transparent rounded-full blur-3xl" />
+              <div className="absolute top-0 right-0 w-96 h-96 bg-linear-to-bl from-[#ff691d]/10 to-transparent rounded-full blur-3xl" />
               <CardHeader className="flex flex-row items-center justify-between relative z-10">
                 <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-[#ff691d] to-[#ff8c4d] shadow-lg">
+                  <div className="p-2 rounded-lg bg-linear-to-br from-[#ff691d] to-[#ff8c4d] shadow-lg">
                     <Calendar className="w-5 h-5 text-white" />
                   </div>
                   <CardTitle className="text-xl" style={{ color: '#ff691d' }}>Upcoming Classes</CardTitle>
@@ -142,7 +142,7 @@ export function UserDashboard() {
                       whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
                       className="group relative overflow-hidden rounded-2xl p-4 border-2 border-gray-100 hover:border-purple-200 transition-all duration-300 bg-white hover:shadow-lg"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="absolute inset-0 bg-linear-to-r from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       <div className="relative z-10 flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
@@ -158,7 +158,7 @@ export function UserDashboard() {
                         </div>
                         <Button 
                           size="sm" 
-                          className="bg-gradient-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white shadow-lg"
+                          className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white shadow-lg"
                         >
                           Join
                         </Button>
@@ -178,10 +178,10 @@ export function UserDashboard() {
           transition={{ delay: 0.6 }}
         >
           <Card className="relative overflow-hidden border-0 shadow-xl">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[#ffac96]/20 to-transparent rounded-full blur-3xl" />
+            <div className="absolute top-0 right-0 w-96 h-96 bg-linear-to-bl from-[#ffac96]/20 to-transparent rounded-full blur-3xl" />
             <CardHeader className="relative z-10">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg">
+                <div className="p-2 rounded-lg bg-linear-to-br from-yellow-400 to-orange-500 shadow-lg">
                   <Trophy className="w-5 h-5 text-white" />
                 </div>
                 <CardTitle className="text-xl" style={{ color: '#ff691d' }}>Your Achievements</CardTitle>
@@ -200,7 +200,7 @@ export function UserDashboard() {
                       whileHover={{ scale: achievement.earned ? 1.05 : 1, transition: { duration: 0.2 } }}
                       className={`relative p-6 rounded-2xl transition-all duration-300 ${ 
                         achievement.earned 
-                          ? 'bg-gradient-to-br from-white to-gray-50 border-2 shadow-xl cursor-pointer' 
+                          ? 'bg-linear-to-br from-white to-gray-50 border-2 shadow-xl cursor-pointer' 
                           : 'bg-gray-50 border-2 border-dashed border-gray-200 opacity-60'
                       }`}
                       style={{ borderColor: achievement.earned ? achievement.color : undefined }}
@@ -214,7 +214,7 @@ export function UserDashboard() {
                       <div className="relative z-10">
                         <div className="flex items-center gap-3 mb-3">
                           <div 
-                            className={`p-3 rounded-xl shadow-lg ${achievement.earned ? 'bg-gradient-to-br' : 'bg-gray-200'}`}
+                            className={`p-3 rounded-xl shadow-lg ${achievement.earned ? 'bg-linear-to-br' : 'bg-gray-200'}`}
                             style={achievement.earned ? { background: `linear-gradient(135deg, ${achievement.color}, ${achievement.color}dd)` } : {}}
                           >
                             <Icon className={`w-6 h-6 ${achievement.earned ? 'text-white' : 'text-gray-400'}`} />
@@ -254,14 +254,14 @@ export function UserDashboard() {
               >
                 <Link to={action.to}>
                   <Card className="group cursor-pointer border-0 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden relative">
-                    <div className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-5 transition-opacity`} />
+                    <div className={`absolute inset-0 bg-linear-to-br ${action.gradient} opacity-0 group-hover:opacity-5 transition-opacity`} />
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex items-center gap-4">
-                        <div className={`p-4 rounded-2xl bg-gradient-to-br ${action.gradient} shadow-lg group-hover:shadow-xl transition-shadow`}>
+                        <div className={`p-4 rounded-2xl bg-linear-to-br ${action.gradient} shadow-lg group-hover:shadow-xl transition-shadow`}>
                           <Icon className="w-7 h-7 text-white" />
                         </div>
                         <div>
-                          <p className="font-bold text-base mb-0.5 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r" style={{ color: action.color }}>
+                          <p className="font-bold text-base mb-0.5 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r" style={{ color: action.color }}>
                             {action.title}
                           </p>
                           <p className="text-sm text-muted-foreground">{action.desc}</p>
@@ -281,11 +281,11 @@ export function UserDashboard() {
           transition={{ delay: 0.9 }}
         >
           <Card className="relative overflow-hidden border-0 shadow-xl">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[#ff691d]/10 via-[#610981]/10 to-transparent rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-[#ffac96]/10 to-transparent rounded-full blur-3xl" />
+            <div className="absolute top-0 right-0 w-96 h-96 bg-linear-to-bl from-[#ff691d]/10 via-[#610981]/10 to-transparent rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-linear-to-tr from-[#ffac96]/10 to-transparent rounded-full blur-3xl" />
             <CardHeader className="relative z-10 flex flex-row items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-[#ff691d] to-[#ff8c4d] shadow-lg">
+                <div className="p-2 rounded-lg bg-linear-to-br from-[#ff691d] to-[#ff8c4d] shadow-lg">
                   <Gift className="w-5 h-5 text-white" />
                 </div>
                 <CardTitle className="text-xl" style={{ color: '#ff691d' }}>Referral Program</CardTitle>
@@ -304,13 +304,13 @@ export function UserDashboard() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.0 }}
                   whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
-                  className="relative p-5 rounded-2xl bg-gradient-to-br from-white to-gray-50 border-2 shadow-lg cursor-pointer transition-all duration-300 hover:shadow-xl"
+                  className="relative p-5 rounded-2xl bg-linear-to-br from-white to-gray-50 border-2 shadow-lg cursor-pointer transition-all duration-300 hover:shadow-xl"
                   style={{ borderColor: '#ff691d40' }}
                 >
                   <div className="absolute inset-0 rounded-2xl opacity-10 blur-xl" style={{ backgroundColor: '#ff691d' }} />
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-3">
-                      <div className="p-3 rounded-xl shadow-lg bg-gradient-to-br from-[#ff691d] to-[#ff8c4d]">
+                      <div className="p-3 rounded-xl shadow-lg bg-linear-to-br from-[#ff691d] to-[#ff8c4d]">
                         <Users className="w-6 h-6 text-white" />
                       </div>
                       <Badge className="text-xs font-semibold" style={{ backgroundColor: '#ff691d20', color: '#ff691d' }}>
@@ -327,13 +327,13 @@ export function UserDashboard() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.1 }}
                   whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
-                  className="relative p-5 rounded-2xl bg-gradient-to-br from-white to-gray-50 border-2 shadow-lg cursor-pointer transition-all duration-300 hover:shadow-xl"
+                  className="relative p-5 rounded-2xl bg-linear-to-br from-white to-gray-50 border-2 shadow-lg cursor-pointer transition-all duration-300 hover:shadow-xl"
                   style={{ borderColor: '#61098140' }}
                 >
                   <div className="absolute inset-0 rounded-2xl opacity-10 blur-xl" style={{ backgroundColor: '#610981' }} />
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-3">
-                      <div className="p-3 rounded-xl shadow-lg bg-gradient-to-br from-[#610981] to-[#8b0fa8]">
+                      <div className="p-3 rounded-xl shadow-lg bg-linear-to-br from-[#610981] to-[#8b0fa8]">
                         <IndianRupee className="w-6 h-6 text-white" />
                       </div>
                       <Badge className="text-xs font-semibold" style={{ backgroundColor: '#61098120', color: '#610981' }}>
@@ -353,13 +353,13 @@ export function UserDashboard() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.2 }}
                   whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
-                  className="relative p-5 rounded-2xl bg-gradient-to-br from-white to-gray-50 border-2 shadow-lg cursor-pointer transition-all duration-300 hover:shadow-xl"
+                  className="relative p-5 rounded-2xl bg-linear-to-br from-white to-gray-50 border-2 shadow-lg cursor-pointer transition-all duration-300 hover:shadow-xl"
                   style={{ borderColor: '#f59e0b40' }}
                 >
                   <div className="absolute inset-0 rounded-2xl opacity-10 blur-xl" style={{ backgroundColor: '#f59e0b' }} />
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-3">
-                      <div className="p-3 rounded-xl shadow-lg bg-gradient-to-br from-yellow-400 to-orange-500">
+                      <div className="p-3 rounded-xl shadow-lg bg-linear-to-br from-yellow-400 to-orange-500">
                         <Crown className="w-6 h-6 text-white" />
                       </div>
                       <Badge className="text-xs font-semibold bg-yellow-100 text-yellow-700">
@@ -376,7 +376,7 @@ export function UserDashboard() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.3 }}
                   whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
-                  className="relative p-5 rounded-2xl bg-gradient-to-br from-[#610981] to-[#8b0fa8] text-white shadow-lg cursor-pointer transition-all duration-300 hover:shadow-2xl"
+                  className="relative p-5 rounded-2xl bg-linear-to-br from-[#610981] to-[#8b0fa8] text-white shadow-lg cursor-pointer transition-all duration-300 hover:shadow-2xl"
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
                   <div className="relative z-10">
@@ -403,11 +403,11 @@ export function UserDashboard() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.4 }}
-                className="mt-4 p-6 rounded-2xl bg-gradient-to-r from-[#ffac96]/20 to-[#ff691d]/20 border-2 border-[#ff691d]/30"
+                className="mt-4 p-6 rounded-2xl bg-linear-to-r from-[#ffac96]/20 to-[#ff691d]/20 border-2 border-[#ff691d]/30"
               >
                 <div className="flex items-center justify-between flex-wrap gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-gradient-to-br from-[#ff691d] to-[#ff8c4d] shadow-lg">
+                    <div className="p-3 rounded-xl bg-linear-to-br from-[#ff691d] to-[#ff8c4d] shadow-lg">
                       <Star className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -421,7 +421,7 @@ export function UserDashboard() {
                   </div>
                   <Link to="/user/referrals">
                     <Button
-                      className="bg-gradient-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white shadow-lg gap-2"
+                      className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white shadow-lg gap-2"
                     >
                       <Gift className="w-4 h-4" />
                       View Referral Program

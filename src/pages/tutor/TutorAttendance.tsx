@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+﻿import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import {
   Award,
@@ -126,7 +126,7 @@ export function TutorAttendance() {
     <div className="p-6 lg:p-8">
       <div className="space-y-6">
 
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#610981] via-[#a020c8] to-[#ff691d] p-8 text-white shadow-2xl shadow-[#ffac96]/30">
+        <div className="relative overflow-hidden rounded-2xl bg-linear-to-r from-[#610981] via-[#a020c8] to-[#ff691d] p-8 text-white shadow-2xl shadow-[#ffac96]/30">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
           <div className="relative z-10 flex items-center gap-4">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
@@ -276,7 +276,7 @@ export function UserSelfPacedCourse() {
             )}
           </div>
 
-          <div className="bg-gradient-to-br from-gray-900 to-black text-white p-6 lg:p-8">
+          <div className="bg-linear-to-br from-gray-900 to-black text-white p-6 lg:p-8">
             <div className="flex items-start justify-between mb-6 gap-4">
               <div className="flex-1 min-w-0">
                 {showLockOverlay && (
@@ -287,7 +287,7 @@ export function UserSelfPacedCourse() {
                     </Badge>
                   </div>
                 )}
-                <h1 className="text-2xl lg:text-3xl font-bold mb-2 break-words">
+                <h1 className="text-2xl lg:text-3xl font-bold mb-2 wrap-break-word">
                   {currentClass
                     ? `${currentIndex + 1}. ${currentClass.title}`
                     : module.title}
@@ -378,7 +378,7 @@ export function UserSelfPacedCourse() {
             className="fixed right-0 top-[121px] bottom-0 w-96 bg-white border-l border-border overflow-hidden hidden lg:block"
           >
             <div className="h-full overflow-y-auto scrollbar-hide">
-              <div className="sticky top-0 bg-gradient-to-br from-[#610981] to-[#8b0fa8] text-white p-6 z-10">
+              <div className="sticky top-0 bg-linear-to-br from-[#610981] to-[#8b0fa8] text-white p-6 z-10">
                 <h2 className="text-lg font-bold mb-2 truncate">{module.title}</h2>
                 <p className="text-sm text-white/80">
                   {classes.length} lesson{classes.length === 1 ? "" : "s"} •{" "}
@@ -412,7 +412,7 @@ export function UserSelfPacedCourse() {
                           }`}
                         >
                           <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 mt-1">
+                            <div className="shrink-0 mt-1">
                               {isLocked ? (
                                 <Lock className="w-4 h-4 text-gray-400" />
                               ) : isCompleted ? (
@@ -455,7 +455,7 @@ export function UserSelfPacedCourse() {
                               </div>
                             </div>
                             {isCurrent && (
-                              <ChevronRight className="w-4 h-4 text-white flex-shrink-0" />
+                              <ChevronRight className="w-4 h-4 text-white shrink-0" />
                             )}
                           </div>
                         </button>

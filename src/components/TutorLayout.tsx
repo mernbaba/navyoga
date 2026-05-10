@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation, useNavigate } from "react-router";
+﻿import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard,
   Users,
@@ -81,9 +81,9 @@ export function TutorLayout() {
     <div className="min-h-screen bg-background">
 
       <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-[#ff691d]/10 to-[#ffac96]/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-[#610981]/10 to-[#ff691d]/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-gradient-to-br from-[#ffac96]/5 to-[#610981]/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-linear-to-br from-[#ff691d]/10 to-[#ffac96]/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-linear-to-tr from-[#610981]/10 to-[#ff691d]/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-linear-to-br from-[#ffac96]/5 to-[#610981]/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
  
       <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 shadow-sm">
@@ -97,7 +97,7 @@ export function TutorLayout() {
             <SheetContent side="left" className="w-64 p-0 bg-white/95 backdrop-blur-xl border-border/50">
               <div className="p-6 border-b border-border/50">
                 <div className="flex items-center gap-3">
-                  <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-lg shadow-[#ffac96]/40">
+                  <div className="relative w-10 h-10 rounded-xl bg-linear-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-lg shadow-[#ffac96]/40">
                     <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="NavYoga" className="w-6 h-6 object-contain" />
                   </div>
                   <div>
@@ -115,7 +115,7 @@ export function TutorLayout() {
           </Sheet>
           
           <div className="flex items-center gap-3">
-            <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-lg shadow-[#ffac96]/40">
+            <div className="relative w-10 h-10 rounded-xl bg-linear-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-lg shadow-[#ffac96]/40">
               <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="NavYoga" className="w-6 h-6 object-contain" />
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse" />
             </div>

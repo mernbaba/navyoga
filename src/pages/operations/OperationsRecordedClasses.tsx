@@ -26,7 +26,7 @@ interface RecordedVideo {
   thumbnail?: string;
   title?: string;
   description?: string;
-  videoUrl: string;
+  video: string;
 }
 
 export function OperationsRecordedClasses() {
@@ -58,7 +58,7 @@ export function OperationsRecordedClasses() {
       duration: '60 min',
       fileSize: '2.4 GB',
       status: 'pending',
-      videoUrl: 'https://example.com/video1.mp4',
+      video: 'https://example.com/video1.mp4',
     },
     {
       id: 2,
@@ -68,7 +68,7 @@ export function OperationsRecordedClasses() {
       duration: '45 min',
       fileSize: '1.8 GB',
       status: 'pending',
-      videoUrl: 'https://example.com/video2.mp4',
+      video: 'https://example.com/video2.mp4',
     },
     {
       id: 3,
@@ -81,7 +81,7 @@ export function OperationsRecordedClasses() {
       title: 'Evening Meditation & Pranayama Session',
       description: 'A calming evening session focusing on breath work and meditation techniques.',
       thumbnail: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400',
-      videoUrl: 'https://example.com/video3.mp4',
+      video: 'https://example.com/video3.mp4',
     },
     {
       id: 4,
@@ -91,7 +91,7 @@ export function OperationsRecordedClasses() {
       duration: '55 min',
       fileSize: '2.2 GB',
       status: 'pending',
-      videoUrl: 'https://example.com/video4.mp4',
+      video: 'https://example.com/video4.mp4',
     },
     {
       id: 5,
@@ -104,7 +104,7 @@ export function OperationsRecordedClasses() {
       title: 'Gentle Yoga - Perfect for Beginners',
       description: 'An introductory session covering basic yoga poses and breathing techniques.',
       thumbnail: 'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=400',
-      videoUrl: 'https://example.com/video5.mp4',
+      video: 'https://example.com/video5.mp4',
     },
   ];
 
@@ -439,7 +439,7 @@ export function OperationsRecordedClasses() {
                         setPublishForm({ ...publishForm, description: e.target.value })
                       }
                       placeholder="Describe what students will learn in this session..."
-                      className="w-full min-h-[100px] px-3 py-2 rounded-md border border-input bg-background"
+                      className="w-full min-h-25 px-3 py-2 rounded-md border border-input bg-background"
                       disabled={selectedVideo.status === 'published'}
                     />
                   </div>
@@ -635,7 +635,7 @@ export function OperationsRecordedClasses() {
                     setUploadForm({ ...uploadForm, description: e.target.value })
                   }
                   placeholder="Describe what students will learn, the benefits, and what to expect..."
-                  className="w-full min-h-[120px] px-3 py-2 rounded-md border border-input bg-background"
+                  className="w-full min-h-30 px-3 py-2 rounded-md border border-input bg-background"
                 />
               </div>
  

@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from "react-router";
+﻿import { NavLink, Outlet, useNavigate } from "react-router";
 import { Phone, Users, ClipboardList, Settings, LogOut, LayoutDashboard, PhoneCall } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
@@ -37,7 +37,7 @@ export function FrontlineLayout() {
       <div className="w-64 bg-white border-r flex flex-col shadow-lg">
         <div className="p-6 border-b">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-br from-[#610981] to-[#8b0fa8] rounded-xl">
+            <div className="p-2.5 bg-linear-to-br from-[#610981] to-[#8b0fa8] rounded-xl">
               <Phone className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -55,7 +55,7 @@ export function FrontlineLayout() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                   isActive
-                    ? "bg-gradient-to-r from-[#610981] to-[#8b0fa8] text-white shadow-lg shadow-[#610981]/30"
+                    ? "bg-linear-to-r from-[#610981] to-[#8b0fa8] text-white shadow-lg shadow-[#610981]/30"
                     : "text-gray-700 hover:bg-gray-100"
                 }`
               }
@@ -70,7 +70,7 @@ export function FrontlineLayout() {
           ))}
         </nav>
         <div className="p-4 border-t">
-          <div className="mb-3 px-4 py-3 rounded-xl bg-gradient-to-br from-[#ffac96]/10 to-[#ff691d]/5 border border-[#ffac96]/20">
+          <div className="mb-3 px-4 py-3 rounded-xl bg-linear-to-br from-[#ffac96]/10 to-[#ff691d]/5 border border-[#ffac96]/20">
             <p className="text-sm font-semibold" style={{ color: '#ff691d' }}>Sarah Johnson</p>
             <p className="text-xs text-muted-foreground">Lead Generation Specialist</p>
           </div>

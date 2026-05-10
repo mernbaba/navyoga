@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+﻿import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Calendar, Check, X, Clock, TrendingUp, Award, Timer, Target, Flame, TrendingDown } from "lucide-react";
 import { Button } from "../../components/ui/button";
@@ -161,7 +161,7 @@ export function UserAttendance() {
   };
 
   return (
-    <div className="p-6 lg:p-8 min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50/30">
+    <div className="p-6 lg:p-8 min-h-screen bg-linear-to-br from-gray-50 via-white to-purple-50/30">
       <div className="space-y-6">
  
         <motion.div
@@ -328,7 +328,7 @@ export function UserAttendance() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-[#f59e0b]/10 rounded-full blur-3xl" />
             <CardContent className="pt-6 relative z-10">
               <div className="flex items-center gap-4">
-                <div className="p-4 rounded-full bg-gradient-to-br from-orange-500 to-red-500">
+                <div className="p-4 rounded-full bg-linear-to-br from-orange-500 to-red-500">
                   <Flame className="w-12 h-12 text-white" />
                 </div>
                 <div className="flex-1">
@@ -355,7 +355,7 @@ export function UserAttendance() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-[#10b981]/10 rounded-full blur-3xl" />
             <CardContent className="pt-6 relative z-10">
               <div className="flex items-center gap-4">
-                <div className="p-4 rounded-full bg-gradient-to-br from-green-500 to-teal-500">
+                <div className="p-4 rounded-full bg-linear-to-br from-green-500 to-teal-500">
                   <Target className="w-12 h-12 text-white" />
                 </div>
                 <div className="flex-1">
@@ -372,7 +372,7 @@ export function UserAttendance() {
               <div className="mt-4">
                 <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-green-500 to-teal-500 rounded-full transition-all"
+                    className="h-full bg-linear-to-r from-green-500 to-teal-500 rounded-full transition-all"
                     style={{ width: '85%' }}
                   />
                 </div>

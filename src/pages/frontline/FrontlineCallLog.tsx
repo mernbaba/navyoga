@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -90,7 +90,7 @@ export function FrontlineCallLog() {
           </div>
           <Button 
             onClick={() => setAddDialog(true)}
-            className="bg-gradient-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
+            className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
           >
             <Plus className="w-4 h-4 mr-2" />
             Log Call
@@ -198,7 +198,7 @@ export function FrontlineCallLog() {
                       <TableRow key={call.id}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center text-white text-sm font-semibold">
+                            <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center text-white text-sm font-semibold">
                               {call.leadName.charAt(0)}
                             </div>
                             {call.leadName}
@@ -268,7 +268,7 @@ export function FrontlineCallLog() {
             </DialogHeader>
             {selectedCall && (
               <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-gradient-to-br from-[#610981]/10 to-[#ff691d]/5 border border-[#ffac96]/20">
+                <div className="p-4 rounded-lg bg-linear-to-br from-[#610981]/10 to-[#ff691d]/5 border border-[#ffac96]/20">
                   <h3 className="font-semibold text-lg mb-2">{selectedCall.leadName}</h3>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="flex items-center gap-2">
@@ -333,7 +333,7 @@ export function FrontlineCallLog() {
                   toast.success('Follow-up action saved');
                   setViewDialog(false);
                 }}
-                className="bg-gradient-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
+                className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
               >
                 Save Follow-up
               </Button>
@@ -404,7 +404,7 @@ export function FrontlineCallLog() {
                 </Button>
                 <Button 
                   type="submit"
-                  className="bg-gradient-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
+                  className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
                 >
                   Log Call
                 </Button>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
@@ -89,7 +89,7 @@ export function TutorStudents() {
                         <TableCell className="font-medium">{student.id}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#610981] to-[#ff691d] flex items-center justify-center text-white text-sm font-semibold">
+                            <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#610981] to-[#ff691d] flex items-center justify-center text-white text-sm font-semibold">
                               {student.name.charAt(0)}
                             </div>
                             {student.name}
@@ -150,9 +150,9 @@ export function TutorStudents() {
             {selectedStudent && (
               <div className="space-y-4 py-4">
  
-                <div className="p-4 rounded-lg bg-gradient-to-br from-[#610981]/10 to-[#ff691d]/5 border border-[#ffac96]/20">
+                <div className="p-4 rounded-lg bg-linear-to-br from-[#610981]/10 to-[#ff691d]/5 border border-[#ffac96]/20">
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#610981] to-[#ff691d] flex items-center justify-center text-white text-2xl font-semibold">
+                    <div className="w-16 h-16 rounded-full bg-linear-to-br from-[#610981] to-[#ff691d] flex items-center justify-center text-white text-2xl font-semibold">
                       {selectedStudent.name.charAt(0)}
                     </div>
                     <div>

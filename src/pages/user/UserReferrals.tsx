@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -302,7 +302,7 @@ export function UserReferrals() {
         transition={{ duration: 0.5 }}
       >
         <div className="flex items-center gap-3 mb-2">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-[#610981] to-[#8b0fa8] shadow-lg">
+          <div className="p-3 rounded-xl bg-linear-to-br from-[#610981] to-[#8b0fa8] shadow-lg">
             <Gift className="w-8 h-8 text-white" />
           </div>
           <div>
@@ -416,7 +416,7 @@ export function UserReferrals() {
         transition={{ delay: 0.45 }}
       >
         <Card className="relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-[#ff691d]/5 to-[#610981]/5 rounded-full blur-3xl" />
+          <div className="absolute top-0 left-0 w-96 h-96 bg-linear-to-br from-[#ff691d]/5 to-[#610981]/5 rounded-full blur-3xl" />
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -451,7 +451,7 @@ export function UserReferrals() {
                       <div className={`absolute top-0 right-0 w-32 h-32 ${badge.unlocked ? 'opacity-10' : 'opacity-5'} rounded-full blur-2xl ${badge.unlocked ? badge.bgColor : 'bg-gray-400'}`} />
                       <CardContent className="p-5">
                         <div className="flex items-start gap-4">
-                          <div className={`p-3 rounded-xl ${badge.unlocked ? `bg-gradient-to-br ${badge.gradient}` : 'bg-gray-200'} shadow-lg flex-shrink-0 relative`}>
+                          <div className={`p-3 rounded-xl ${badge.unlocked ? `bg-linear-to-br ${badge.gradient}` : 'bg-gray-200'} shadow-lg shrink-0 relative`}>
                             {badge.unlocked && (
                               <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center border-2 border-white">
                                 <CheckCircle className="w-3 h-3 text-white" />
@@ -477,7 +477,7 @@ export function UserReferrals() {
                                   initial={{ width: 0 }}
                                   animate={{ width: `${badge.progress}%` }}
                                   transition={{ duration: 0.8, delay: 0.6 + index * 0.1 }}
-                                  className={`h-full ${badge.unlocked ? `bg-gradient-to-r ${badge.gradient}` : 'bg-gray-300'}`}
+                                  className={`h-full ${badge.unlocked ? `bg-linear-to-r ${badge.gradient}` : 'bg-gray-300'}`}
                                 />
                               </div>
                             </div>
@@ -626,7 +626,7 @@ export function UserReferrals() {
                         className="flex items-center justify-between p-4 rounded-lg border bg-white hover:shadow-md transition-shadow"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#610981] to-[#ff691d] flex items-center justify-center text-white font-semibold">
+                          <div className="w-10 h-10 rounded-full bg-linear-to-br from-[#610981] to-[#ff691d] flex items-center justify-center text-white font-semibold">
                             {user.name.charAt(0)}
                           </div>
                           <div>
@@ -706,7 +706,7 @@ export function UserReferrals() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#ff691d] text-white flex items-center justify-center font-bold">
+                  <div className="shrink-0 w-8 h-8 rounded-full bg-[#ff691d] text-white flex items-center justify-center font-bold">
                     1
                   </div>
                   <div>
@@ -718,7 +718,7 @@ export function UserReferrals() {
                 </div>
 
                 <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#610981] text-white flex items-center justify-center font-bold">
+                  <div className="shrink-0 w-8 h-8 rounded-full bg-[#610981] text-white flex items-center justify-center font-bold">
                     2
                   </div>
                   <div>
@@ -730,7 +730,7 @@ export function UserReferrals() {
                 </div>
 
                 <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
+                  <div className="shrink-0 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
                     3
                   </div>
                   <div>
@@ -742,7 +742,7 @@ export function UserReferrals() {
                 </div>
 
                 <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold">
+                  <div className="shrink-0 w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold">
                     4
                   </div>
                   <div>
@@ -771,7 +771,7 @@ export function UserReferrals() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Frontend-only: backend has no available-balance field — mirrors totalEarned */}
-                <div className="p-4 rounded-lg bg-gradient-to-br from-[#610981]/10 to-[#ff691d]/10">
+                <div className="p-4 rounded-lg bg-linear-to-br from-[#610981]/10 to-[#ff691d]/10">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium">Available Balance</span>
                     <Star className="w-4 h-4 text-yellow-500" />
@@ -831,7 +831,7 @@ export function UserReferrals() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.7 }}
           >
-            <Card className="relative overflow-hidden bg-gradient-to-br from-[#610981] to-[#8b0fa8] text-white border-0">
+            <Card className="relative overflow-hidden bg-linear-to-br from-[#610981] to-[#8b0fa8] text-white border-0">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
               <CardContent className="p-6 relative">
                 <UserPlus className="w-12 h-12 mb-3 opacity-80" />

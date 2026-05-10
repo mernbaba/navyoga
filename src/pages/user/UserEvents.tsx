@@ -314,12 +314,12 @@ export function UserEvents() {
   ];
 
   return (
-    <div className="p-6 lg:p-8 min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50/30">
+    <div className="p-6 lg:p-8 min-h-screen bg-linear-to-br from-gray-50 via-white to-orange-50/30">
       <div className="space-y-6">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#610981] via-[#8b0fa8] to-[#ff691d] p-8 text-white shadow-2xl"
+          className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#610981] via-[#8b0fa8] to-[#ff691d] p-8 text-white shadow-2xl"
         >
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
@@ -385,13 +385,13 @@ export function UserEvents() {
                       {stat.label}
                     </CardTitle>
                     <div
-                      className={`p-3 rounded-xl bg-gradient-to-br ${stat.gradient} shadow-lg`}
+                      className={`p-3 rounded-xl bg-linear-to-br ${stat.gradient} shadow-lg`}
                     >
                       <Icon className="w-5 h-5 text-white" />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                    <div className="text-3xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                       {stat.value}
                     </div>
                   </CardContent>
@@ -416,10 +416,10 @@ export function UserEvents() {
                 transition={{ delay: 0.4 }}
               >
                 <Card className="relative overflow-hidden border-0 shadow-xl">
-                  <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[#ff691d]/10 to-transparent rounded-full blur-3xl" />
+                  <div className="absolute top-0 right-0 w-96 h-96 bg-linear-to-bl from-[#ff691d]/10 to-transparent rounded-full blur-3xl" />
                   <CardHeader className="relative z-10">
                     <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-gradient-to-br from-[#ff691d] to-[#ff8c4d] shadow-lg">
+                      <div className="p-2 rounded-lg bg-linear-to-br from-[#ff691d] to-[#ff8c4d] shadow-lg">
                         <Star className="w-5 h-5 text-white" />
                       </div>
                       <CardTitle
@@ -546,7 +546,7 @@ export function UserEvents() {
               transition={{ delay: 0.7 }}
             >
               <Card className="relative overflow-hidden border-0 shadow-xl">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[#610981]/10 to-transparent rounded-full blur-3xl" />
+                <div className="absolute top-0 right-0 w-96 h-96 bg-linear-to-bl from-[#610981]/10 to-transparent rounded-full blur-3xl" />
                 <CardHeader className="relative z-10">
                   <CardTitle className="text-xl" style={{ color: "#ff691d" }}>
                     All {tabNoun} ({filteredEvents.length})
@@ -566,7 +566,7 @@ export function UserEvents() {
                         className="group flex flex-col md:flex-row gap-4 p-4 rounded-2xl border-2 border-gray-100 hover:border-purple-200 transition-all duration-300 cursor-pointer bg-white hover:shadow-lg"
                         onClick={() => openEventDetails(event)}
                       >
-                        <div className="relative w-full md:w-48 h-40 rounded-xl overflow-hidden flex-shrink-0">
+                        <div className="relative w-full md:w-48 h-40 rounded-xl overflow-hidden shrink-0">
                           <img
                             src={event.image}
                             alt={event.title}
@@ -725,7 +725,7 @@ export function UserEvents() {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-white border-2 border-purple-100">
+                <div className="p-4 rounded-xl bg-linear-to-br from-purple-50 to-white border-2 border-purple-100">
                   <Calendar
                     className="w-6 h-6 mb-2"
                     style={{ color: "#610981" }}
@@ -739,7 +739,7 @@ export function UserEvents() {
                     })}
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-gradient-to-br from-orange-50 to-white border-2 border-orange-100">
+                <div className="p-4 rounded-xl bg-linear-to-br from-orange-50 to-white border-2 border-orange-100">
                   <Clock
                     className="w-6 h-6 mb-2"
                     style={{ color: "#ff691d" }}
@@ -747,12 +747,12 @@ export function UserEvents() {
                   <p className="text-xs text-muted-foreground mb-1">Time</p>
                   <p className="font-semibold">{selectedEvent.time || "—"}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-gradient-to-br from-green-50 to-white border-2 border-green-100">
+                <div className="p-4 rounded-xl bg-linear-to-br from-green-50 to-white border-2 border-green-100">
                   <CalendarDays className="w-6 h-6 mb-2 text-green-600" />
                   <p className="text-xs text-muted-foreground mb-1">Duration</p>
                   <p className="font-semibold">{selectedEvent.duration}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-white border-2 border-yellow-100">
+                <div className="p-4 rounded-xl bg-linear-to-br from-yellow-50 to-white border-2 border-yellow-100">
                   <Users className="w-6 h-6 mb-2 text-yellow-600" />
                   <p className="text-xs text-muted-foreground mb-1">Capacity</p>
                   <p className="font-semibold">
@@ -839,7 +839,7 @@ export function UserEvents() {
                 <Button
                   size="lg"
                   onClick={() => handleRegister(selectedEvent)}
-                  className="bg-gradient-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white shadow-lg gap-2"
+                  className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white shadow-lg gap-2"
                   disabled={
                     isRegistering ||
                     enrolledIds.has(selectedEvent.id) ||

@@ -417,7 +417,7 @@ export type LiveClass = {
   id: string;
   title: string;
   description: string | null;
-  thumbnailUrl: string | null;
+  thumbnail: string | null;
   yogaType: string;
   difficulty: ClassDifficulty;
   scheduledAt: string | null;
@@ -488,7 +488,7 @@ export type YTTCourse = {
   id: string;
   title: string;
   description: string | null;
-  thumbnailUrl: string | null;
+  thumbnail: string | null;
   yogaType: string;
   level: string;
   isActive: boolean;
@@ -501,8 +501,8 @@ export type YTTClass = {
   moduleId: string;
   title: string;
   description: string | null;
-  videoUrl: string;
-  thumbnailUrl: string | null;
+  video: string;
+  thumbnail: string | null;
   duration: number;
   sortOrder: number;
   isActive: boolean;
@@ -531,7 +531,7 @@ export type YTTCourseBody = {
   title: string;
   yogaType: string;
   description?: string;
-  thumbnailUrl?: string;
+  thumbnail?: string;
   level?: ClassLevel;
   isActive?: boolean;
 };

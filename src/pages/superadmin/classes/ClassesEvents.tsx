@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -276,7 +276,7 @@ export function ClassesEvents() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-md shadow-[#ffac96]/40">
+            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-md shadow-[#ffac96]/40">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
             <h1 className="text-2xl font-semibold tracking-tight">Events</h1>
@@ -329,7 +329,7 @@ export function ClassesEvents() {
           <Card key={stat.label} className="border-border/60">
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-lg ${stat.bg} flex items-center justify-center flex-shrink-0`}>
+                <div className={`w-9 h-9 rounded-lg ${stat.bg} flex items-center justify-center shrink-0`}>
                   <stat.icon className={`w-4 h-4 ${stat.color}`} />
                 </div>
                 <div>
@@ -479,10 +479,10 @@ export function ClassesEvents() {
                               <img
                                 src={event.thumbnail}
                                 alt=""
-                                className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-border/60"
+                                className="w-10 h-10 rounded-lg object-cover shrink-0 border border-border/60"
                               />
                             ) : (
-                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#610981]/15 to-[#ff691d]/10 flex items-center justify-center flex-shrink-0">
+                              <div className="w-10 h-10 rounded-lg bg-linear-to-br from-[#610981]/15 to-[#ff691d]/10 flex items-center justify-center shrink-0">
                                 <Sparkles className="w-4 h-4 text-[#610981]/60" />
                               </div>
                             )}
@@ -520,13 +520,13 @@ export function ClassesEvents() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1 text-sm max-w-[140px]">
-                            <MapPin className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                            <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
                             <span className="truncate">{event.location}</span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1 text-sm">
-                            <Clock className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                            <Clock className="w-3 h-3 text-muted-foreground shrink-0" />
                             <span>{event.duration}</span>
                           </div>
                         </TableCell>
@@ -636,7 +636,7 @@ export function ClassesEvents() {
           <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center">
+                <div className="w-7 h-7 rounded-md bg-linear-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center">
                   <Sparkles className="w-3.5 h-3.5 text-white" />
                 </div>
                 {dialogMode === "create" ? "Create Event" : "Edit Event"}
@@ -818,7 +818,7 @@ export function ClassesEvents() {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 pr-6">
                   {viewEvent.featured && (
-                    <Star className="w-4 h-4 text-[#ff691d] fill-current flex-shrink-0" />
+                    <Star className="w-4 h-4 text-[#ff691d] fill-current shrink-0" />
                   )}
                   <span className="truncate">{viewEvent.title}</span>
                 </DialogTitle>
@@ -853,7 +853,7 @@ export function ClassesEvents() {
                       key={item.label}
                       className="flex items-start gap-2 p-3 rounded-lg bg-muted/40"
                     >
-                      <item.icon className="w-4 h-4 text-[#610981] mt-0.5 flex-shrink-0" />
+                      <item.icon className="w-4 h-4 text-[#610981] mt-0.5 shrink-0" />
                       <div>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
                           {item.label}
@@ -980,7 +980,7 @@ export function ClassesEvents() {
                     <TableRow key={row.id} className="hover:bg-muted/20">
                       <TableCell className="pl-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#610981]/15 to-[#ff691d]/10 flex items-center justify-center flex-shrink-0 text-[#610981] font-semibold text-xs">
+                          <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#610981]/15 to-[#ff691d]/10 flex items-center justify-center shrink-0 text-[#610981] font-semibold text-xs">
                             {row.student.name.charAt(0).toUpperCase()}
                           </div>
                           <div>

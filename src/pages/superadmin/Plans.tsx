@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+﻿import { useEffect, useState, type ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -125,7 +125,7 @@ function PlanCard({
           <div className="space-y-3">
             {features.map((feature, i) => (
               <div key={i} className="flex items-start gap-3">
-                <Check className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color }} />
+                <Check className="w-5 h-5 shrink-0 mt-0.5" style={{ color }} />
                 <span className="text-sm leading-relaxed">{feature}</span>
               </div>
             ))}

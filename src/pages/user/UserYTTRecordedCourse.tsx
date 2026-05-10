@@ -278,8 +278,8 @@ export function UserYTTRecordedCourse() {
               <video
                 key={currentClass.id}
                 className="w-full h-full"
-                src={currentClass.videoUrl}
-                poster={currentClass.thumbnailUrl ?? FALLBACK_POSTER}
+                src={currentClass.video}
+                poster={currentClass.thumbnail ?? FALLBACK_POSTER}
                 controls
               />
             ) : (
@@ -297,10 +297,10 @@ export function UserYTTRecordedCourse() {
             )}
           </div>
 
-          <div className="bg-gradient-to-br from-gray-900 to-black text-white p-6 lg:p-8">
+          <div className="bg-linear-to-br from-gray-900 to-black text-white p-6 lg:p-8">
             <div className="flex items-start justify-between mb-6 gap-4">
               <div className="flex-1 min-w-0">
-                <h1 className="text-2xl lg:text-3xl font-bold mb-2 break-words">
+                <h1 className="text-2xl lg:text-3xl font-bold mb-2 wrap-break-word">
                   {currentClass
                     ? `${currentIndex + 1}. ${currentClass.title}`
                     : module.title}
@@ -388,10 +388,10 @@ export function UserYTTRecordedCourse() {
           <motion.div
             initial={{ x: 100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            className="fixed right-0 top-[121px] bottom-0 w-96 bg-white border-l border-border overflow-hidden hidden lg:block"
+            className="fixed right-0 top-30.25 bottom-0 w-96 bg-white border-l border-border overflow-hidden hidden lg:block"
           >
             <div className="h-full overflow-y-auto scrollbar-hide">
-              <div className="sticky top-0 bg-gradient-to-br from-[#610981] to-[#8b0fa8] text-white p-6 z-10">
+              <div className="sticky top-0 bg-linear-to-br from-[#610981] to-[#8b0fa8] text-white p-6 z-10">
                 <h2 className="text-lg font-bold mb-2 truncate">{module.title}</h2>
                 <p className="text-sm text-white/80">
                   {classes.length} lesson{classes.length === 1 ? "" : "s"} •{" "}
@@ -421,7 +421,7 @@ export function UserYTTRecordedCourse() {
                           }`}
                         >
                           <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 mt-1">
+                            <div className="shrink-0 mt-1">
                               {isCompleted ? (
                                 <CheckCircle2
                                   className={`w-4 h-4 ${
@@ -458,7 +458,7 @@ export function UserYTTRecordedCourse() {
                               </div>
                             </div>
                             {isCurrent && (
-                              <ChevronRight className="w-4 h-4 text-white flex-shrink-0" />
+                              <ChevronRight className="w-4 h-4 text-white shrink-0" />
                             )}
                           </div>
                         </button>

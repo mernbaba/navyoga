@@ -34,7 +34,7 @@ export type YTTLiveEnrollmentInfo = {
   course: {
     id: string;
     title: string;
-    thumbnailUrl: string | null;
+    thumbnail: string | null;
     yogaType: string;
     level: string;
   };

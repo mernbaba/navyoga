@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
+﻿import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Users, Calendar, Clock, TrendingUp, CheckCircle, AlertCircle, Sparkles, Play, ClipboardCheck, Gift, ArrowRight, Award, GraduationCap, IndianRupee } from "lucide-react";
@@ -65,7 +65,7 @@ export function TutorDashboard() {
     <div className="p-6 lg:p-8">
       <div className="space-y-8">
  
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#610981] to-[#8b0fa8] p-8 text-white shadow-2xl shadow-[#ffac96]/30">
+        <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-[#610981] to-[#8b0fa8] p-8 text-white shadow-2xl shadow-[#ffac96]/30">
           <div className="absolute top-0 right-0 w-64 h-64 bg-[#ff691d]/20 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#ffac96]/20 rounded-full blur-3xl" />
           
@@ -109,7 +109,7 @@ export function TutorDashboard() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
             <Card key={stat.name} className="relative overflow-hidden group hover:scale-105 transition-transform duration-300">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#ffac96]/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-[#ffac96]/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
 
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium" style={{ color: '#ffac96' }}>
@@ -160,7 +160,7 @@ export function TutorDashboard() {
             }}
           >
             <div className="flex items-start justify-between mb-5">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#a020c8] to-[#610981] flex items-center justify-center shadow-lg shadow-[#610981]/30">
+              <div className="w-12 h-12 rounded-xl bg-linear-to-br from-[#a020c8] to-[#610981] flex items-center justify-center shadow-lg shadow-[#610981]/30">
                 <Gift className="w-6 h-6 text-white" strokeWidth={2.5} />
               </div>
               <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-[#610981] group-hover:translate-x-1 transition-all" />
@@ -213,7 +213,7 @@ export function TutorDashboard() {
                   {!activeSession && cls.status === "upcoming" && (
                     <Button
                       onClick={() => handleStartClass(cls.id, cls.name)}
-                      className="bg-gradient-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
+                      className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
                       size="sm"
                     >
                       <Play className="w-4 h-4 mr-1" />
@@ -339,7 +339,7 @@ export function TutorDashboard() {
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#ff691d] to-[#ff8c4a] flex items-center justify-center shadow-md shadow-[#ff691d]/30 shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-[#ff691d] to-[#ff8c4a] flex items-center justify-center shadow-md shadow-[#ff691d]/30 shrink-0">
                   <Award className="w-6 h-6 text-white" strokeWidth={2.5} />
                 </div>
                 <div className="flex-1">
@@ -347,7 +347,7 @@ export function TutorDashboard() {
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-[#ff691d] to-[#ff4444]"
+                        className="h-full rounded-full bg-linear-to-r from-[#ff691d] to-[#ff4444]"
                         style={{ width: '91%' }}
                       />
                     </div>
@@ -357,7 +357,7 @@ export function TutorDashboard() {
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#a020c8] to-[#610981] flex items-center justify-center shadow-md shadow-[#610981]/30 shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-[#a020c8] to-[#610981] flex items-center justify-center shadow-md shadow-[#610981]/30 shrink-0">
                   <TrendingUp className="w-6 h-6 text-white" strokeWidth={2.5} />
                 </div>
                 <div className="flex-1">
@@ -367,7 +367,7 @@ export function TutorDashboard() {
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#10b981] to-[#059669] flex items-center justify-center shadow-md shadow-[#10b981]/30 shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-[#10b981] to-[#059669] flex items-center justify-center shadow-md shadow-[#10b981]/30 shrink-0">
                   <Users className="w-6 h-6 text-white" strokeWidth={2.5} />
                 </div>
                 <div className="flex-1">

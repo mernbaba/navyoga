@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -79,7 +79,7 @@ export function FrontlineTasks() {
           </div>
           <Button 
             onClick={() => setAddDialog(true)}
-            className="bg-gradient-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
+            className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Task
@@ -344,7 +344,7 @@ export function FrontlineTasks() {
                 </Button>
                 <Button 
                   type="submit"
-                  className="bg-gradient-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
+                  className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
                 >
                   Add Task
                 </Button>

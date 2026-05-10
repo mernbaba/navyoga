@@ -126,7 +126,7 @@ const EMPTY_COURSE: YTTCourseBody = {
   title: "",
   yogaType: "",
   description: "",
-  thumbnailUrl: "",
+  thumbnail: "",
   level: "ALL_LEVELS",
   isActive: true,
 };
@@ -141,7 +141,7 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
         title: initial.title,
         yogaType: initial.yogaType,
         description: initial.description ?? "",
-        thumbnailUrl: initial.thumbnailUrl ?? "",
+        thumbnail: initial.thumbnail ?? "",
         level: initial.level as ClassLevel,
         isActive: initial.isActive,
       } : EMPTY_COURSE);
@@ -163,7 +163,7 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
         title: form.title.trim(),
         yogaType: form.yogaType.trim(),
         ...(form.description?.trim() ? { description: form.description.trim() } : {}),
-        ...(form.thumbnailUrl?.trim() ? { thumbnailUrl: form.thumbnailUrl.trim() } : {}),
+        ...(form.thumbnail?.trim() ? { thumbnail: form.thumbnail.trim() } : {}),
         level: form.level,
         isActive: form.isActive,
       };
@@ -237,8 +237,8 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
             <Input
               id="course-thumb"
               placeholder="https://…"
-              value={form.thumbnailUrl ?? ""}
-              onChange={(e) => set("thumbnailUrl", e.target.value)}
+              value={form.thumbnail ?? ""}
+              onChange={(e) => set("thumbnail", e.target.value)}
             />
           </div>
 

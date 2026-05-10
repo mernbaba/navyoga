@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+﻿import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Users, UserCog, Phone, Bell, Ticket, UserPlus, GraduationCap, CalendarDays, Video, Image, TrendingUp, Activity } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 
@@ -206,9 +206,9 @@ export function OperationsDashboard() {
             <CardContent>
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {recentActivities.map((activity) => (
-                  <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-gray-50 to-white border border-gray-100 hover:shadow-sm transition-shadow">
+                  <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-linear-to-r from-gray-50 to-white border border-gray-100 hover:shadow-sm transition-shadow">
                     <div 
-                      className="p-2 rounded-lg flex-shrink-0"
+                      className="p-2 rounded-lg shrink-0"
                       style={{ backgroundColor: `${getActivityColor(activity.type)}20` }}
                     >
                       <div style={{ color: getActivityColor(activity.type) }}>
@@ -221,7 +221,7 @@ export function OperationsDashboard() {
                           <p className="font-medium text-sm">{activity.action}</p>
                           <p className="text-xs text-muted-foreground truncate">{activity.user}</p>
                         </div>
-                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        <div className="flex flex-col items-end gap-1 shrink-0">
                           <Badge 
                             variant="outline" 
                             className="text-xs"
@@ -265,7 +265,7 @@ export function OperationsDashboard() {
                         </div>
                       </div>
                       <Badge 
-                        className="text-xs flex-shrink-0"
+                        className="text-xs shrink-0"
                         style={{ backgroundColor: update.color, color: 'white' }}
                       >
                         {update.badge}

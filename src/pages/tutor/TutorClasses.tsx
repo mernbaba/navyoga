@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -213,7 +213,7 @@ export function TutorClasses() {
                             ) : (
                               <Button
                                 onClick={() => handleStartClass(cls)}
-                                className="bg-gradient-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
+                                className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
                                 size="sm"
                                 disabled={!!activeSession}
                               >
@@ -242,7 +242,7 @@ export function TutorClasses() {
             </DialogHeader>
             {selectedClass && (
               <div className="space-y-4 py-4">
-                <div className="p-4 rounded-lg bg-gradient-to-br from-[#610981]/10 to-[#ff691d]/5 border border-[#ffac96]/20">
+                <div className="p-4 rounded-lg bg-linear-to-br from-[#610981]/10 to-[#ff691d]/5 border border-[#ffac96]/20">
                   <h3 className="font-semibold text-lg mb-2">{selectedClass.name}</h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
@@ -279,7 +279,7 @@ export function TutorClasses() {
               </Button>
               <Button 
                 onClick={confirmStartSession}
-                className="bg-gradient-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
+                className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
               >
                 <Play className="w-4 h-4 mr-1" />
                 Start Session

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -27,7 +27,11 @@ import {
   listSelfPacedPlans,
   listAllYTTRecordedPlans,
   listAllYTTLivePlans,
+  getMyLiveEnrollment,
 } from "../../api/plans";
+import { getMySelfPacedSubscription } from "../../api/selfPaced";
+import { listMyYTTLiveEnrollments } from "../../api/yttLive";
+import { listMyYTTRecordedEnrollments } from "../../api/yttRecorded";
 import { initiatePayment, verifyPayment } from "../../api/payments";
 import type { InitiatePaymentInput } from "../../api/payments";
 import { listBatches } from "../../api/batches";
@@ -120,6 +124,10 @@ export function UserPayments() {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<string>("");
   const [isLoadingBatches, setIsLoadingBatches] = useState(false);
+  const [activeLivePlanId, setActiveLivePlanId] = useState<string | null>(null);
+  const [activeSelfPacedPlanId, setActiveSelfPacedPlanId] = useState<string | null>(null);
+  const [activeYttLiveKeys, setActiveYttLiveKeys] = useState<Set<string>>(new Set());
+  const [activeYttRecordedKeys, setActiveYttRecordedKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -150,6 +158,45 @@ export function UserPayments() {
       cancelled = true;
     };
   }, []);
+
+  const fetchSubscriptions = useCallback(async () => {
+    try {
+      const [liveData, selfPacedData, yttLiveData, yttRecordedData] = await Promise.all([
+        getMyLiveEnrollment(),
+        getMySelfPacedSubscription(),
+        listMyYTTLiveEnrollments(),
+        listMyYTTRecordedEnrollments(),
+      ]);
+      setActiveLivePlanId(liveData.enrollment?.planId ?? null);
+      setActiveSelfPacedPlanId(selfPacedData.subscription?.planId ?? null);
+      setActiveYttLiveKeys(new Set(yttLiveData.map((e) => `${e.planId}:${e.courseId}`)));
+      setActiveYttRecordedKeys(new Set(yttRecordedData.map((e) => `${e.planId}:${e.courseId}`)));
+    } catch {
+      // silently ignore — plan cards render without subscription highlights
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSubscriptions();
+  }, [fetchSubscriptions]);
+
+const isSubscribed = (plan: UiPlan): boolean => {
+    switch (plan.category) {
+      case "live": return activeLivePlanId === plan.id;
+      case "self-paced": return activeSelfPacedPlanId === plan.id;
+      case "ytt-live": return activeYttLiveKeys.has(`${plan.id}:${plan.courseId ?? ""}`);
+      case "ytt-recorded": return activeYttRecordedKeys.has(`${plan.id}:${plan.courseId ?? ""}`);
+    }
+  };
+
+  const isCategoryLocked = (category: PlanCategory): boolean => {
+    switch (category) {
+      case "live": return activeLivePlanId !== null;
+      case "self-paced": return activeSelfPacedPlanId !== null;
+      case "ytt-live": return activeYttLiveKeys.size > 0;
+      case "ytt-recorded": return activeYttRecordedKeys.size > 0;
+    }
+  };
 
 const [isEnrolling, setIsEnrolling] = useState(false);
   const { Razorpay } = useRazorpay();
@@ -222,6 +269,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                   razorpaySignature: response.razorpay_signature,
                 });
                 toast.success(`Successfully subscribed to ${selectedPlan.name}!`);
+                void fetchSubscriptions();
                 resolve();
               } catch (err) {
                 reject(err);
@@ -350,10 +398,15 @@ const [isEnrolling, setIsEnrolling] = useState(false);
             >
               {livePlans.map((plan) => (
                 <motion.div key={plan.id} variants={item}>
-                  <Card 
+                  <Card
                     className="relative overflow-hidden transition-all hover:shadow-2xl hover:scale-105 border-2 h-full group"
-                    style={plan.popular ? { borderColor: plan.color } : {}}
+                    style={isSubscribed(plan) ? { borderColor: '#16a34a' } : plan.popular ? { borderColor: plan.color } : {}}
                   >
+                    {isSubscribed(plan) && (
+                      <div className="absolute top-4 left-4 z-10">
+                        <Badge className="bg-green-500 text-white border-0">Active Plan</Badge>
+                      </div>
+                    )}
                     {plan.badge && (
                       <div className="absolute top-4 right-4 z-10">
                         <Badge style={{ backgroundColor: plan.color, color: 'white' }}>
@@ -404,22 +457,23 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                         {plan.features.map((feature, index) => (
                           <div key={index} className="flex items-start gap-3">
                             <div className="mt-0.5">
-                              <Check className="w-5 h-5 flex-shrink-0" style={{ color: plan.color }} />
+                              <Check className="w-5 h-5 shrink-0" style={{ color: plan.color }} />
                             </div>
                             <span className="text-sm leading-relaxed">{feature}</span>
                           </div>
                         ))}
                       </div>
                       
-                      <Button 
+                      <Button
                         className="w-full py-6 text-base font-semibold rounded-xl"
-                        style={{ 
-                          backgroundColor: plan.color,
-                          color: 'white'
+                        style={{
+                          backgroundColor: isSubscribed(plan) ? '#16a34a' : isCategoryLocked(plan.category) ? '#9ca3af' : plan.color,
+                          color: 'white',
                         }}
                         onClick={() => handleUpgrade(plan)}
+                        disabled={isCategoryLocked(plan.category)}
                       >
-                        Get Started
+                        {isSubscribed(plan) ? <><Check className="w-4 h-4 mr-2 inline" />Current Plan</> : isCategoryLocked(plan.category) ? "Unavailable" : "Get Started"}
                       </Button>
                     </CardContent>
                   </Card>
@@ -427,7 +481,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
               ))}
             </motion.div>
           </div>
- 
+
         </TabsContent>
 
         <TabsContent value="self-paced" className="space-y-8">
@@ -450,10 +504,15 @@ const [isEnrolling, setIsEnrolling] = useState(false);
           >
             {selfPacedPlans.map((plan) => (
               <motion.div key={plan.id} variants={item}>
-                <Card 
+                <Card
                   className="relative overflow-hidden transition-all hover:shadow-2xl hover:scale-105 border h-full group"
-                  style={plan.popular ? { borderColor: plan.color, borderWidth: '2px' } : {}}
+                  style={isSubscribed(plan) ? { borderColor: '#16a34a', borderWidth: '2px' } : plan.popular ? { borderColor: plan.color, borderWidth: '2px' } : {}}
                 >
+                  {isSubscribed(plan) && (
+                    <div className="absolute top-4 left-4 z-10">
+                      <Badge className="bg-green-500 text-white border-0">Active Plan</Badge>
+                    </div>
+                  )}
                   {plan.badge && (
                     <div className="absolute top-4 right-4 z-10">
                       <Badge style={{ backgroundColor: plan.color, color: 'white' }}>
@@ -504,22 +563,23 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                       {plan.features.map((feature, index) => (
                         <div key={index} className="flex items-start gap-3">
                           <div className="mt-0.5">
-                            <Check className="w-5 h-5 flex-shrink-0" style={{ color: plan.color }} />
+                            <Check className="w-5 h-5 shrink-0" style={{ color: plan.color }} />
                           </div>
                           <span className="text-sm leading-relaxed">{feature}</span>
                         </div>
                       ))}
                     </div>
                     
-                    <Button 
+                    <Button
                       className="w-full py-6 text-base font-semibold rounded-xl"
-                      style={{ 
-                        backgroundColor: plan.color,
-                        color: 'white'
+                      style={{
+                        backgroundColor: isSubscribed(plan) ? '#16a34a' : isCategoryLocked(plan.category) ? '#9ca3af' : plan.color,
+                        color: 'white',
                       }}
                       onClick={() => handleUpgrade(plan)}
+                      disabled={isCategoryLocked(plan.category)}
                     >
-                      Get Started
+                      {isSubscribed(plan) ? <><Check className="w-4 h-4 mr-2 inline" />Current Plan</> : isCategoryLocked(plan.category) ? "Unavailable" : "Get Started"}
                     </Button>
                   </CardContent>
                 </Card>
@@ -549,10 +609,15 @@ const [isEnrolling, setIsEnrolling] = useState(false);
             >
               {yttSelfPacedPlans.map((plan) => (
                 <motion.div key={plan.id} variants={item}>
-                  <Card 
+                  <Card
                     className="relative overflow-hidden transition-all hover:shadow-2xl hover:scale-105 border h-full group"
-                    style={plan.badge ? { borderColor: plan.color, borderWidth: '2px' } : {}}
+                    style={isSubscribed(plan) ? { borderColor: '#16a34a', borderWidth: '2px' } : plan.badge ? { borderColor: plan.color, borderWidth: '2px' } : {}}
                   >
+                    {isSubscribed(plan) && (
+                      <div className="absolute top-4 left-4 z-10">
+                        <Badge className="bg-green-500 text-white border-0">Active Plan</Badge>
+                      </div>
+                    )}
                     {plan.badge && (
                       <div className="absolute top-4 right-4 z-10">
                         <Badge style={{ backgroundColor: plan.color, color: 'white' }}>
@@ -598,22 +663,23 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                         {plan.features.map((feature, index) => (
                           <div key={index} className="flex items-start gap-3">
                             <div className="mt-0.5">
-                              <Check className="w-5 h-5 flex-shrink-0" style={{ color: plan.color }} />
+                              <Check className="w-5 h-5 shrink-0" style={{ color: plan.color }} />
                             </div>
                             <span className="text-sm leading-relaxed">{feature}</span>
                           </div>
                         ))}
                       </div>
                       
-                      <Button 
+                      <Button
                         className="w-full py-6 text-base font-semibold rounded-xl"
-                        style={{ 
-                          backgroundColor: plan.color,
-                          color: 'white'
+                        style={{
+                          backgroundColor: isSubscribed(plan) ? '#16a34a' : isCategoryLocked(plan.category) ? '#9ca3af' : plan.color,
+                          color: 'white',
                         }}
                         onClick={() => handleUpgrade(plan)}
+                        disabled={isCategoryLocked(plan.category)}
                       >
-                        Enroll Now
+                        {isSubscribed(plan) ? <><Check className="w-4 h-4 mr-2 inline" />Current Plan</> : isCategoryLocked(plan.category) ? "Unavailable" : "Enroll Now"}
                       </Button>
                     </CardContent>
                   </Card>
@@ -621,7 +687,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
               ))}
             </motion.div>
           </div>
- 
+
           <div className="pt-8 border-t">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -642,13 +708,18 @@ const [isEnrolling, setIsEnrolling] = useState(false);
             >
               {yttLivePlans.map((plan) => (
                 <motion.div key={plan.id} variants={item}>
-                  <Card 
+                  <Card
                     className="relative overflow-hidden transition-all hover:shadow-2xl hover:scale-105 border-2 h-full group"
-                    style={{ borderColor: plan.color }}
+                    style={{ borderColor: isSubscribed(plan) ? '#16a34a' : plan.color }}
                   >
+                    {isSubscribed(plan) && (
+                      <div className="absolute top-4 left-4 z-10">
+                        <Badge className="bg-green-500 text-white border-0">Active Plan</Badge>
+                      </div>
+                    )}
                     {plan.badge && (
                       <div className="absolute top-4 right-4 z-10">
-                        <Badge className="bg-gradient-to-r from-orange-500 to-purple-600 text-white border-0">
+                        <Badge className="bg-linear-to-r from-orange-500 to-purple-600 text-white border-0">
                           {plan.badge}
                         </Badge>
                       </div>
@@ -668,7 +739,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                     
                     <CardHeader>
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="p-3 rounded-2xl bg-gradient-to-br" style={{ background: `linear-gradient(135deg, ${plan.color}40, ${plan.color}20)` }}>
+                        <div className="p-3 rounded-2xl bg-linear-to-br" style={{ background: `linear-gradient(135deg, ${plan.color}40, ${plan.color}20)` }}>
                           <GraduationCap className="w-6 h-6" style={{ color: plan.color }} />
                         </div>
                         <CardTitle className="text-2xl" style={{ color: plan.color }}>
@@ -691,22 +762,23 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                         {plan.features.map((feature, index) => (
                           <div key={index} className="flex items-start gap-3">
                             <div className="mt-0.5">
-                              <Check className="w-5 h-5 flex-shrink-0" style={{ color: plan.color }} />
+                              <Check className="w-5 h-5 shrink-0" style={{ color: plan.color }} />
                             </div>
                             <span className="text-sm leading-relaxed">{feature}</span>
                           </div>
                         ))}
                       </div>
                       
-                      <Button 
+                      <Button
                         className="w-full py-6 text-base font-semibold rounded-xl shadow-lg"
-                        style={{ 
-                          background: `linear-gradient(135deg, ${plan.color}, ${plan.color}dd)`,
-                          color: 'white'
+                        style={{
+                          background: isSubscribed(plan) ? '#16a34a' : isCategoryLocked(plan.category) ? '#9ca3af' : `linear-gradient(135deg, ${plan.color}, ${plan.color}dd)`,
+                          color: 'white',
                         }}
                         onClick={() => handleUpgrade(plan)}
+                        disabled={isCategoryLocked(plan.category)}
                       >
-                        Enroll Now
+                        {isSubscribed(plan) ? <><Check className="w-4 h-4 mr-2 inline" />Current Plan</> : isCategoryLocked(plan.category) ? "Unavailable" : "Enroll Now"}
                       </Button>
                     </CardContent>
                   </Card>
@@ -745,7 +817,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                   <ul className="space-y-1">
                     {selectedPlan.features.slice(0, 4).map((feature: string, index: number) => (
                       <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <Check className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: selectedPlan.color }} />
+                        <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: selectedPlan.color }} />
                         {feature}
                       </li>
                     ))}

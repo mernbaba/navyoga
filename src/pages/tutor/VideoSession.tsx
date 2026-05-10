@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -97,7 +97,7 @@ export function VideoSession() {
   return (
     <div className="h-[calc(100vh-8rem)] bg-gray-900 flex flex-col overflow-hidden rounded-lg">
    
-      <div className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between flex-shrink-0">
+      <div className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           <div>
             <h1 className="text-xl font-bold text-white">{classData.name}</h1>
@@ -129,7 +129,7 @@ export function VideoSession() {
  
           <div className="flex-1 bg-gray-800 rounded-lg overflow-hidden relative mb-4">
             {isVideoOn ? (
-              <div className="w-full h-full bg-gradient-to-br from-purple-900 to-blue-900 flex items-center justify-center">
+              <div className="w-full h-full bg-linear-to-br from-purple-900 to-blue-900 flex items-center justify-center">
                 <div className="text-center text-white">
                   <Camera className="w-24 h-24 mx-auto mb-4 opacity-50" />
                   <p className="text-xl">Your Camera</p>
@@ -159,7 +159,7 @@ export function VideoSession() {
             </button>
           </div>
  
-          <div className="bg-gray-800 rounded-lg px-6 py-4 flex-shrink-0">
+          <div className="bg-gray-800 rounded-lg px-6 py-4 shrink-0">
             <div className="flex items-center justify-center gap-4">
               <Button
                 onClick={() => setIsVideoOn(!isVideoOn)}
@@ -230,9 +230,9 @@ export function VideoSession() {
           </div>
         </div>
  
-        <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col flex-shrink-0">
+        <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col shrink-0">
  
-          <div className="flex border-b border-gray-700 flex-shrink-0">
+          <div className="flex border-b border-gray-700 shrink-0">
             <button
               onClick={() => setActiveTab('students')}
               className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
@@ -318,7 +318,7 @@ export function VideoSession() {
           </div>
  
           {activeTab === 'chat' && (
-            <div className="p-4 border-t border-gray-700 flex-shrink-0">
+            <div className="p-4 border-t border-gray-700 shrink-0">
               <div className="flex gap-2">
                 <Input
                   value={chatMessage}

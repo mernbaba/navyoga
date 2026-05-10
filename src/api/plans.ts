@@ -283,10 +283,10 @@ export function deleteYTTRecordedModule(courseId: string, moduleId: string) {
 
 export type YTTClassBody = {
   title: string;
-  videoUrl: string;
+  video: string;
   duration: number;
   description?: string;
-  thumbnailUrl?: string;
+  thumbnail?: string;
   isActive?: boolean;
 };
 

@@ -80,11 +80,11 @@ export function UserClassSession() {
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
  
-      <div className="flex-1 relative bg-gradient-to-br from-gray-900 to-black">
+      <div className="flex-1 relative bg-linear-to-br from-gray-900 to-black">
     
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative w-full h-full flex items-center justify-center">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 to-orange-900/30 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-linear-to-br from-purple-900/30 to-orange-900/30 backdrop-blur-sm" />
             <div className="relative text-center text-white z-10">
               <motion.div
                 animate={{ scale: [1, 1.05, 1] }}
@@ -113,7 +113,7 @@ export function UserClassSession() {
           animate={{ opacity: 1, scale: 1 }}
           className="absolute top-4 right-4 w-64 h-48 rounded-xl overflow-hidden shadow-2xl border-2 border-white/20"
         >
-          <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+          <div className="w-full h-full bg-linear-to-br from-gray-800 to-gray-900 flex items-center justify-center">
             {isVideoOn ? (
               <div className="text-center text-white">
                 <UserCircle className="w-20 h-20 mx-auto mb-2 opacity-50" />
@@ -130,7 +130,7 @@ export function UserClassSession() {
  
         <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md rounded-xl p-4 text-white">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center">
               <span className="text-sm font-bold">{classData.instructor.split(' ').map((n: string) => n[0]).join('')}</span>
             </div>
             <div>
@@ -150,7 +150,7 @@ export function UserClassSession() {
         </div>
       </div>
  
-      <div className="bg-gradient-to-r from-gray-900 via-black to-gray-900 p-6 border-t border-gray-800">
+      <div className="bg-linear-to-r from-gray-900 via-black to-gray-900 p-6 border-t border-gray-800">
         <div className="flex items-center justify-between max-w-6xl mx-auto">
           <div className="flex items-center gap-4">
  
@@ -222,7 +222,7 @@ export function UserClassSession() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-end justify-center"
+            className="fixed inset-0 z-60 bg-black/80 backdrop-blur-sm flex items-end justify-center"
             onClick={() => setShowSettings(false)}
           >
             <motion.div
@@ -233,11 +233,11 @@ export function UserClassSession() {
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-4xl"
             >
-              <Card className="w-full shadow-2xl border-t-4 border-t-[#ff691d] bg-gradient-to-br from-gray-900 to-gray-800 rounded-t-3xl rounded-b-none">
+              <Card className="w-full shadow-2xl border-t-4 border-t-[#ff691d] bg-linear-to-br from-gray-900 to-gray-800 rounded-t-3xl rounded-b-none">
                 <CardHeader className="relative border-b border-gray-700 pb-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-gradient-to-br from-[#610981] to-[#8b0fa8] shadow-lg">
+                      <div className="p-2 rounded-lg bg-linear-to-br from-[#610981] to-[#8b0fa8] shadow-lg">
                         <Settings className="w-6 h-6 text-white" />
                       </div>
                       <CardTitle className="text-2xl text-white">Session Settings</CardTitle>
@@ -320,9 +320,9 @@ export function UserClassSession() {
                     </Select>
                   </div>
  
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700">
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-linear-to-br from-gray-800/50 to-gray-900/50 border border-gray-700">
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${enableNoiseCancellation ? 'bg-gradient-to-br from-green-500 to-teal-500' : 'bg-gray-700'} transition-all`}>
+                      <div className={`p-2 rounded-lg ${enableNoiseCancellation ? 'bg-linear-to-br from-green-500 to-teal-500' : 'bg-gray-700'} transition-all`}>
                         <Mic className="w-5 h-5 text-white" />
                       </div>
                       <div>
@@ -333,7 +333,7 @@ export function UserClassSession() {
                     <button
                       onClick={() => setEnableNoiseCancellation(!enableNoiseCancellation)}
                       className={`relative w-14 h-7 rounded-full transition-colors ${
-                        enableNoiseCancellation ? 'bg-gradient-to-r from-[#610981] to-[#8b0fa8]' : 'bg-gray-600'
+                        enableNoiseCancellation ? 'bg-linear-to-r from-[#610981] to-[#8b0fa8]' : 'bg-gray-600'
                       }`}
                     >
                       <motion.div
@@ -350,7 +350,7 @@ export function UserClassSession() {
                         toast.success('Settings saved successfully');
                         setShowSettings(false);
                       }}
-                      className="flex-1 bg-gradient-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white h-11 font-semibold shadow-lg"
+                      className="flex-1 bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white h-11 font-semibold shadow-lg"
                     >
                       Save Changes
                     </Button>

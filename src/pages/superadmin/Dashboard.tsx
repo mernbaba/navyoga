@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Users, GraduationCap, Calendar, TrendingUp, IndianRupee, Award, Sparkles, Target, TrendingDown, Clock, BarChart3, Gift, ArrowRight } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -93,7 +93,7 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
 
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#610981] to-[#8b0fa8] p-8 text-white shadow-2xl shadow-[#ffac96]/30">
+      <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-[#610981] to-[#8b0fa8] p-8 text-white shadow-2xl shadow-[#ffac96]/30">
         <div className="absolute top-0 right-0 w-64 h-64 bg-[#ff691d]/20 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#ffac96]/20 rounded-full blur-3xl" />
 
@@ -114,7 +114,7 @@ export function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Card key={stat.name} className="relative overflow-hidden group hover:scale-105 transition-transform duration-300">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#ffac96]/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-[#ffac96]/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
 
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium" style={{ color: '#ffac96' }}>
@@ -388,17 +388,17 @@ export function Dashboard() {
             <CardDescription>At a glance</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-[#610981]/10 to-[#ff691d]/5">
+            <div className="p-3 rounded-xl bg-linear-to-br from-[#610981]/10 to-[#ff691d]/5">
               <p className="text-xs font-medium" style={{ color: '#ffac96' }}>Today's Classes</p>
               <p className="text-2xl font-bold mt-1">—</p>
             </div>
 
-            <div className="p-3 rounded-xl bg-gradient-to-br from-[#ff691d]/10 to-[#ffac96]/10">
+            <div className="p-3 rounded-xl bg-linear-to-br from-[#ff691d]/10 to-[#ffac96]/10">
               <p className="text-xs font-medium" style={{ color: '#ffac96' }}>Pending Payments</p>
               <p className="text-2xl font-bold mt-1">—</p>
             </div>
 
-            <div className="p-3 rounded-xl bg-gradient-to-br from-[#ffac96]/20 to-[#610981]/5">
+            <div className="p-3 rounded-xl bg-linear-to-br from-[#ffac96]/20 to-[#610981]/5">
               <p className="text-xs font-medium" style={{ color: '#ffac96' }}>New Leads</p>
               <p className="text-2xl font-bold mt-1">—</p>
             </div>

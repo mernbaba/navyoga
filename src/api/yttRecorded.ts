@@ -21,7 +21,7 @@ export type YTTRecordedEnrollmentInfo = {
     id: string;
     title: string;
     description: string | null;
-    thumbnailUrl: string | null;
+    thumbnail: string | null;
     yogaType: string;
     level: string;
   };

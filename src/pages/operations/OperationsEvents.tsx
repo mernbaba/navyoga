@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -426,7 +426,7 @@ export function OperationsEvents() {
                   key={event.id}
                   className="flex flex-col md:flex-row gap-4 p-4 rounded-lg border-2 border-gray-100 hover:border-purple-200 transition-all bg-white"
                 >
-                  <div className="relative w-full md:w-48 h-32 rounded-lg overflow-hidden flex-shrink-0">
+                  <div className="relative w-full md:w-48 h-32 rounded-lg overflow-hidden shrink-0">
                     <img 
                       src={event.image} 
                       alt={event.title}
@@ -1009,7 +1009,7 @@ export function OperationsEvents() {
                   <div className="grid md:grid-cols-2 gap-3">
                     {selectedEvent.benefits.map((benefit, idx) => (
                       <div key={idx} className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-100">
-                        <div className="p-1 rounded-full bg-green-500 flex-shrink-0">
+                        <div className="p-1 rounded-full bg-green-500 shrink-0">
                           <Sparkles className="w-3 h-3 text-white" />
                         </div>
                         <span className="text-sm font-medium text-green-900">{benefit}</span>

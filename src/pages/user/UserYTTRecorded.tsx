@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -198,7 +198,7 @@ export function UserYTTRecorded() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative bg-gradient-to-br from-[#ff691d] via-[#610981] to-[#8b0fa8] text-white overflow-hidden"
+        className="relative bg-linear-to-br from-[#ff691d] via-[#610981] to-[#8b0fa8] text-white overflow-hidden"
       >
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#ffac96]/20 rounded-full blur-3xl" />
@@ -283,7 +283,7 @@ export function UserYTTRecorded() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl border-2 border-[#ff691d]/30 bg-gradient-to-r from-[#ff691d]/10 to-[#610981]/10 p-8 flex flex-col items-center text-center"
+            className="rounded-2xl border-2 border-[#ff691d]/30 bg-linear-to-r from-[#ff691d]/10 to-[#610981]/10 p-8 flex flex-col items-center text-center"
           >
             <div className="p-3 rounded-xl bg-[#ff691d]/15 mb-4">
               <Lock className="w-7 h-7 text-[#ff691d]" />
@@ -379,7 +379,7 @@ export function UserYTTRecorded() {
                         }`}
                       >
                         <div
-                          className={`relative h-44 overflow-hidden bg-gradient-to-br from-[#610981] via-[#8b0fa8] to-[#ff691d] ${
+                          className={`relative h-44 overflow-hidden bg-linear-to-br from-[#610981] via-[#8b0fa8] to-[#ff691d] ${
                             isUnlocked ? "" : "grayscale"
                           }`}
                         >
