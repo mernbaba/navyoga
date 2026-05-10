@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import {
   enrollInFreeEvent,
   getMyEventEnrollment,
+  listMyEventEnrollments,
   listUpcomingEvents,
 } from "../../api/events";
 import { initiatePayment, verifyPayment } from "../../api/payments";
@@ -105,9 +106,39 @@ export function UserEvents() {
     let cancelled = false;
     // TODO: paginate — currently capped at 20 events.
     listUpcomingEvents("STUDENT", { limit: 20 })
-      .then((page) => {
+      .then(async (page) => {
         if (cancelled) return;
         setEvents(page.items.map(mapAppEvent));
+
+        // Resolve enrollment IDs via fastest available source. We try a bulk
+        // endpoint first; if it isn't deployed yet we fall back to per-event
+        // checks (the endpoint that already powers the detail click).
+        const ids = new Set<string>(
+          page.items.filter((e) => e.isEnrolled).map((e) => e.id),
+        );
+
+        try {
+          const { eventIds } = await listMyEventEnrollments("STUDENT");
+          for (const id of eventIds) ids.add(id);
+        } catch {
+          const results = await Promise.all(
+            page.items.map((e) =>
+              getMyEventEnrollment("STUDENT", e.id)
+                .then((r) => (r.enrolled ? e.id : null))
+                .catch(() => null),
+            ),
+          );
+          for (const id of results) if (id) ids.add(id);
+        }
+
+        if (cancelled) return;
+        if (ids.size) {
+          setEnrolledIds((prev) => {
+            const next = new Set(prev);
+            for (const id of ids) next.add(id);
+            return next;
+          });
+        }
       })
       .catch((err: unknown) => {
         if (!cancelled)

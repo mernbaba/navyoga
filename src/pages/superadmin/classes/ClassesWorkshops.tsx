@@ -45,6 +45,8 @@ import {
   ClipboardList,
   ListVideo,
   Layers,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -58,6 +60,7 @@ import {
   addWorkshopSession,
   updateWorkshopSession,
   deleteWorkshopSession,
+  requestWorkshopThumbnailPresign,
   type CreateWorkshopInput,
   type CreateSessionInput,
 } from "../../../api/workshops";
@@ -233,6 +236,8 @@ export function ClassesWorkshops() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<WorkshopFormFields>(emptyWorkshopForm());
   const [saving, setSaving] = useState(false);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailFileUrl, setThumbnailFileUrl] = useState<string | null>(null);
 
   const [deleteTarget, setDeleteTarget] = useState<Workshop | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -347,10 +352,30 @@ export function ClassesWorkshops() {
     };
   }, [sessionsWorkshop]);
 
+  // Manage object URL lifetime for the picked thumbnail preview.
+  useEffect(() => {
+    if (!thumbnailFile) { setThumbnailFileUrl(null); return; }
+    const url = URL.createObjectURL(thumbnailFile);
+    setThumbnailFileUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [thumbnailFile]);
+
+  function handleThumbnailChosen(file: File | null) {
+    if (!file) { setThumbnailFile(null); return; }
+    const okType = /^image\/(jpeg|png)$/i.test(file.type);
+    const okExt = /\.(jpe?g|png)$/i.test(file.name);
+    if (!okType && !okExt) {
+      toast.error("Thumbnail must be a .jpg or .png image");
+      return;
+    }
+    setThumbnailFile(file);
+  }
+
   function openCreate() {
     setFormMode("create");
     setEditingId(null);
     setForm(emptyWorkshopForm());
+    setThumbnailFile(null);
     setFormOpen(true);
   }
 
@@ -358,6 +383,7 @@ export function ClassesWorkshops() {
     setFormMode("edit");
     setEditingId(w.id);
     setForm(workshopToForm(w));
+    setThumbnailFile(null);
     setFormOpen(true);
   }
 
@@ -365,7 +391,25 @@ export function ClassesWorkshops() {
     if (!isWorkshopFormValid(form)) return;
     setSaving(true);
     try {
-      const body = buildWorkshopBody(form);
+      let uploadedThumbnailUrl: string | null = null;
+      if (thumbnailFile) {
+        const presign = await requestWorkshopThumbnailPresign("SUPERADMIN", {
+          filename: thumbnailFile.name,
+          contentType: thumbnailFile.type || "image/jpeg",
+        });
+        const putRes = await fetch(presign.url, {
+          method: "PUT",
+          headers: { "Content-Type": thumbnailFile.type || "image/jpeg" },
+          body: thumbnailFile,
+        });
+        if (!putRes.ok) throw new Error("Thumbnail upload failed");
+        uploadedThumbnailUrl = presign.cdnUrl || presign.publicUrl;
+      }
+
+      const body = buildWorkshopBody({
+        ...form,
+        thumbnail: uploadedThumbnailUrl ?? form.thumbnail,
+      });
       if (formMode === "create") {
         await createWorkshop("SUPERADMIN", body);
         toast.success("Workshop created");
@@ -807,22 +851,73 @@ export function ClassesWorkshops() {
                 <Input id="ws-end" type="datetime-local" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="ws-duration">Total Duration (min)</Label>
-                <Input
-                  id="ws-duration"
-                  type="number"
-                  min={0}
-                  value={form.totalDuration}
-                  onChange={(e) => setForm({ ...form, totalDuration: e.target.value })}
-                  placeholder="optional"
+            <div className="space-y-1">
+              <Label htmlFor="ws-duration">Total Duration (min)</Label>
+              <Input
+                id="ws-duration"
+                type="number"
+                min={0}
+                value={form.totalDuration}
+                onChange={(e) => setForm({ ...form, totalDuration: e.target.value })}
+                placeholder="optional"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ws-thumb-pick">
+                Thumbnail <span className="text-xs text-muted-foreground font-normal">· optional · .jpg or .png</span>
+              </Label>
+              {(thumbnailFileUrl || form.thumbnail) && (
+                <div className="relative rounded-lg overflow-hidden bg-black/5 aspect-video max-h-48">
+                  <img
+                    src={thumbnailFileUrl || form.thumbnail}
+                    alt="Thumbnail preview"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                  />
+                </div>
+              )}
+              <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors">
+                <input
+                  id="ws-thumb-pick"
+                  type="file"
+                  accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                  className="hidden"
+                  disabled={saving}
+                  onChange={(e) => handleThumbnailChosen(e.target.files?.[0] ?? null)}
                 />
+                <label htmlFor="ws-thumb-pick" className="cursor-pointer flex flex-col items-center gap-1.5">
+                  {thumbnailFile ? (
+                    <>
+                      <ImageIcon className="w-6 h-6" style={{ color: "#610981" }} />
+                      <p className="text-sm font-medium truncate max-w-full px-2">{thumbnailFile.name}</p>
+                      <p className="text-xs text-muted-foreground">Click to choose a different image</p>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-6 h-6 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        {form.thumbnail ? "Click to replace thumbnail" : "Click to upload thumbnail (JPG or PNG)"}
+                      </p>
+                    </>
+                  )}
+                </label>
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="ws-thumb">Thumbnail URL</Label>
-                <Input id="ws-thumb" value={form.thumbnail} onChange={(e) => setForm({ ...form, thumbnail: e.target.value })} placeholder="optional · image URL" />
-              </div>
+              {(thumbnailFile || form.thumbnail) && (
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    disabled={saving}
+                    onClick={() => {
+                      setThumbnailFile(null);
+                      setForm((f) => ({ ...f, thumbnail: "" }));
+                    }}
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" /> Remove
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 

@@ -33,6 +33,7 @@ import {
   enrollInFreeWorkshop,
   getMyWorkshopEnrollment,
   getWorkshop,
+  listMyWorkshopEnrolledIds,
   listUpcomingWorkshops,
 } from "../../api/workshops";
 import { initiatePayment, verifyPayment } from "../../api/payments";
@@ -90,9 +91,39 @@ export function UserWorkshopsList() {
   useEffect(() => {
     let cancelled = false;
     listUpcomingWorkshops("STUDENT", { limit: 20 })
-      .then((page) => {
+      .then(async (page) => {
         if (cancelled) return;
         setWorkshops(page.items);
+
+        // Resolve enrollment IDs via fastest available source. Try the bulk
+        // endpoint first; if it isn't reachable we fall back to per-workshop
+        // checks (the endpoint that already powers the detail click).
+        const ids = new Set<string>(
+          page.items.filter((w) => w.isEnrolled).map((w) => w.id),
+        );
+
+        try {
+          const { workshopIds } = await listMyWorkshopEnrolledIds("STUDENT");
+          for (const id of workshopIds) ids.add(id);
+        } catch {
+          const results = await Promise.all(
+            page.items.map((w) =>
+              getMyWorkshopEnrollment("STUDENT", w.id)
+                .then((r) => (r.enrolled ? w.id : null))
+                .catch(() => null),
+            ),
+          );
+          for (const id of results) if (id) ids.add(id);
+        }
+
+        if (cancelled) return;
+        if (ids.size) {
+          setEnrolledIds((prev) => {
+            const next = new Set(prev);
+            for (const id of ids) next.add(id);
+            return next;
+          });
+        }
       })
       .catch((err: unknown) => {
         if (!cancelled)
@@ -406,8 +437,8 @@ export function UserWorkshopsList() {
       )}
 
       <Dialog open={detailOpen} onOpenChange={(v) => { if (!isRegistering) setDetailOpen(v); }}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="w-[95vw] max-w-6xl max-h-[90vh] p-0 overflow-hidden flex flex-col gap-0 sm:max-w-6xl!">
+          <DialogHeader className="px-6 pt-6 pb-3 shrink-0 border-b">
             <DialogTitle className="text-2xl" style={{ color: "#ff691d" }}>
               {detail?.title ?? "Workshop"}
             </DialogTitle>
@@ -420,63 +451,75 @@ export function UserWorkshopsList() {
           {detailLoading || !detail ? (
             <div className="py-12 text-center text-muted-foreground">Loading…</div>
           ) : (
-            <div className="space-y-5">
-              <div className="relative h-56 rounded-2xl overflow-hidden">
-                <img
-                  src={detail.thumbnail ?? FALLBACK_IMG}
-                  alt={detail.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).src = FALLBACK_IMG; }}
-                />
-                <div className="absolute top-4 left-4 flex gap-2">
-                  <Badge style={{ backgroundColor: modeColor(detail.mode), color: "white" }}>
-                    {detail.mode}
-                  </Badge>
-                  <Badge className="bg-white/90 text-gray-900">{levelLabel(detail.level)}</Badge>
-                </div>
-              </div>
+            <>
+              {/* Single scroll region — two columns side-by-side, content flows naturally */}
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-6 p-6">
+                  {/* LEFT — image + key facts */}
+                  <div className="space-y-4">
+                    <div className="relative aspect-video rounded-2xl overflow-hidden">
+                      <img
+                        src={detail.thumbnail ?? FALLBACK_IMG}
+                        alt={detail.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = FALLBACK_IMG; }}
+                      />
+                      <div className="absolute top-4 left-4 flex gap-2">
+                        <Badge style={{ backgroundColor: modeColor(detail.mode), color: "white" }}>
+                          {detail.mode}
+                        </Badge>
+                        <Badge className="bg-white/90 text-gray-900">{levelLabel(detail.level)}</Badge>
+                      </div>
+                    </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <InfoTile icon={Calendar} label="Starts" value={formatDate(detail.startDate)} />
-                <InfoTile icon={Calendar} label="Ends" value={formatDate(detail.endDate)} />
-                <InfoTile
-                  icon={Clock}
-                  label="Duration"
-                  value={detail.totalDuration != null ? `${detail.totalDuration} min` : "—"}
-                />
-                <InfoTile
-                  icon={Users}
-                  label="Capacity"
-                  value={detail.capacity != null ? `${detail.enrollmentCount}/${detail.capacity}` : `${detail.enrollmentCount}`}
-                />
-              </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <InfoTile icon={Calendar} label="Starts" value={formatDate(detail.startDate)} />
+                      <InfoTile icon={Calendar} label="Ends" value={formatDate(detail.endDate)} />
+                      <InfoTile
+                        icon={Clock}
+                        label="Duration"
+                        value={detail.totalDuration != null ? `${detail.totalDuration} min` : "—"}
+                      />
+                      <InfoTile
+                        icon={Users}
+                        label="Capacity"
+                        value={detail.capacity != null ? `${detail.enrollmentCount}/${detail.capacity}` : `${detail.enrollmentCount}`}
+                      />
+                    </div>
+                  </div>
 
-              <div>
-                <h4 className="font-semibold mb-2" style={{ color: "#ff691d" }}>About</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-                  {detail.description}
-                </p>
-              </div>
+                  {/* RIGHT — about + sessions */}
+                  <div className="space-y-5 md:border-l md:pl-6">
+                    <div>
+                      <h4 className="font-semibold mb-2" style={{ color: "#ff691d" }}>About</h4>
+                      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                        {detail.description}
+                      </p>
+                    </div>
 
-              {detail.sessions.length > 0 && (
-                <div>
-                  <h4 className="font-semibold mb-3 flex items-center gap-2" style={{ color: "#ff691d" }}>
-                    <ListVideo className="w-4 h-4" /> Sessions ({detail.sessions.length})
-                  </h4>
-                  <div className="space-y-2">
-                    {detail.sessions.map((s) => (
-                      <SessionRow key={s.id} session={s} enrolled={enrolledIds.has(detail.id)} />
-                    ))}
+                    {detail.sessions.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold mb-3 flex items-center gap-2" style={{ color: "#ff691d" }}>
+                          <ListVideo className="w-4 h-4" /> Sessions ({detail.sessions.length})
+                        </h4>
+                        <div className="space-y-2">
+                          {detail.sessions.map((s) => (
+                            <SessionRow key={s.id} session={s} enrolled={enrolledIds.has(detail.id)} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
 
-              <div className="flex items-center justify-between pt-4 border-t">
+              {/* Sticky footer — Price + CTA always visible, single scrollbar above */}
+              <div className="shrink-0 border-t px-6 py-4 bg-background flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Price</p>
+                  <p className="text-xs text-muted-foreground">Price</p>
                   <div className="flex items-center gap-1">
-                    <IndianRupee className="w-6 h-6" style={{ color: "#ff691d" }} />
-                    <span className="text-3xl font-bold" style={{ color: "#ff691d" }}>
+                    <IndianRupee className="w-5 h-5" style={{ color: "#ff691d" }} />
+                    <span className="text-2xl font-bold" style={{ color: "#ff691d" }}>
                       {Number(detail.price) === 0 ? "Free" : Number(detail.price).toLocaleString("en-IN")}
                     </span>
                   </div>
@@ -498,7 +541,7 @@ export function UserWorkshopsList() {
                   )}
                 </Button>
               </div>
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>

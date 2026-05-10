@@ -52,7 +52,7 @@ const classesSubNav = [
   { name: "Live", href: "/superadmin/classes/live" },
   { name: "Self Paced", href: "/superadmin/classes/self-paced" },
   //{ name: "YTT Live", href: "/superadmin/classes/ytt-live" },
-  //{ name: "YTT Recorded", href: "/superadmin/classes/ytt-recorded" },
+  { name: "YTT Recorded", href: "/superadmin/classes/ytt-recorded" },
   { name: "Events", href: "/superadmin/classes/events" },
   { name: "Workshops", href: "/superadmin/classes/workshops" },
 ];

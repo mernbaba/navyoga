@@ -125,6 +125,15 @@ export function getMyEventEnrollment(role: Role, eventId: string) {
   );
 }
 
+export function listMyEventEnrollments(role: Role) {
+  return unwrap<{ eventIds: string[] }>(
+    authedRequest<ApiSuccess<{ eventIds: string[] }>>(role, {
+      method: "GET",
+      url: "/api/events/my-enrollments",
+    }),
+  );
+}
+
 export function enrollInFreeEvent(role: Role, eventId: string) {
   return unwrap<MyEnrollmentResponse>(
     authedRequest<ApiSuccess<MyEnrollmentResponse>>(role, {

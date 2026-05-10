@@ -4,6 +4,15 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { Badge } from "../../../components/ui/badge";
+import { Switch } from "../../../components/ui/switch";
+import { Textarea } from "../../../components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../../components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -18,20 +27,47 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "../../../components/ui/accordion";
-import { Video, Plus, Pencil, Trash2, ChevronRight, FolderOpen, Clock, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  Video,
+  Plus,
+  Pencil,
+  Trash2,
+  ChevronRight,
+  FolderOpen,
+  Clock,
+  ArrowUp,
+  ArrowDown,
+  Upload,
+  FileVideo,
+  Image as ImageIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   listYTTRecordedCourses,
+  createYTTRecordedCourse,
+  updateYTTRecordedCourse,
+  deleteYTTRecordedCourse,
   getYTTRecordedCourse,
   createYTTRecordedModule,
+  updateYTTRecordedModule,
   deleteYTTRecordedModule,
   createYTTRecordedClass,
   updateYTTRecordedClass,
   deleteYTTRecordedClass,
   reorderYTTRecordedModules,
   reorderYTTRecordedClasses,
+  requestYTTRecordedClassPresign,
+  deleteYTTRecordedClassMedia,
 } from "../../../api/plans";
-import type { YTTCourse, YTTCourseDetail, YTTModule, YTTClass } from "../../../api/types";
+import type {
+  YTTCourse,
+  YTTCourseBody,
+  YTTCourseDetail,
+  YTTModule,
+  YTTClass,
+  ClassLevel,
+} from "../../../api/types";
+import { resolveMediaUrl } from "../../../lib/media";
 
 const BRAND = "#610981";
 
@@ -40,6 +76,285 @@ function formatDuration(minutes: number) {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return m ? `${h}h ${m}m` : `${h}h`;
+}
+
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "—";
+  const mb = bytes / (1024 * 1024);
+  if (mb < 1024) return `${mb.toFixed(mb < 10 ? 1 : 0)} MB`;
+  return `${(mb / 1024).toFixed(2)} GB`;
+}
+
+function extractVideoMeta(file: File): Promise<{ durationSec: number; thumbnail: Blob }> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.muted = true;
+    video.crossOrigin = "anonymous";
+    let settled = false;
+    const cleanup = () => {
+      URL.revokeObjectURL(url);
+      video.removeAttribute("src");
+      video.load();
+    };
+    const finish = (err: Error | null, payload?: { durationSec: number; thumbnail: Blob }) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      cleanup();
+      if (err || !payload) reject(err ?? new Error("Couldn't read video"));
+      else resolve(payload);
+    };
+    const timeout = window.setTimeout(() => finish(new Error("Couldn't read video metadata")), 8000);
+
+    video.onloadedmetadata = () => {
+      const seconds = video.duration;
+      if (!Number.isFinite(seconds) || seconds <= 0) {
+        finish(new Error("Video has no readable duration"));
+        return;
+      }
+      const seekTo = Math.min(Math.max(seconds * 0.1, 1), seconds - 0.1);
+      video.currentTime = seekTo;
+    };
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        const w = video.videoWidth || 1280;
+        const h = video.videoHeight || 720;
+        const maxW = 1280;
+        const scale = w > maxW ? maxW / w : 1;
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { finish(new Error("Canvas not available")); return; }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) { finish(new Error("Couldn't capture thumbnail")); return; }
+            finish(null, { durationSec: video.duration, thumbnail: blob });
+          },
+          "image/jpeg",
+          0.85,
+        );
+      } catch (err) {
+        finish(err instanceof Error ? err : new Error("Thumbnail capture failed"));
+      }
+    };
+    video.onerror = () => finish(new Error("Couldn't read video"));
+    video.src = url;
+  });
+}
+
+const LEVELS: ClassLevel[] = ["BEGINNER", "INTERMEDIATE", "ADVANCED", "ALL_LEVELS"];
+const levelLabel = (l: ClassLevel) =>
+  l === "ALL_LEVELS" ? "All Levels" : l.charAt(0) + l.slice(1).toLowerCase();
+
+// ─── COURSE FORM DIALOG (Add + Edit) ──────────────────────────────────────────
+
+interface CourseFormDialogProps {
+  open: boolean;
+  initial?: YTTCourse | null;
+  onClose: () => void;
+  onSaved: (course: YTTCourse, mode: "create" | "edit") => void;
+}
+
+const EMPTY_COURSE: YTTCourseBody = {
+  title: "",
+  yogaType: "",
+  description: "",
+  thumbnail: "",
+  level: "ALL_LEVELS",
+  isActive: true,
+};
+
+function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogProps) {
+  const isEdit = !!initial;
+  const [form, setForm] = useState<YTTCourseBody>(EMPTY_COURSE);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (initial) {
+      setForm({
+        title: initial.title,
+        yogaType: initial.yogaType,
+        description: initial.description ?? "",
+        thumbnail: initial.thumbnail ?? "",
+        level: initial.level,
+        isActive: initial.isActive,
+      });
+    } else {
+      setForm(EMPTY_COURSE);
+    }
+    setSaving(false);
+  }, [initial, open]);
+
+  const valid = form.title.trim().length > 0 && form.yogaType.trim().length > 0;
+
+  async function handleSave() {
+    if (!valid) return;
+    setSaving(true);
+    try {
+      const body: YTTCourseBody = {
+        title: form.title.trim(),
+        yogaType: form.yogaType.trim(),
+        level: form.level,
+        isActive: form.isActive,
+        ...(form.description?.trim() ? { description: form.description.trim() } : {}),
+        ...(form.thumbnail?.trim() ? { thumbnail: form.thumbnail.trim() } : {}),
+      };
+      const saved = isEdit && initial
+        ? await updateYTTRecordedCourse(initial.id, body)
+        : await createYTTRecordedCourse(body);
+      toast.success(isEdit ? "Course updated" : "Course created");
+      onSaved(saved, isEdit ? "edit" : "create");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save course");
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v && !saving) onClose(); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Edit Course" : "Add Course"}</DialogTitle>
+          <DialogDescription>
+            {isEdit ? "Update course details." : "Create a new YTT recorded course."}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label htmlFor="course-title">Title *</Label>
+            <Input
+              id="course-title"
+              placeholder="e.g. 200 hr Hatha Yoga TTC"
+              value={form.title}
+              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="course-yoga">Yoga Type *</Label>
+              <Input
+                id="course-yoga"
+                placeholder="e.g. Hatha, Vinyasa"
+                value={form.yogaType}
+                onChange={(e) => setForm((f) => ({ ...f, yogaType: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Level</Label>
+              <Select
+                value={form.level ?? "ALL_LEVELS"}
+                onValueChange={(v: ClassLevel) => setForm((f) => ({ ...f, level: v }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {LEVELS.map((l) => <SelectItem key={l} value={l}>{levelLabel(l)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="course-desc">Description</Label>
+            <Textarea
+              id="course-desc"
+              rows={3}
+              className="min-h-20 max-h-40"
+              placeholder="What students will learn"
+              value={form.description ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="course-thumb">Thumbnail URL</Label>
+            <Input
+              id="course-thumb"
+              placeholder="optional · image URL"
+              value={form.thumbnail ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, thumbnail: e.target.value }))}
+            />
+          </div>
+          <div className="flex items-center gap-3 pt-1">
+            <Switch
+              id="course-active"
+              checked={form.isActive ?? true}
+              onCheckedChange={(v) => setForm((f) => ({ ...f, isActive: v }))}
+            />
+            <Label htmlFor="course-active">Active</Label>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" disabled={saving} onClick={onClose}>Cancel</Button>
+          <Button disabled={!valid || saving} onClick={handleSave} style={{ background: BRAND }}>
+            {saving ? "Saving…" : isEdit ? "Save Changes" : "Create Course"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── EDIT MODULE DIALOG ───────────────────────────────────────────────────────
+
+interface EditModuleDialogProps {
+  open: boolean;
+  courseId: string;
+  mod: YTTModule;
+  onClose: () => void;
+  onUpdated: (updated: YTTModule) => void;
+}
+
+function EditModuleDialog({ open, courseId, mod, onClose, onUpdated }: EditModuleDialogProps) {
+  const [title, setTitle] = useState(mod.title);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setTitle(mod.title);
+    setSaving(false);
+  }, [mod.id, mod.title]);
+
+  async function handleSave() {
+    if (!title.trim() || title.trim() === mod.title) {
+      onClose();
+      return;
+    }
+    setSaving(true);
+    try {
+      const updated = await updateYTTRecordedModule(courseId, mod.id, { title: title.trim() });
+      toast.success("Module renamed");
+      onUpdated(updated);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update module");
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v && !saving) onClose(); }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Edit Module</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-1">
+          <Label htmlFor="edit-mod-title">Module Title</Label>
+          <Input
+            id="edit-mod-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" disabled={saving} onClick={onClose}>Cancel</Button>
+          <Button disabled={!title.trim() || saving} onClick={handleSave} style={{ background: BRAND }}>
+            {saving ? "Saving…" : "Save"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 // ─── ADD MODULE DIALOG ────────────────────────────────────────────────────────
@@ -115,73 +430,365 @@ interface AddClassDialogProps {
   onCreated: () => void;
 }
 
-const EMPTY_CLASS = { title: "", video: "", duration: "", description: "" };
-
 function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreated }: AddClassDialogProps) {
-  const [form, setForm] = useState(EMPTY_CLASS);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [duration, setDuration] = useState("");
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [detectedDurationMin, setDetectedDurationMin] = useState<number | null>(null);
+  const [autoThumb, setAutoThumb] = useState<Blob | null>(null);
+  const [autoThumbUrl, setAutoThumbUrl] = useState<string | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailFileUrl, setThumbnailFileUrl] = useState<string | null>(null);
+  const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (!autoThumb) { setAutoThumbUrl(null); return; }
+    const url = URL.createObjectURL(autoThumb);
+    setAutoThumbUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [autoThumb]);
+
+  useEffect(() => {
+    if (!thumbnailFile) { setThumbnailFileUrl(null); return; }
+    const url = URL.createObjectURL(thumbnailFile);
+    setThumbnailFileUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [thumbnailFile]);
+
   function reset() {
-    setForm(EMPTY_CLASS);
+    setStep(1);
+    setTitle("");
+    setDescription("");
+    setDuration("");
+    setVideoFile(null);
+    setDetectedDurationMin(null);
+    setAutoThumb(null);
+    setThumbnailFile(null);
+    setExtracting(false);
     setSaving(false);
   }
 
-  function set(field: keyof typeof EMPTY_CLASS, value: string) {
-    setForm((f) => ({ ...f, [field]: value }));
+  function handleThumbnailChosen(file: File | null) {
+    if (!file) { setThumbnailFile(null); return; }
+    const okType = /^image\/(jpeg|png)$/i.test(file.type);
+    const okExt = /\.(jpe?g|png)$/i.test(file.name);
+    if (!okType && !okExt) {
+      toast.error("Thumbnail must be a .jpg or .png image");
+      return;
+    }
+    setThumbnailFile(file);
   }
 
-  async function handleSave() {
-    const dur = Number(form.duration);
-    if (!form.title.trim() || !form.video.trim() || !form.duration || isNaN(dur) || dur <= 0) return;
-    setSaving(true);
+  async function handleVideoChosen(file: File | null) {
+    setVideoFile(file);
+    setDetectedDurationMin(null);
+    setAutoThumb(null);
+    if (!file) return;
+    setExtracting(true);
     try {
-      await createYTTRecordedClass(courseId, moduleId, {
-        title: form.title.trim(),
-        video: form.video.trim(),
-        duration: dur,
-        ...(form.description.trim() ? { description: form.description.trim() } : {}),
+      const { durationSec, thumbnail } = await extractVideoMeta(file);
+      const minutes = Math.max(1, Math.round(durationSec / 60));
+      setDetectedDurationMin(minutes);
+      setDuration(String(minutes));
+      setAutoThumb(thumbnail);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't read the video");
+    } finally {
+      setExtracting(false);
+    }
+  }
+
+  const detailsValid = title.trim().length > 0 && Number(duration) > 0;
+  const previewImageUrl = thumbnailFileUrl || autoThumbUrl;
+  const displayDuration = detectedDurationMin ?? (duration ? Number(duration) : null);
+
+  async function handlePublish() {
+    if (!detailsValid || !videoFile) return;
+    setSaving(true);
+    let createdId: string | null = null;
+    try {
+      // 1. Create class shell (without video) so we have an id to scope S3 keys.
+      const created = await createYTTRecordedClass(courseId, moduleId, {
+        title: title.trim(),
+        duration: Number(duration),
+        ...(description.trim() ? { description: description.trim() } : {}),
       });
+      createdId = created.id;
+
+      // 2. Presign + PUT video, then patch the storePath.
+      const videoPresign = await requestYTTRecordedClassPresign(courseId, moduleId, created.id, {
+        kind: "video",
+        filename: videoFile.name,
+        contentType: videoFile.type,
+      });
+      await fetch(videoPresign.url, {
+        method: "PUT",
+        headers: { "Content-Type": videoFile.type },
+        body: videoFile,
+      });
+      await updateYTTRecordedClass(courseId, moduleId, created.id, { video: videoPresign.storePath });
+
+      // 3. Upload thumbnail — prefer user-picked file, fall back to auto-captured frame.
+      const thumbBlob: Blob | null = thumbnailFile ?? autoThumb;
+      if (thumbBlob) {
+        const thumbName = thumbnailFile?.name ?? "thumbnail.jpg";
+        const thumbType = thumbnailFile?.type || "image/jpeg";
+        try {
+          const thumbPresign = await requestYTTRecordedClassPresign(courseId, moduleId, created.id, {
+            kind: "thumbnail",
+            filename: thumbName,
+            contentType: thumbType,
+          });
+          await fetch(thumbPresign.url, {
+            method: "PUT",
+            headers: { "Content-Type": thumbType },
+            body: thumbBlob,
+          });
+          await updateYTTRecordedClass(courseId, moduleId, created.id, { thumbnail: thumbPresign.storePath });
+        } catch (thumbErr) {
+          toast.error(
+            thumbErr instanceof Error
+              ? `Class created, but thumbnail upload failed: ${thumbErr.message}.`
+              : "Thumbnail upload failed.",
+          );
+        }
+      }
+
       toast.success("Class added");
       onCreated();
       reset();
     } catch (err) {
+      // Roll back the placeholder class so we don't leave orphaned rows.
+      if (createdId) {
+        try { await deleteYTTRecordedClass(courseId, moduleId, createdId); } catch { /* swallow */ }
+      }
       toast.error(err instanceof Error ? err.message : "Failed to add class");
       setSaving(false);
     }
   }
 
-  const valid = form.title.trim() && form.video.trim() && Number(form.duration) > 0;
-
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add Class</DialogTitle>
-          <DialogDescription>Adding to module: <span className="font-medium">{moduleName}</span></DialogDescription>
+    <Dialog open={open} onOpenChange={(v) => { if (!v && !saving) { reset(); onClose(); } }}>
+      <DialogContent
+        className={`${step === 2 ? "max-w-lg" : "max-w-md"} max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden`}
+      >
+        <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
+          <DialogTitle style={step === 2 ? { color: BRAND } : undefined}>
+            {step === 2 ? "Upload Class Video" : "Add Class"}
+          </DialogTitle>
+          <DialogDescription>
+            {step === 2
+              ? "Upload the video file for this class"
+              : <>Adding to module: <span className="font-medium">{moduleName}</span></>}
+            <span className="ml-2 text-xs text-muted-foreground">· Step {step} of 2</span>
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="cls-title">Title *</Label>
-            <Input id="cls-title" placeholder="e.g. Introduction to Pranayama" value={form.title} onChange={(e) => set("title", e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="cls-url">Video URL *</Label>
-            <Input id="cls-url" placeholder="https://…" value={form.video} onChange={(e) => set("video", e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="cls-dur">Duration (minutes) *</Label>
-            <Input id="cls-dur" type="number" min="1" placeholder="60" value={form.duration} onChange={(e) => set("duration", e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="cls-desc">Description</Label>
-            <Input id="cls-desc" placeholder="Optional description" value={form.description} onChange={(e) => set("description", e.target.value)} />
-          </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-2 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+          {step === 1 ? (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="cls-title">Title <span className="text-red-500">*</span></Label>
+                <Input
+                  id="cls-title"
+                  placeholder="e.g. Introduction to Pranayama"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="cls-dur">Duration (min) <span className="text-red-500">*</span></Label>
+                <Input
+                  id="cls-dur"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={duration}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "" || /^\d+$/.test(v)) setDuration(v);
+                  }}
+                  onKeyDown={(e) => { if (e.key === "-" || e.key === "e" || e.key === "+") e.preventDefault(); }}
+                />
+                {duration !== "" && Number(duration) <= 0 && (
+                  <p className="text-xs text-red-500">Duration must be a positive number</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="cls-desc">Description</Label>
+                <Textarea
+                  id="cls-desc"
+                  rows={3}
+                  className="min-h-20 max-h-40"
+                  placeholder="optional · what students will learn"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* Class preview header — 16:9 banner */}
+              <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+                {previewImageUrl ? (
+                  <img
+                    src={previewImageUrl}
+                    alt="Thumbnail preview"
+                    className="w-full h-full object-cover opacity-90"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                  />
+                ) : null}
+                {!previewImageUrl && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Video className="w-10 h-10 text-white/30" />
+                  </div>
+                )}
+                <div className="absolute bottom-2 left-2 right-2">
+                  <div className="bg-black/80 backdrop-blur-sm rounded-md px-3 py-2">
+                    <p className="text-white text-sm font-medium truncate">
+                      {title.trim() || "Untitled class"}
+                    </p>
+                    <p className="text-white/70 text-xs mt-0.5 truncate">
+                      {moduleName} · {displayDuration ? `${displayDuration} min` : "—"} · MP4
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Thumbnail upload — optional, .jpg/.png only */}
+              <div className="space-y-2">
+                <Label htmlFor="cls-thumb-pick">
+                  Thumbnail <span className="text-xs text-muted-foreground font-normal">· optional · .jpg or .png</span>
+                </Label>
+                <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors">
+                  <input
+                    id="cls-thumb-pick"
+                    type="file"
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    className="hidden"
+                    disabled={saving}
+                    onChange={(e) => handleThumbnailChosen(e.target.files?.[0] ?? null)}
+                  />
+                  <label htmlFor="cls-thumb-pick" className="cursor-pointer flex flex-col items-center gap-1.5">
+                    {thumbnailFile ? (
+                      <>
+                        <ImageIcon className="w-6 h-6" style={{ color: BRAND }} />
+                        <p className="text-sm font-medium truncate max-w-full px-2">{thumbnailFile.name}</p>
+                        <p className="text-xs text-muted-foreground">Click to choose a different image</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Click to upload thumbnail (auto-captured from video if skipped)
+                        </p>
+                      </>
+                    )}
+                  </label>
+                </div>
+                {thumbnailFile && (
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      disabled={saving}
+                      onClick={() => setThumbnailFile(null)}
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" /> Remove
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Video upload */}
+              <div className="space-y-2">
+                <Label htmlFor="cls-video-pick">
+                  Video File <span className="text-red-500">*</span>
+                </Label>
+                <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors">
+                  <input
+                    id="cls-video-pick"
+                    type="file"
+                    accept=".mp4,video/mp4"
+                    className="hidden"
+                    disabled={saving}
+                    onChange={(e) => handleVideoChosen(e.target.files?.[0] ?? null)}
+                  />
+                  <label htmlFor="cls-video-pick" className="cursor-pointer flex flex-col items-center gap-1.5">
+                    {videoFile ? (
+                      <>
+                        <FileVideo className="w-6 h-6" style={{ color: BRAND }} />
+                        <p className="text-sm font-medium truncate max-w-full px-2">{videoFile.name}</p>
+                        <p className="text-xs text-muted-foreground">Click to choose a different file</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">Click to upload video (MP4)</p>
+                      </>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              {/* Metadata grid — only after video is picked */}
+              {videoFile && (
+                <div className="grid grid-cols-2 gap-3 p-3 bg-muted/40 rounded-lg">
+                  <div>
+                    <p className="text-xs text-muted-foreground">File Size</p>
+                    <p className="font-medium text-sm mt-0.5">{formatBytes(videoFile.size)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Duration</p>
+                    <p className="font-medium text-sm mt-0.5">
+                      {displayDuration ? `${displayDuration} min` : extracting ? "reading…" : "—"}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {videoFile && extracting && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Capturing thumbnail from video…
+                </p>
+              )}
+            </div>
+          )}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => { reset(); onClose(); }}>Cancel</Button>
-          <Button disabled={!valid || saving} onClick={handleSave} style={{ background: BRAND }}>
-            {saving ? "Adding…" : "Add Class"}
-          </Button>
+
+        <DialogFooter className="px-6 py-4 border-t bg-background shrink-0">
+          {step === 1 ? (
+            <>
+              <Button variant="outline" onClick={() => { reset(); onClose(); }}>Cancel</Button>
+              <Button
+                disabled={!detailsValid}
+                onClick={() => setStep(2)}
+                style={{ background: BRAND, color: "white" }}
+              >
+                Next
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setStep(1)}
+                disabled={saving}
+              >
+                Back
+              </Button>
+              <Button
+                onClick={handlePublish}
+                disabled={!videoFile || saving}
+                style={{ background: BRAND, color: "white" }}
+              >
+                {saving ? "Publishing…" : "Publish"}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -201,41 +808,137 @@ interface EditClassDialogProps {
 }
 
 function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, onUpdated }: EditClassDialogProps) {
-  const [form, setForm] = useState({
-    title: cls.title,
-    video: cls.video,
-    duration: String(cls.duration),
-    description: cls.description ?? "",
-  });
+  const [step, setStep] = useState<1 | 2>(1);
+  const [title, setTitle] = useState(cls.title);
+  const [duration, setDuration] = useState(String(cls.duration));
+  const [description, setDescription] = useState(cls.description ?? "");
   const [saving, setSaving] = useState(false);
 
-  // Reset the form when the target class changes (e.g. user opens edit on a different class).
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [detectedDurationMin, setDetectedDurationMin] = useState<number | null>(null);
+  const [autoThumb, setAutoThumb] = useState<Blob | null>(null);
+  const [autoThumbUrl, setAutoThumbUrl] = useState<string | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  // Reset everything when the target class changes.
   useEffect(() => {
-    setForm({
-      title: cls.title,
-      video: cls.video,
-      duration: String(cls.duration),
-      description: cls.description ?? "",
-    });
+    setStep(1);
+    setTitle(cls.title);
+    setDuration(String(cls.duration));
+    setDescription(cls.description ?? "");
+    setVideoFile(null);
+    setDetectedDurationMin(null);
+    setAutoThumb(null);
+    setExtracting(false);
     setSaving(false);
+    setUploading(false);
   }, [cls.id]);
 
-  function set(field: keyof typeof form, value: string) {
-    setForm((f) => ({ ...f, [field]: value }));
+  useEffect(() => {
+    if (!autoThumb) { setAutoThumbUrl(null); return; }
+    const url = URL.createObjectURL(autoThumb);
+    setAutoThumbUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [autoThumb]);
+
+  async function handleVideoChosen(file: File | null) {
+    setVideoFile(file);
+    setDetectedDurationMin(null);
+    setAutoThumb(null);
+    if (!file) return;
+    setExtracting(true);
+    try {
+      const { durationSec, thumbnail } = await extractVideoMeta(file);
+      const minutes = Math.max(1, Math.round(durationSec / 60));
+      setDetectedDurationMin(minutes);
+      setDuration(String(minutes));
+      setAutoThumb(thumbnail);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't read the video");
+    } finally {
+      setExtracting(false);
+    }
   }
 
-  const valid = form.title.trim() && form.video.trim() && Number(form.duration) > 0;
+  async function handleUploadVideo() {
+    if (!videoFile) return;
+    setUploading(true);
+    try {
+      // Replace the existing video if there was one.
+      if (cls.video) {
+        try { await deleteYTTRecordedClassMedia(courseId, moduleId, cls.id, "video"); } catch { /* swallow */ }
+      }
+      const videoPresign = await requestYTTRecordedClassPresign(courseId, moduleId, cls.id, {
+        kind: "video",
+        filename: videoFile.name,
+        contentType: videoFile.type,
+      });
+      await fetch(videoPresign.url, {
+        method: "PUT",
+        headers: { "Content-Type": videoFile.type },
+        body: videoFile,
+      });
+      let updated = await updateYTTRecordedClass(courseId, moduleId, cls.id, { video: videoPresign.storePath });
+
+      // Auto-upload captured thumbnail (best-effort, replaces any existing thumbnail).
+      if (autoThumb) {
+        try {
+          if (cls.thumbnail) {
+            try { await deleteYTTRecordedClassMedia(courseId, moduleId, cls.id, "thumbnail"); } catch { /* swallow */ }
+          }
+          const thumbPresign = await requestYTTRecordedClassPresign(courseId, moduleId, cls.id, {
+            kind: "thumbnail",
+            filename: "thumbnail.jpg",
+            contentType: "image/jpeg",
+          });
+          await fetch(thumbPresign.url, {
+            method: "PUT",
+            headers: { "Content-Type": "image/jpeg" },
+            body: autoThumb,
+          });
+          updated = await updateYTTRecordedClass(courseId, moduleId, cls.id, { thumbnail: thumbPresign.storePath });
+        } catch { /* non-fatal */ }
+      }
+
+      // Persist auto-detected duration if it differs from current.
+      if (detectedDurationMin && detectedDurationMin !== updated.duration) {
+        updated = await updateYTTRecordedClass(courseId, moduleId, cls.id, { duration: detectedDurationMin });
+        setDuration(String(detectedDurationMin));
+      }
+
+      toast.success("Video uploaded");
+      onUpdated(updated);
+      setVideoFile(null);
+      setDetectedDurationMin(null);
+      setAutoThumb(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload video");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleDeleteMedia() {
+    if (!confirm("Remove the video from this class?")) return;
+    try {
+      await deleteYTTRecordedClassMedia(courseId, moduleId, cls.id, "video");
+      // BE returns null; reflect the cleared video locally.
+      onUpdated({ ...cls, video: "" });
+      toast.success("Video removed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete video");
+    }
+  }
 
   async function handleSave() {
-    if (!valid) return;
+    if (!isMetadataValid) return;
     setSaving(true);
     try {
-      const dur = Number(form.duration);
-      const trimmedDesc = form.description.trim();
+      const trimmedDesc = description.trim();
       const updated = await updateYTTRecordedClass(courseId, moduleId, cls.id, {
-        title: form.title.trim(),
-        video: form.video.trim(),
-        duration: dur,
+        title: title.trim(),
+        duration: Number(duration),
         description: trimmedDesc.length > 0 ? trimmedDesc : undefined,
       });
       toast.success("Class updated");
@@ -246,36 +949,217 @@ function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, o
     }
   }
 
+  const isMetadataValid = title.trim().length > 0 && Number(duration) > 0;
+  const previewImageUrl =
+    autoThumbUrl ?? (cls.thumbnail ? resolveMediaUrl(cls.thumbnail) ?? null : null);
+  const displayDuration = detectedDurationMin ?? (duration ? Number(duration) : null);
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit Class</DialogTitle>
-          <DialogDescription>Editing in module: <span className="font-medium">{moduleName}</span></DialogDescription>
+    <Dialog open={open} onOpenChange={(v) => { if (!v && !saving && !uploading) onClose(); }}>
+      <DialogContent
+        className={`${step === 2 ? "max-w-lg" : "max-w-md"} max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden`}
+      >
+        <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
+          <DialogTitle style={step === 2 ? { color: BRAND } : undefined}>
+            {step === 2 ? "Class Video" : "Edit Class"}
+          </DialogTitle>
+          <DialogDescription>
+            {step === 2
+              ? "Replace or remove the uploaded video"
+              : <>Editing in module: <span className="font-medium">{moduleName}</span></>}
+            <span className="ml-2 text-xs text-muted-foreground">· Step {step} of 2</span>
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="edit-cls-title">Title *</Label>
-            <Input id="edit-cls-title" value={form.title} onChange={(e) => set("title", e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="edit-cls-url">Video URL *</Label>
-            <Input id="edit-cls-url" placeholder="https://…" value={form.video} onChange={(e) => set("video", e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="edit-cls-dur">Duration (minutes) *</Label>
-            <Input id="edit-cls-dur" type="number" min="1" value={form.duration} onChange={(e) => set("duration", e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="edit-cls-desc">Description</Label>
-            <Input id="edit-cls-desc" placeholder="Optional description" value={form.description} onChange={(e) => set("description", e.target.value)} />
-          </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-2 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+          {step === 1 ? (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="ec-title">Title <span className="text-red-500">*</span></Label>
+                <Input
+                  id="ec-title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="ec-dur">Duration (min) <span className="text-red-500">*</span></Label>
+                <Input
+                  id="ec-dur"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={duration}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "" || /^\d+$/.test(v)) setDuration(v);
+                  }}
+                  onKeyDown={(e) => { if (e.key === "-" || e.key === "e" || e.key === "+") e.preventDefault(); }}
+                />
+                {duration !== "" && Number(duration) <= 0 && (
+                  <p className="text-xs text-red-500">Duration must be a positive number</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="ec-desc">Description</Label>
+                <Textarea
+                  id="ec-desc"
+                  rows={3}
+                  className="min-h-20 max-h-40"
+                  placeholder="optional · what students will learn"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* Class preview header — 16:9 banner */}
+              <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+                {previewImageUrl ? (
+                  <img
+                    src={previewImageUrl}
+                    alt="Thumbnail preview"
+                    className="w-full h-full object-cover opacity-90"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                  />
+                ) : null}
+                {!previewImageUrl && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Video className="w-10 h-10 text-white/30" />
+                  </div>
+                )}
+                <div className="absolute bottom-2 left-2 right-2">
+                  <div className="bg-black/80 backdrop-blur-sm rounded-md px-3 py-2">
+                    <p className="text-white text-sm font-medium truncate">
+                      {title.trim() || "Untitled class"}
+                    </p>
+                    <p className="text-white/70 text-xs mt-0.5 truncate">
+                      {moduleName} · {displayDuration ? `${displayDuration} min` : "—"} · MP4
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Existing video status (only when no new pick) */}
+              {cls.video && !videoFile && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/30">
+                  <FileVideo className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground truncate flex-1">Video uploaded</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    disabled={uploading}
+                    onClick={handleDeleteMedia}
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" /> Remove
+                  </Button>
+                </div>
+              )}
+
+              {/* Video upload (replace or new) */}
+              <div className="space-y-2">
+                <Label htmlFor="ec-video-pick">
+                  {cls.video ? "Replace Video" : "Video File"}
+                </Label>
+                <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors">
+                  <input
+                    id="ec-video-pick"
+                    type="file"
+                    accept=".mp4,video/mp4"
+                    className="hidden"
+                    disabled={uploading}
+                    onChange={(e) => handleVideoChosen(e.target.files?.[0] ?? null)}
+                  />
+                  <label htmlFor="ec-video-pick" className="cursor-pointer flex flex-col items-center gap-1.5">
+                    {videoFile ? (
+                      <>
+                        <FileVideo className="w-6 h-6" style={{ color: BRAND }} />
+                        <p className="text-sm font-medium truncate max-w-full px-2">{videoFile.name}</p>
+                        <p className="text-xs text-muted-foreground">Click to choose a different file</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          {cls.video ? "Click to replace video (MP4)" : "Click to upload video (MP4)"}
+                        </p>
+                      </>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              {/* Metadata grid — only after a new video is picked */}
+              {videoFile && (
+                <div className="grid grid-cols-2 gap-3 p-3 bg-muted/40 rounded-lg">
+                  <div>
+                    <p className="text-xs text-muted-foreground">File Size</p>
+                    <p className="font-medium text-sm mt-0.5">{formatBytes(videoFile.size)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Duration</p>
+                    <p className="font-medium text-sm mt-0.5">
+                      {displayDuration ? `${displayDuration} min` : extracting ? "reading…" : "—"}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {videoFile && extracting && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Capturing thumbnail from video…
+                </p>
+              )}
+
+              {/* Upload action — only after a new video is picked */}
+              {videoFile && (
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    style={{ background: BRAND, color: "white" }}
+                    disabled={uploading || extracting}
+                    onClick={handleUploadVideo}
+                  >
+                    {uploading ? "Uploading…" : cls.video ? "Replace Video" : "Upload Video"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button disabled={!valid || saving} onClick={handleSave} style={{ background: BRAND }}>
-            {saving ? "Saving…" : "Save Changes"}
-          </Button>
+
+        <DialogFooter className="px-6 py-4 border-t bg-background shrink-0">
+          {step === 1 ? (
+            <>
+              <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+              <Button
+                disabled={!isMetadataValid || saving}
+                onClick={handleSave}
+                style={{ background: BRAND, color: "white" }}
+              >
+                {saving ? "Saving…" : "Save Changes"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setStep(2)}
+                disabled={saving}
+              >
+                Manage Video →
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setStep(1)}
+                disabled={uploading}
+              >
+                ← Back
+              </Button>
+              <Button variant="outline" onClick={onClose} disabled={uploading}>Close</Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -293,6 +1177,7 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
   const [detail, setDetail] = useState<YTTCourseDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [addModuleOpen, setAddModuleOpen] = useState(false);
+  const [editingModule, setEditingModule] = useState<YTTModule | null>(null);
   const [addClassFor, setAddClassFor] = useState<YTTModule | null>(null);
   const [editingClass, setEditingClass] = useState<{ mod: YTTModule; cls: YTTClass } | null>(null);
   const [deletingModuleId, setDeletingModuleId] = useState<string | null>(null);
@@ -457,16 +1342,16 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
               value={mod.id}
               className="border rounded-xl overflow-hidden"
             >
-              <div className="flex items-center">
-                <AccordionTrigger className="px-4 py-3 flex-1 hover:no-underline hover:bg-muted/30">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="flex items-center w-full">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/30 [&>svg]:hidden">
+                  <div className="flex items-center gap-3 min-w-0">
                     <span className="text-xs text-muted-foreground w-5 shrink-0">{modIdx + 1}.</span>
                     <FolderOpen className="w-4 h-4 shrink-0" style={{ color: BRAND }} />
                     <span className="font-medium text-sm truncate">{mod.title}</span>
                     <Badge variant="secondary" className="ml-1 shrink-0">{mod.classes.length} class{mod.classes.length !== 1 ? "es" : ""}</Badge>
                   </div>
                 </AccordionTrigger>
-                <div className="flex items-center gap-0.5 pr-3 shrink-0">
+                <div className="flex items-center gap-0.5 shrink-0">
                   <Button
                     size="icon"
                     variant="ghost"
@@ -487,7 +1372,41 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
                   >
                     <ArrowDown className="w-3.5 h-3.5" />
                   </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    onClick={(e) => { e.stopPropagation(); setEditingModule(mod); }}
+                    title="Rename module"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    disabled={deletingModuleId === mod.id}
+                    onClick={(e) => { e.stopPropagation(); handleDeleteModule(mod); }}
+                    title="Delete module"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
+                <div className="flex-1" />
+                {mod.classes.length > 0 && (
+                  <div className="pr-3 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2.5 text-xs font-medium gap-1 rounded-md border-[#610981]/30 text-[#610981] hover:bg-[#610981]/5 hover:text-[#610981] hover:border-[#610981]/50"
+                      onClick={(e) => { e.stopPropagation(); setAddClassFor(mod); }}
+                      title="Add class"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Add Class
+                    </Button>
+                  </div>
+                )}
               </div>
               <AccordionContent className="px-4 pb-4 pt-0">
                 <div className="space-y-2">
@@ -543,17 +1462,17 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
                       </Button>
                     </div>
                   ))}
-                  <div className="flex items-center gap-2 pt-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs"
-                      onClick={() => setAddClassFor(mod)}
-                    >
-                      <Plus className="w-3.5 h-3.5 mr-1" />
-                      Add Class
-                    </Button>
-                    {mod.classes.length === 0 && (
+                  {mod.classes.length === 0 && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => setAddClassFor(mod)}
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1" />
+                        Add Class
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -564,8 +1483,8 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
                         <Trash2 className="w-3.5 h-3.5 mr-1" />
                         Delete Module
                       </Button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -622,6 +1541,22 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
           }}
         />
       )}
+
+      {editingModule && (
+        <EditModuleDialog
+          open={!!editingModule}
+          courseId={course.id}
+          mod={editingModule}
+          onClose={() => setEditingModule(null)}
+          onUpdated={(updated) => {
+            setDetail((d) => d ? {
+              ...d,
+              modules: d.modules.map((m) => (m.id === updated.id ? { ...m, title: updated.title } : m)),
+            } : d);
+            setEditingModule(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -631,19 +1566,45 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
 interface CourseCardProps {
   course: YTTCourse;
   onSelect: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
-function CourseCard({ course, onSelect }: CourseCardProps) {
+function CourseCard({ course, onSelect, onEdit, onDelete }: CourseCardProps) {
   return (
     <Card className="hover:shadow-md transition-shadow cursor-pointer group" onClick={onSelect}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${BRAND}15` }}>
-            <Video className="w-5 h-5" style={{ color: BRAND }} />
+            {course.thumbnail ? (
+              <img src={course.thumbnail} alt={course.title} className="w-10 h-10 rounded-xl object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+            ) : (
+              <Video className="w-5 h-5" style={{ color: BRAND }} />
+            )}
           </div>
-          <Badge variant={course.isActive ? "default" : "secondary"} className="shrink-0">
-            {course.isActive ? "Active" : "Inactive"}
-          </Badge>
+          <div className="flex items-center gap-1 shrink-0">
+            <Badge variant={course.isActive ? "default" : "secondary"}>
+              {course.isActive ? "Active" : "Inactive"}
+            </Badge>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              title="Edit course"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 text-destructive hover:text-destructive"
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              title="Delete course"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         </div>
         <CardTitle className="text-base leading-snug mt-2">{course.title}</CardTitle>
       </CardHeader>
@@ -674,6 +1635,10 @@ export function ClassesYTTRecorded() {
   const [courses, setCourses] = useState<YTTCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<YTTCourse | null>(null);
+  const [courseFormOpen, setCourseFormOpen] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<YTTCourse | null>(null);
+  const [deleteCourseTarget, setDeleteCourseTarget] = useState<YTTCourse | null>(null);
+  const [deletingCourse, setDeletingCourse] = useState(false);
 
   useEffect(() => {
     listYTTRecordedCourses()
@@ -682,11 +1647,41 @@ export function ClassesYTTRecorded() {
       .finally(() => setLoading(false));
   }, []);
 
+  function openCreateCourse() {
+    setEditingCourse(null);
+    setCourseFormOpen(true);
+  }
+
+  function openEditCourse(course: YTTCourse) {
+    setEditingCourse(course);
+    setCourseFormOpen(true);
+  }
+
+  async function handleConfirmDeleteCourse() {
+    if (!deleteCourseTarget) return;
+    setDeletingCourse(true);
+    try {
+      await deleteYTTRecordedCourse(deleteCourseTarget.id);
+      toast.success("Course deleted");
+      setCourses((prev) => prev.filter((c) => c.id !== deleteCourseTarget.id));
+      setDeleteCourseTarget(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete course");
+    } finally {
+      setDeletingCourse(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold" style={{ color: BRAND }}>YTT Recorded</h1>
-        <p className="text-muted-foreground text-sm mt-1">Yoga Teacher Training — recorded sessions</p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: BRAND }}>YTT Recorded</h1>
+          <p className="text-muted-foreground text-sm mt-1">Yoga Teacher Training — recorded sessions</p>
+        </div>
+        <Button onClick={openCreateCourse} style={{ background: BRAND }}>
+          <Plus className="w-4 h-4 mr-1" /> Add Course
+        </Button>
       </div>
 
       {loading && (
@@ -696,14 +1691,23 @@ export function ClassesYTTRecorded() {
       {!loading && !selected && (
         <>
           {courses.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 rounded-2xl border border-dashed border-border/60">
-              <Video className="w-12 h-12 mb-4 text-[#610981]/30" />
-              <p className="text-sm text-muted-foreground">No courses found</p>
+            <div className="flex flex-col items-center justify-center py-24 rounded-2xl border border-dashed border-border/60 gap-3">
+              <Video className="w-12 h-12 text-[#610981]/30" />
+              <p className="text-sm text-muted-foreground">No courses yet. Click "Add Course" to create one.</p>
+              <Button size="sm" onClick={openCreateCourse} style={{ background: BRAND }}>
+                <Plus className="w-4 h-4 mr-1" /> Add Course
+              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {courses.map((course) => (
-                <CourseCard key={course.id} course={course} onSelect={() => setSelected(course)} />
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  onSelect={() => setSelected(course)}
+                  onEdit={() => openEditCourse(course)}
+                  onDelete={() => setDeleteCourseTarget(course)}
+                />
               ))}
             </div>
           )}
@@ -713,6 +1717,43 @@ export function ClassesYTTRecorded() {
       {!loading && selected && (
         <CourseDetail course={selected} onBack={() => setSelected(null)} />
       )}
+
+      <CourseFormDialog
+        open={courseFormOpen}
+        initial={editingCourse}
+        onClose={() => { setCourseFormOpen(false); setEditingCourse(null); }}
+        onSaved={(saved, mode) => {
+          setCourses((prev) =>
+            mode === "create"
+              ? [...prev, saved]
+              : prev.map((c) => (c.id === saved.id ? saved : c)),
+          );
+          // If we just edited the open course, keep `selected` in sync.
+          setSelected((cur) => (cur && cur.id === saved.id ? saved : cur));
+          setCourseFormOpen(false);
+          setEditingCourse(null);
+        }}
+      />
+
+      <Dialog
+        open={!!deleteCourseTarget}
+        onOpenChange={(v) => { if (!v && !deletingCourse) setDeleteCourseTarget(null); }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete course?</DialogTitle>
+            <DialogDescription>
+              This will permanently remove "{deleteCourseTarget?.title}" along with all its modules, classes, plans, and enrollments. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" disabled={deletingCourse} onClick={() => setDeleteCourseTarget(null)}>Cancel</Button>
+            <Button variant="destructive" disabled={deletingCourse} onClick={handleConfirmDeleteCourse}>
+              {deletingCourse ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

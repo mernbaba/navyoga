@@ -87,20 +87,6 @@ export async function getMyYTTRecordedCourseEnrollment(
   }
 }
 
-export function enrollInYTTRecordedCourse(
-  courseId: string,
-  planId: string,
-  role: Role = "STUDENT",
-) {
-  return unwrap<{ enrolled: true; enrollment: YTTRecordedEnrollmentInfo }>(
-    authedRequest<ApiSuccess<{ enrolled: true; enrollment: YTTRecordedEnrollmentInfo }>>(role, {
-      method: "POST",
-      url: `${BASE}/${courseId}/enrollments`,
-      data: { planId },
-    }),
-  );
-}
-
 // ─── PROGRESS ────────────────────────────────────────────────────────────────
 
 export type YTTRecordedProgress = {

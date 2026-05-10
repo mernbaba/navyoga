@@ -202,6 +202,35 @@ export function listYTTRecordedCourses(role: LoginRole = "SUPERADMIN") {
   );
 }
 
+export function createYTTRecordedCourse(body: YTTCourseBody) {
+  return unwrap<YTTCourse>(
+    authedRequest<ApiSuccess<YTTCourse>>("SUPERADMIN", {
+      method: "POST",
+      url: "/api/ytt-recorded",
+      data: body,
+    }),
+  );
+}
+
+export function updateYTTRecordedCourse(courseId: string, body: Partial<YTTCourseBody>) {
+  return unwrap<YTTCourse>(
+    authedRequest<ApiSuccess<YTTCourse>>("SUPERADMIN", {
+      method: "PATCH",
+      url: `/api/ytt-recorded/${courseId}`,
+      data: body,
+    }),
+  );
+}
+
+export function deleteYTTRecordedCourse(courseId: string) {
+  return unwrap<null>(
+    authedRequest<ApiSuccess<null>>("SUPERADMIN", {
+      method: "DELETE",
+      url: `/api/ytt-recorded/${courseId}`,
+    }),
+  );
+}
+
 export function listYTTRecordedPlans(courseId: string, role: LoginRole = "SUPERADMIN") {
   return unwrap<YTTPlan[]>(
     authedRequest<ApiSuccess<YTTPlan[]>>(role, {
@@ -272,6 +301,20 @@ export function createYTTRecordedModule(courseId: string, body: YTTModuleBody) {
   );
 }
 
+export function updateYTTRecordedModule(
+  courseId: string,
+  moduleId: string,
+  body: Partial<YTTModuleBody> & { sortOrder?: number },
+) {
+  return unwrap<YTTModule>(
+    authedRequest<ApiSuccess<YTTModule>>("SUPERADMIN", {
+      method: "PATCH",
+      url: `/api/ytt-recorded/${courseId}/modules/${moduleId}`,
+      data: body,
+    }),
+  );
+}
+
 export function deleteYTTRecordedModule(courseId: string, moduleId: string) {
   return unwrap<null>(
     authedRequest<ApiSuccess<null>>("SUPERADMIN", {
@@ -283,8 +326,8 @@ export function deleteYTTRecordedModule(courseId: string, moduleId: string) {
 
 export type YTTClassBody = {
   title: string;
-  video: string;
   duration: number;
+  video?: string;
   description?: string;
   thumbnail?: string;
   isActive?: boolean;
@@ -320,6 +363,36 @@ export function deleteYTTRecordedClass(courseId: string, moduleId: string, class
     authedRequest<ApiSuccess<null>>("SUPERADMIN", {
       method: "DELETE",
       url: `/api/ytt-recorded/${courseId}/modules/${moduleId}/classes/${classId}`,
+    }),
+  );
+}
+
+export function requestYTTRecordedClassPresign(
+  courseId: string,
+  moduleId: string,
+  classId: string,
+  body: { kind: "thumbnail" | "video"; filename?: string; contentType?: string },
+) {
+  return unwrap<{ url: string; storePath: string; expiresIn: number }>(
+    authedRequest<ApiSuccess<{ url: string; storePath: string; expiresIn: number }>>("SUPERADMIN", {
+      method: "POST",
+      url: `/api/ytt-recorded/${courseId}/modules/${moduleId}/classes/${classId}/presign`,
+      data: body,
+    }),
+  );
+}
+
+export function deleteYTTRecordedClassMedia(
+  courseId: string,
+  moduleId: string,
+  classId: string,
+  kind: "thumbnail" | "video",
+) {
+  return unwrap<null>(
+    authedRequest<ApiSuccess<null>>("SUPERADMIN", {
+      method: "DELETE",
+      url: `/api/ytt-recorded/${courseId}/modules/${moduleId}/classes/${classId}/media`,
+      params: { kind },
     }),
   );
 }

@@ -35,7 +35,7 @@ const navigation = [
   { name: 'Live Classes', href: '/user/classes', icon: BookOpen },
   { name: 'Self-Paced Classes', href: '/user/self-paced', icon: GraduationCap },
   //{ name: 'YTT Live', href: '/user/ytt-live', icon: Radio },
-  //{ name: 'YTT Recorded', href: '/user/ytt-recorded', icon: Video },
+  { name: 'YTT Recorded', href: '/user/ytt-recorded', icon: Video },
   { name: 'Attendance', href: '/user/attendance', icon: Calendar },
   { name: 'Events', href: '/user/events', icon: CalendarDays },
   { name: 'Referrals', href: '/user/referrals', icon: Gift },

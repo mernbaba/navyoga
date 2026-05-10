@@ -490,7 +490,7 @@ export type YTTCourse = {
   description: string | null;
   thumbnail: string | null;
   yogaType: string;
-  level: string;
+  level: ClassLevel;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -657,6 +657,8 @@ export type AppEvent = {
   price: string;
   createdAt: string;
   updatedAt: string;
+  /** Set on the student-facing list endpoint; absent for admin payloads. */
+  isEnrolled?: boolean;
 };
 
 // ─── Workshops ───────────────────────────────────────────────────────────────
@@ -707,6 +709,8 @@ export type Workshop = {
   sessionCount: number;
   createdAt: string;
   updatedAt: string;
+  /** Set on the student-facing /upcoming endpoint; absent for admin payloads. */
+  isEnrolled?: boolean;
 };
 
 export type WorkshopWithSessions = Workshop & { sessions: WorkshopSession[] };

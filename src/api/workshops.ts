@@ -93,6 +93,26 @@ export function deleteWorkshop(role: Role, id: string) {
   );
 }
 
+export type WorkshopThumbnailPresign = {
+  url: string;
+  publicUrl: string;
+  cdnUrl: string;
+  expiresIn: number;
+};
+
+export function requestWorkshopThumbnailPresign(
+  role: Role,
+  body: { filename: string; contentType: string },
+) {
+  return unwrap<WorkshopThumbnailPresign>(
+    authedRequest<ApiSuccess<WorkshopThumbnailPresign>>(role, {
+      method: "POST",
+      url: `${BASE}/thumbnail-presign`,
+      data: body,
+    }),
+  );
+}
+
 // ─── ADMIN: Sessions ─────────────────────────────────────────────────────────
 
 export type CreateSessionInput = {
@@ -223,6 +243,15 @@ export function listUpcomingWorkshops(role: Role, params: UpcomingWorkshopParams
       method: "GET",
       url: `${BASE}/upcoming`,
       params,
+    }),
+  );
+}
+
+export function listMyWorkshopEnrolledIds(role: Role) {
+  return unwrap<{ workshopIds: string[] }>(
+    authedRequest<ApiSuccess<{ workshopIds: string[] }>>(role, {
+      method: "GET",
+      url: `${BASE}/my-enrolled-ids`,
     }),
   );
 }
