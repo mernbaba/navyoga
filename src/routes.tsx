@@ -19,7 +19,10 @@ import { ClassesYTTRecorded } from "./pages/superadmin/classes/ClassesYTTRecorde
 import { ClassesEvents } from "./pages/superadmin/classes/ClassesEvents";
 import { ClassesWorkshops } from "./pages/superadmin/classes/ClassesWorkshops";
 import { Attendance } from "./pages/superadmin/Attendance";
-import { Financials } from "./pages/superadmin/Financials";
+import { FinancialsLayout } from "./pages/superadmin/financials/FinancialsLayout";
+import { FinancialsOverview } from "./pages/superadmin/financials/FinancialsOverview";
+import { FinancialsPayments } from "./pages/superadmin/financials/FinancialsPayments";
+import { FinancialsCoupons } from "./pages/superadmin/financials/FinancialsCoupons";
 import { MarketingAnalytics } from "./pages/superadmin/MarketingAnalytics";
 import { Referrals } from "./pages/superadmin/Referrals";
 import { Plans } from "./pages/superadmin/Plans";
@@ -143,7 +146,15 @@ export const router = createBrowserRouter([
         ],
       },
       { path: "attendance", Component: Attendance },
-      { path: "financials", Component: Financials },
+      {
+        path: "financials",
+        Component: FinancialsLayout,
+        children: [
+          { index: true, Component: FinancialsOverview },
+          { path: "payments", Component: FinancialsPayments },
+          { path: "coupons", Component: FinancialsCoupons },
+        ],
+      },
       { path: "marketing-analytics", Component: MarketingAnalytics },
       { path: "referrals", Component: Referrals },
       { path: "plans", Component: Plans },
