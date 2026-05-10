@@ -79,8 +79,8 @@ export function RoleLoginPage({ role }: { role: LoginRole }) {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-white p-4 relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full blur-3xl opacity-5" style={{ backgroundColor: "#ff691d" }} />
-      <div className="absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full blur-3xl opacity-5" style={{ backgroundColor: "#610981" }} />
+      <div className="absolute top-0 right-0 w-100 h-100 rounded-full blur-3xl opacity-5" style={{ backgroundColor: "#ff691d" }} />
+      <div className="absolute bottom-0 left-0 w-75 h-75 rounded-full blur-3xl opacity-5" style={{ backgroundColor: "#610981" }} />
 
       <div className="absolute top-10 right-10 w-2 h-2 rounded-full" style={{ backgroundColor: "#ff691d" }} />
       <div className="absolute bottom-10 left-10 w-2 h-2 rounded-full" style={{ backgroundColor: "#610981" }} />
