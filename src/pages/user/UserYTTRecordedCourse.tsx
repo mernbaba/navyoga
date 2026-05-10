@@ -25,6 +25,7 @@ import {
   upsertYTTRecordedProgress,
 } from "../../api/yttRecorded";
 import type { YTTClass, YTTCourseDetail, YTTModule } from "../../api/types";
+import { resolveMediaUrl } from "../../lib/media";
 
 const FALLBACK_POSTER =
   "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200&q=80";
@@ -201,7 +202,7 @@ export function UserYTTRecordedCourse() {
             Back
           </Button>
           <Button
-            onClick={() => navigate("/user/payments")}
+            onClick={() => navigate("/user/subscriptions?tab=ytt")}
             style={{ backgroundColor: "#ff691d", color: "white" }}
           >
             View Plans
@@ -278,8 +279,8 @@ export function UserYTTRecordedCourse() {
               <video
                 key={currentClass.id}
                 className="w-full h-full"
-                src={currentClass.video}
-                poster={currentClass.thumbnail ?? FALLBACK_POSTER}
+                src={resolveMediaUrl(currentClass.video)}
+                poster={resolveMediaUrl(currentClass.thumbnail) ?? FALLBACK_POSTER}
                 controls
               />
             ) : (

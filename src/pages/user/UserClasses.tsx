@@ -309,7 +309,7 @@ function HeroNoPlan() {
         <Lock className="w-4 h-4" />
         <span className="font-semibold">No active plan</span>
       </div>
-      <Link to="/user/payments">
+      <Link to="/user/subscriptions?tab=live">
         <Button className="bg-linear-to-r from-[#ff691d] to-[#ff8c4d] text-white hover:from-[#ff5500] hover:to-[#ff691d] shadow-lg font-semibold">
           <Crown className="w-4 h-4 mr-2" />
           Subscribe

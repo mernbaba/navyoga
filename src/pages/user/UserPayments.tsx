@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -112,10 +113,42 @@ const yttLiveToUi = (plan: YTTPlan): UiPlan => ({
   courseId: plan.courseId,
 });
 
+type TabValue = "live" | "selfpaced" | "ytt";
+const VALID_TABS: TabValue[] = ["live", "selfpaced", "ytt"];
+const isValidTab = (v: string | null): v is TabValue =>
+  v !== null && (VALID_TABS as string[]).includes(v);
+
 export function UserPayments() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get("tab");
+  const activeTab: TabValue = isValidTab(tabFromUrl) ? tabFromUrl : "live";
+
+  const setActiveTab = (next: string) => {
+    setSearchParams(
+      (prev) => {
+        const sp = new URLSearchParams(prev);
+        sp.set("tab", next);
+        return sp;
+      },
+      { replace: true },
+    );
+  };
+
+  useEffect(() => {
+    if (!isValidTab(tabFromUrl)) {
+      setSearchParams(
+        (prev) => {
+          const sp = new URLSearchParams(prev);
+          sp.set("tab", "live");
+          return sp;
+        },
+        { replace: true },
+      );
+    }
+  }, [tabFromUrl, setSearchParams]);
+
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<UiPlan | null>(null);
-  const [activeTab, setActiveTab] = useState("live-classes");
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
   const [livePlans, setLivePlans] = useState<UiPlan[]>([]);
   const [selfPacedPlans, setSelfPacedPlans] = useState<UiPlan[]>([]);
@@ -354,30 +387,30 @@ const [isEnrolling, setIsEnrolling] = useState(false);
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
         <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid p-1 h-auto bg-gray-100 rounded-2xl">
-          <TabsTrigger 
-            value="live-classes" 
+          <TabsTrigger
+            value="live"
             className="rounded-xl px-6 py-3 data-[state=active]:bg-white data-[state=active]:shadow-md"
           >
             <Zap className="w-4 h-4 mr-2" />
             Live Classes
           </TabsTrigger>
-          <TabsTrigger 
-            value="self-paced" 
+          <TabsTrigger
+            value="selfpaced"
             className="rounded-xl px-6 py-3 data-[state=active]:bg-white data-[state=active]:shadow-md"
           >
             <Heart className="w-4 h-4 mr-2" />
             Self-Paced
           </TabsTrigger>
-          <TabsTrigger 
-            value="teacher-training" 
+          <TabsTrigger
+            value="ytt"
             className="rounded-xl px-6 py-3 data-[state=active]:bg-white data-[state=active]:shadow-md"
           >
             <GraduationCap className="w-4 h-4 mr-2" />
             Teacher Training
           </TabsTrigger>
         </TabsList>
- 
-        <TabsContent value="live-classes" className="space-y-8">
+
+        <TabsContent value="live" className="space-y-8">
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -403,18 +436,18 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                     style={isSubscribed(plan) ? { borderColor: '#16a34a' } : plan.popular ? { borderColor: plan.color } : {}}
                   >
                     {isSubscribed(plan) && (
-                      <div className="absolute top-4 left-4 z-10">
+                      <div className="absolute top-4 right-4 z-10">
                         <Badge className="bg-green-500 text-white border-0">Active Plan</Badge>
                       </div>
                     )}
-                    {plan.badge && (
+                    {!isSubscribed(plan) && plan.badge && (
                       <div className="absolute top-4 right-4 z-10">
                         <Badge style={{ backgroundColor: plan.color, color: 'white' }}>
                           {plan.badge}
                         </Badge>
                       </div>
                     )}
-                    {plan.popular && !plan.badge && (
+                    {!isSubscribed(plan) && plan.popular && !plan.badge && (
                       <div className="absolute top-4 right-4 z-10">
                         <Badge style={{ backgroundColor: plan.color, color: 'white' }}>
                           Popular
@@ -484,7 +517,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
 
         </TabsContent>
 
-        <TabsContent value="self-paced" className="space-y-8">
+        <TabsContent value="selfpaced" className="space-y-8">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-3xl font-semibold" style={{ color: '#ff691d' }}>
@@ -509,18 +542,18 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                   style={isSubscribed(plan) ? { borderColor: '#16a34a', borderWidth: '2px' } : plan.popular ? { borderColor: plan.color, borderWidth: '2px' } : {}}
                 >
                   {isSubscribed(plan) && (
-                    <div className="absolute top-4 left-4 z-10">
+                    <div className="absolute top-4 right-4 z-10">
                       <Badge className="bg-green-500 text-white border-0">Active Plan</Badge>
                     </div>
                   )}
-                  {plan.badge && (
+                  {!isSubscribed(plan) && plan.badge && (
                     <div className="absolute top-4 right-4 z-10">
                       <Badge style={{ backgroundColor: plan.color, color: 'white' }}>
                         {plan.badge}
                       </Badge>
                     </div>
                   )}
-                  {plan.popular && !plan.badge && (
+                  {!isSubscribed(plan) && plan.popular && !plan.badge && (
                     <div className="absolute top-4 right-4 z-10">
                       <Badge style={{ backgroundColor: plan.color, color: 'white' }}>
                         Popular
@@ -588,7 +621,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
           </motion.div>
         </TabsContent>
  
-        <TabsContent value="teacher-training" className="space-y-8">
+        <TabsContent value="ytt" className="space-y-8">
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -614,18 +647,18 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                     style={isSubscribed(plan) ? { borderColor: '#16a34a', borderWidth: '2px' } : plan.badge ? { borderColor: plan.color, borderWidth: '2px' } : {}}
                   >
                     {isSubscribed(plan) && (
-                      <div className="absolute top-4 left-4 z-10">
+                      <div className="absolute top-4 right-4 z-10">
                         <Badge className="bg-green-500 text-white border-0">Active Plan</Badge>
                       </div>
                     )}
-                    {plan.badge && (
+                    {!isSubscribed(plan) && plan.badge && (
                       <div className="absolute top-4 right-4 z-10">
                         <Badge style={{ backgroundColor: plan.color, color: 'white' }}>
                           {plan.badge}
                         </Badge>
                       </div>
                     )}
-                    {plan.popular && !plan.badge && (
+                    {!isSubscribed(plan) && plan.popular && !plan.badge && (
                       <div className="absolute top-4 right-4 z-10">
                         <Badge style={{ backgroundColor: plan.color, color: 'white' }}>
                           Popular
@@ -713,18 +746,18 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                     style={{ borderColor: isSubscribed(plan) ? '#16a34a' : plan.color }}
                   >
                     {isSubscribed(plan) && (
-                      <div className="absolute top-4 left-4 z-10">
+                      <div className="absolute top-4 right-4 z-10">
                         <Badge className="bg-green-500 text-white border-0">Active Plan</Badge>
                       </div>
                     )}
-                    {plan.badge && (
+                    {!isSubscribed(plan) && plan.badge && (
                       <div className="absolute top-4 right-4 z-10">
                         <Badge className="bg-linear-to-r from-orange-500 to-purple-600 text-white border-0">
                           {plan.badge}
                         </Badge>
                       </div>
                     )}
-                    {plan.popular && !plan.badge && (
+                    {!isSubscribed(plan) && plan.popular && !plan.badge && (
                       <div className="absolute top-4 right-4 z-10">
                         <Badge style={{ backgroundColor: plan.color, color: 'white' }}>
                           Popular

@@ -17,6 +17,7 @@ import { SelfPacedModules } from "./pages/superadmin/classes/SelfPacedModules";
 import { ClassesYTTLive } from "./pages/superadmin/classes/ClassesYTTLive";
 import { ClassesYTTRecorded } from "./pages/superadmin/classes/ClassesYTTRecorded";
 import { ClassesEvents } from "./pages/superadmin/classes/ClassesEvents";
+import { ClassesWorkshops } from "./pages/superadmin/classes/ClassesWorkshops";
 import { Attendance } from "./pages/superadmin/Attendance";
 import { Financials } from "./pages/superadmin/Financials";
 import { MarketingAnalytics } from "./pages/superadmin/MarketingAnalytics";
@@ -138,6 +139,7 @@ export const router = createBrowserRouter([
           { path: "ytt-live", Component: ClassesYTTLive },
           { path: "ytt-recorded", Component: ClassesYTTRecorded },
           { path: "events", Component: ClassesEvents },
+          { path: "workshops", Component: ClassesWorkshops },
         ],
       },
       { path: "attendance", Component: Attendance },
@@ -220,7 +222,8 @@ export const router = createBrowserRouter([
       { path: "referrals", Component: UserReferrals },
       { path: "events", Component: UserEvents },
       { path: "profile", Component: UserProfile },
-      { path: "payments", Component: UserPayments },
+      { path: "subscriptions", Component: UserPayments },
+      { path: "payments", element: <Navigate to="/user/subscriptions" replace /> },
       { path: "settings", Component: UserSettings },
       { path: "class-session/:classId", Component: UserClassSession },
       { path: "self-paced", Component: UserSelfPaced },

@@ -947,15 +947,14 @@ export function ClassesEvents() {
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="pl-4">Student</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
+                  <TableHead>Contact</TableHead>
                   <TableHead className="pr-4 text-right">Enrolled On</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {enrollmentsLoading && enrollments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                    <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
                       <div className="flex flex-col items-center gap-2">
                         <div className="w-6 h-6 border-2 border-sky-300 border-t-sky-600 rounded-full animate-spin" />
                         <span className="text-sm">Loading...</span>
@@ -964,7 +963,7 @@ export function ClassesEvents() {
                   </TableRow>
                 ) : enrollments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-10">
+                    <TableCell colSpan={3} className="text-center py-10">
                       <div className="flex flex-col items-center gap-2">
                         <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
                           <Users className="w-5 h-5 text-muted-foreground" />
@@ -983,19 +982,14 @@ export function ClassesEvents() {
                           <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#610981]/15 to-[#ff691d]/10 flex items-center justify-center shrink-0 text-[#610981] font-semibold text-xs">
                             {row.student.name.charAt(0).toUpperCase()}
                           </div>
-                          <div>
-                            <p className="text-sm font-medium">{row.student.name}</p>
-                            {row.student.id && (
-                              <p className="text-[11px] text-muted-foreground font-mono">{row.student.id}</p>
-                            )}
-                          </div>
+                          <p className="text-sm font-medium">{row.student.name}</p>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {row.student.email}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {row.student.phone}
+                        <div className="flex flex-col leading-tight">
+                          <span>{row.student.email}</span>
+                          <span className="text-xs">{row.student.phone}</span>
+                        </div>
                       </TableCell>
                       <TableCell className="pr-4 text-right text-xs text-muted-foreground">
                         {new Date(row.enrolledAt).toLocaleDateString("en-IN", {

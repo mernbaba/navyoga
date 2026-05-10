@@ -30,6 +30,7 @@ import {
   Clock,
   Upload,
   FileVideo,
+  Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -606,15 +607,25 @@ const EMPTY_CLASS_FORM: ClassFormFields = {
   isActive: true,
 };
 
+const THUMBNAIL_URL_PATTERN = /\.(jpe?g|png)(\?.*)?$/i;
+function isValidThumbnailUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  return THUMBNAIL_URL_PATTERN.test(trimmed);
+}
+
 function ClassFormView({
   form,
   onChange,
   showActive = true,
+  showThumbnail = true,
 }: {
   form: ClassFormFields;
   onChange: (patch: Partial<ClassFormFields>) => void;
   showActive?: boolean;
+  showThumbnail?: boolean;
 }) {
+  const thumbInvalid = showThumbnail && !isValidThumbnailUrl(form.thumbnail);
   return (
     <>
       <div className="space-y-1">
@@ -626,7 +637,7 @@ function ClassFormView({
           placeholder="e.g. Sun Salutation — Part 1"
         />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className={showThumbnail ? "grid grid-cols-2 gap-3" : ""}>
         <div className="space-y-1">
           <Label htmlFor="cf-dur">Duration (min) *</Label>
           <Input
@@ -645,15 +656,20 @@ function ClassFormView({
             <p className="text-xs text-red-500">Duration must be a positive number</p>
           )}
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="cf-thumb">Thumbnail URL</Label>
-          <Input
-            id="cf-thumb"
-            value={form.thumbnail}
-            onChange={(e) => onChange({ thumbnail: e.target.value })}
-            placeholder="optional · auto from video"
-          />
-        </div>
+        {showThumbnail && (
+          <div className="space-y-1">
+            <Label htmlFor="cf-thumb">Thumbnail URL</Label>
+            <Input
+              id="cf-thumb"
+              value={form.thumbnail}
+              onChange={(e) => onChange({ thumbnail: e.target.value })}
+              placeholder="optional · .jpg or .png URL"
+            />
+            {thumbInvalid && (
+              <p className="text-xs text-red-500">Only .jpg or .png URLs are allowed</p>
+            )}
+          </div>
+        )}
       </div>
       <div className="space-y-1">
         <Label htmlFor="cf-desc">Description</Label>
@@ -663,7 +679,7 @@ function ClassFormView({
           onChange={(e) => onChange({ description: e.target.value })}
           placeholder="optional · what students will learn"
           rows={3}
-          className="w-full min-h-18 px-3 py-2 rounded-md border border-gray-200 bg-background text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring resize-y"
+          className="w-full min-h-20 max-h-40 px-3 py-2 rounded-md border border-gray-200 bg-background text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring resize-y"
         />
       </div>
       {showActive && (
@@ -783,6 +799,8 @@ function AddClassDialog({
   const [detectedDurationMin, setDetectedDurationMin] = useState<number | null>(null);
   const [autoThumb, setAutoThumb] = useState<Blob | null>(null);
   const [autoThumbUrl, setAutoThumbUrl] = useState<string | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailFileUrl, setThumbnailFileUrl] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -793,14 +811,33 @@ function AddClassDialog({
     return () => URL.revokeObjectURL(url);
   }, [autoThumb]);
 
+  useEffect(() => {
+    if (!thumbnailFile) { setThumbnailFileUrl(null); return; }
+    const url = URL.createObjectURL(thumbnailFile);
+    setThumbnailFileUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [thumbnailFile]);
+
   function reset() {
     setStep(1);
     setForm(EMPTY_CLASS_FORM);
     setVideoFile(null);
     setDetectedDurationMin(null);
     setAutoThumb(null);
+    setThumbnailFile(null);
     setExtracting(false);
     setSaving(false);
+  }
+
+  function handleThumbnailChosen(file: File | null) {
+    if (!file) { setThumbnailFile(null); return; }
+    const okType = /^image\/(jpeg|png)$/i.test(file.type);
+    const okExt = /\.(jpe?g|png)$/i.test(file.name);
+    if (!okType && !okExt) {
+      toast.error("Thumbnail must be a .jpg or .png image");
+      return;
+    }
+    setThumbnailFile(file);
   }
 
   async function handleVideoChosen(file: File | null) {
@@ -841,17 +878,19 @@ function AddClassDialog({
       });
       let updated = await updateClass("SUPERADMIN", mod.id, cls.id, { video: videoPresign.storePath });
 
-      // User-supplied URL wins (already in form.thumbnail and saved by createClass).
-      // Only auto-upload the captured frame if no URL was provided.
-      if (autoThumb && !form.thumbnail.trim()) {
+      // Prefer user-uploaded thumbnail file; fall back to the frame captured from the video.
+      const thumbBlob: Blob | null = thumbnailFile ?? autoThumb;
+      if (thumbBlob) {
+        const thumbName = thumbnailFile?.name ?? "thumbnail.jpg";
+        const thumbType = thumbnailFile?.type || "image/jpeg";
         try {
           const thumbPresign = await requestPresignedUrl(
-            "SUPERADMIN", mod.id, cls.id, "thumbnail.jpg", "image/jpeg", "thumbnail",
+            "SUPERADMIN", mod.id, cls.id, thumbName, thumbType, "thumbnail",
           );
           await fetch(thumbPresign.url, {
             method: "PUT",
-            headers: { "Content-Type": "image/jpeg" },
-            body: autoThumb,
+            headers: { "Content-Type": thumbType },
+            body: thumbBlob,
           });
           updated = await updateClass("SUPERADMIN", mod.id, cls.id, { thumbnail: thumbPresign.storePath });
         } catch (thumbErr) {
@@ -876,7 +915,7 @@ function AddClassDialog({
   }
 
   const detailsValid = isClassFormValid(form);
-  const previewImageUrl = form.thumbnail.trim() || autoThumbUrl;
+  const previewImageUrl = thumbnailFileUrl || autoThumbUrl;
   const displayDuration = detectedDurationMin ?? (form.duration ? Number(form.duration) : null);
 
   return (
@@ -903,6 +942,7 @@ function AddClassDialog({
                 form={form}
                 onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
                 showActive={false}
+                showThumbnail={false}
               />
             </div>
           ) : (
@@ -932,6 +972,52 @@ function AddClassDialog({
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Thumbnail upload — optional, .jpg/.png only */}
+              <div className="space-y-2">
+                <Label htmlFor="sp-thumb-pick">
+                  Thumbnail <span className="text-xs text-muted-foreground font-normal">· optional · .jpg or .png</span>
+                </Label>
+                <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors">
+                  <input
+                    id="sp-thumb-pick"
+                    type="file"
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    className="hidden"
+                    disabled={saving}
+                    onChange={(e) => handleThumbnailChosen(e.target.files?.[0] ?? null)}
+                  />
+                  <label htmlFor="sp-thumb-pick" className="cursor-pointer flex flex-col items-center gap-1.5">
+                    {thumbnailFile ? (
+                      <>
+                        <ImageIcon className="w-6 h-6" style={{ color: BRAND }} />
+                        <p className="text-sm font-medium truncate max-w-full px-2">{thumbnailFile.name}</p>
+                        <p className="text-xs text-muted-foreground">Click to choose a different image</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Click to upload thumbnail (auto-captured from video if skipped)
+                        </p>
+                      </>
+                    )}
+                  </label>
+                </div>
+                {thumbnailFile && (
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      disabled={saving}
+                      onClick={() => setThumbnailFile(null)}
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" /> Remove
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Video upload */}
@@ -1012,7 +1098,7 @@ function AddClassDialog({
               </Button>
               <Button
                 onClick={handlePublish}
-                disabled={!videoFile || saving}
+                disabled={!videoFile || saving || !isValidThumbnailUrl(form.thumbnail)}
                 style={{ background: BRAND, color: "white" }}
               >
                 {saving ? "Publishing…" : "Publish"}

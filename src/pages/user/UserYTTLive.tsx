@@ -244,7 +244,7 @@ export function UserYTTLive() {
                 Enroll in a YTT Live course from the plans page to access its live
                 sessions and recordings.
               </p>
-              <Link to="/user/payments">
+              <Link to="/user/subscriptions?tab=ytt">
                 <Button className="bg-linear-to-r from-[#ff691d] to-[#ff8c4d] text-white hover:from-[#ff5500] hover:to-[#ff691d] shadow-lg font-semibold">
                   <Crown className="w-4 h-4 mr-2" />
                   View YTT Live Plans
@@ -378,7 +378,7 @@ function HeroNoEnrollment() {
         <Lock className="w-4 h-4" />
         <span className="font-semibold">Not enrolled</span>
       </div>
-      <Link to="/user/payments">
+      <Link to="/user/subscriptions?tab=ytt">
         <Button className="bg-linear-to-r from-[#ff691d] to-[#ff8c4d] text-white hover:from-[#ff5500] hover:to-[#ff691d] shadow-lg font-semibold">
           <Crown className="w-4 h-4 mr-2" />
           Enroll

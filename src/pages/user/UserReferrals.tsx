@@ -482,19 +482,6 @@ export function UserReferrals() {
                               </div>
                             </div>
 
-                            <div className="mt-3 flex items-center gap-1.5">
-                              {badge.unlocked ? (
-                                <Badge className="bg-green-100 text-green-700 border-green-200">
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  Earned ₹{badge.reward}
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="bg-gray-100 text-gray-500 border-gray-200">
-                                  <Star className="w-3 h-3 mr-1" />
-                                  Reward: ₹{badge.reward}
-                                </Badge>
-                              )}
-                            </div>
                           </div>
                         </div>
                       </CardContent>

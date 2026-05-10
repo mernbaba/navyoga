@@ -40,7 +40,7 @@ const navigation = [
   { name: 'Events', href: '/user/events', icon: CalendarDays },
   { name: 'Referrals', href: '/user/referrals', icon: Gift },
   { name: 'Profile', href: '/user/profile', icon: UserIcon },
-  { name: 'Subscriptions', href: '/user/payments', icon: Crown },
+  { name: 'Subscriptions', href: '/user/subscriptions', icon: Crown },
   { name: 'Settings', href: '/user/settings', icon: SettingsIcon },
 ];
 

@@ -27,6 +27,7 @@ import {
   upsertSelfPacedProgress,
 } from "../../api/selfPaced";
 import type { SelfPacedClass, SelfPacedModule } from "../../api/types";
+import { resolveMediaUrl } from "../../lib/media";
 
 const FALLBACK_POSTER =
   "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200&q=80";
@@ -236,15 +237,15 @@ export function UserSelfPacedCourse() {
               <video
                 key={currentClass.id}
                 className="w-full h-full"
-                src={currentClass.video}
-                poster={currentClass.thumbnail ?? FALLBACK_POSTER}
+                src={resolveMediaUrl(currentClass.video)}
+                poster={resolveMediaUrl(currentClass.thumbnail) ?? FALLBACK_POSTER}
                 controls
               />
             ) : (
               <div
                 className="w-full h-full bg-cover bg-center flex items-center justify-center"
                 style={{
-                  backgroundImage: `url(${currentClass?.thumbnail ?? FALLBACK_POSTER})`,
+                  backgroundImage: `url(${resolveMediaUrl(currentClass?.thumbnail) ?? FALLBACK_POSTER})`,
                 }}
               >
                 <div className="absolute inset-0 bg-black/70" />
@@ -262,7 +263,7 @@ export function UserSelfPacedCourse() {
                         this course.
                       </p>
                       <Button
-                        onClick={() => navigate("/user/payments")}
+                        onClick={() => navigate("/user/subscriptions?tab=selfpaced")}
                         style={{ backgroundColor: "#ff691d", color: "white" }}
                       >
                         View Plans

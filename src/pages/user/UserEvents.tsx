@@ -38,6 +38,7 @@ import {
 import { initiatePayment, verifyPayment } from "../../api/payments";
 import type { AppEvent } from "../../api/types";
 import { useRazorpay } from "react-razorpay";
+import { UserWorkshopsList } from "./UserWorkshopsList";
 
 interface Event {
   id: string;
@@ -364,6 +365,10 @@ export function UserEvents() {
           </div>
         </motion.div>
 
+        {isWorkshopsTab ? (
+          <UserWorkshopsList />
+        ) : (
+        <>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat, index) => {
             const Icon = stat.icon;
@@ -682,6 +687,8 @@ export function UserEvents() {
               </Card>
             </motion.div>
           </>
+        )}
+        </>
         )}
       </div>
 

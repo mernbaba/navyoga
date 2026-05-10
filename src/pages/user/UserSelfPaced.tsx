@@ -131,7 +131,7 @@ export function UserSelfPaced() {
 
   const handleCourseClick = (mod: ModuleCourse) => {
     if (!enrolled) {
-      navigate("/user/payments");
+      navigate("/user/subscriptions?tab=selfpaced");
       return;
     }
     if (!unlockedIds.has(mod.id)) {
@@ -255,7 +255,7 @@ export function UserSelfPaced() {
               </p>
             </div>
             <Button
-              onClick={() => navigate("/user/payments")}
+              onClick={() => navigate("/user/subscriptions?tab=selfpaced")}
               style={{ backgroundColor: "#610981", color: "white" }}
             >
               View Plans

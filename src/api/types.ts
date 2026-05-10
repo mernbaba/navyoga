@@ -659,6 +659,77 @@ export type AppEvent = {
   updatedAt: string;
 };
 
+// ─── Workshops ───────────────────────────────────────────────────────────────
+
+export type WorkshopMode = "LIVE" | "RECORDED" | "HYBRID";
+export type WorkshopSessionStatus = "UPCOMING" | "LIVE" | "COMPLETED" | "CANCELLED";
+
+export type WorkshopTutorRef = {
+  id: string;
+  tutorId: string | null;
+  name: string;
+  avatar: string | null;
+  specializations: string[] | null;
+};
+
+export type WorkshopSession = {
+  id: string;
+  workshopId: string;
+  title: string;
+  sortOrder: number;
+  mode: WorkshopMode;
+  scheduledAt: string | null;
+  duration: number | null;
+  link?: string | null;
+  video?: string | null;
+  status: WorkshopSessionStatus | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Workshop = {
+  id: string;
+  title: string;
+  description: string;
+  thumbnail: string | null;
+  yogaType: string;
+  level: ClassLevel;
+  mode: WorkshopMode;
+  tutorId: string | null;
+  tutor: WorkshopTutorRef | null;
+  instructorName: string | null;
+  price: string;
+  startDate: string | null;
+  endDate: string | null;
+  totalDuration: number | null;
+  capacity: number | null;
+  enrollmentCount: number;
+  sessionCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WorkshopWithSessions = Workshop & { sessions: WorkshopSession[] };
+
+export type WorkshopEnrollmentStudentRef = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+};
+
+export type WorkshopEnrollmentRow = {
+  id: string;
+  enrolledAt: string;
+  completedAt: string | null;
+  student: WorkshopEnrollmentStudentRef;
+};
+
+export type MyWorkshopEnrollmentResponse = {
+  enrolled: boolean;
+  enrollment: { id: string; enrolledAt: string; completedAt: string | null } | null;
+};
+
 export type BusinessSettings = {
   id: string;
   centerName: string;

@@ -296,7 +296,7 @@ export function UserYTTRecorded() {
               learning at your own pace.
             </p>
             <Button
-              onClick={() => navigate("/user/payments")}
+              onClick={() => navigate("/user/subscriptions?tab=ytt")}
               style={{ backgroundColor: "#610981", color: "white" }}
             >
               <Award className="w-4 h-4 mr-2" />
