@@ -104,7 +104,7 @@ export function OperationsCoupons() {
   const refetch = () => setRefreshKey((k) => k + 1);
 
   const buildCreateBody = (form: CouponFormState) => ({
-    code: form.code.trim(),
+    code: form.code.trim().toUpperCase(),
     description: form.description || undefined,
     discountType: form.discountType,
     discountValue: form.discountValue,
@@ -117,7 +117,7 @@ export function OperationsCoupons() {
   });
 
   const buildUpdateBody = (form: CouponFormState) => ({
-    code: form.code.trim(),
+    code: form.code.trim().toUpperCase(),
     description: form.description || null,
     discountType: form.discountType,
     discountValue: form.discountValue,

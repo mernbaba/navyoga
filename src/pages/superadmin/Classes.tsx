@@ -383,6 +383,7 @@ export function Classes() {
                       id="edit-duration"
                       name="duration"
                       type="number"
+                      min="1"
                       defaultValue={editingClass.duration}
                     />
                   </div>
@@ -392,6 +393,7 @@ export function Classes() {
                       id="edit-capacity"
                       name="capacity"
                       type="number"
+                      min="1"
                       defaultValue={editingClass.capacity}
                     />
                   </div>
