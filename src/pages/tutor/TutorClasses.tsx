@@ -23,7 +23,7 @@ export function TutorClasses() {
   const filteredClasses = tutorClasses.filter(
     (cls) =>
       cls.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cls.instructor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      cls.tutor.toLowerCase().includes(searchQuery.toLowerCase()) ||
       cls.type.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -176,7 +176,7 @@ export function TutorClasses() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div className="w-full bg-gray-200 rounded-full h-2 max-w-[80px]">
+                            <div className="w-full bg-gray-200 rounded-full h-2 max-w-20">
                               <div 
                                 className="h-2 rounded-full"
                                 style={{ 

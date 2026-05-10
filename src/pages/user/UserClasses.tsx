@@ -279,7 +279,7 @@ function HeroPlanInfo({
 }) {
   const remaining = daysRemaining(enrollment.endDate);
   return (
-    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 min-w-[260px]">
+    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 min-w-65">
       <div className="flex items-center gap-2 text-[#ff691d] text-xs uppercase tracking-wide font-semibold mb-1 md:justify-end">
         <Crown className="w-4 h-4" />
         Active plan
@@ -304,7 +304,7 @@ function HeroPlanInfo({
 
 function HeroNoPlan() {
   return (
-    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 min-w-[260px] flex flex-col gap-3 md:items-end">
+    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 min-w-65 flex flex-col gap-3 md:items-end">
       <div className="flex items-center gap-2 text-gray-900">
         <Lock className="w-4 h-4" />
         <span className="font-semibold">No active plan</span>
@@ -321,7 +321,7 @@ function HeroNoPlan() {
 
 function HeroPlanSkeleton() {
   return (
-    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 min-w-[260px] space-y-2">
+    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 min-w-65 space-y-2">
       <Skeleton className="h-3 w-20" />
       <Skeleton className="h-6 w-32" />
       <Skeleton className="h-3 w-40" />

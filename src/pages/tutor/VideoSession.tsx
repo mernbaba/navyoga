@@ -271,7 +271,7 @@ export function VideoSession() {
 
                           {student.referralBadge && (
                             <Badge
-                              className={`text-[10px] px-2 py-[2px] rounded-full ${
+                              className={`text-[10px] px-2 py-0.5 rounded-full ${
                                 student.referralBadge === 'Top Referrer'
                                   ? 'bg-green-500/20 text-green-400'
                                   : student.referralBadge === 'Social Butterfly'
