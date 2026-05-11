@@ -42,6 +42,8 @@ import {
   Sparkles,
   TrendingUp,
   ClipboardList,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -50,9 +52,11 @@ import {
   updateEvent,
   deleteEvent,
   listEventEnrollments,
+  requestEventThumbnailPresign,
   type CreateEventInput,
 } from "../../../api/events";
 import type { AppEvent, EventEnrollmentRow } from "../../../api/types";
+import { resolveMediaUrl } from "../../../lib/media";
 
 const LIMIT = 15;
 
@@ -123,6 +127,8 @@ export function ClassesEvents() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CreateEventInput>(emptyForm());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailFileUrl, setThumbnailFileUrl] = useState<string | null>(null);
 
   const [viewEvent, setViewEvent] = useState<AppEvent | null>(null);
 
@@ -192,7 +198,32 @@ export function ClassesEvents() {
     };
   }, [debouncedQuery, filterFeatured, page, refreshKey]);
 
+  // Manage object URL lifetime for the picked thumbnail preview.
+  useEffect(() => {
+    if (!thumbnailFile) {
+      setThumbnailFileUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(thumbnailFile);
+    setThumbnailFileUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [thumbnailFile]);
+
   const refetch = () => setRefreshKey((k) => k + 1);
+
+  const handleThumbnailChosen = (file: File | null) => {
+    if (!file) {
+      setThumbnailFile(null);
+      return;
+    }
+    const okType = /^image\/(jpeg|png)$/i.test(file.type);
+    const okExt = /\.(jpe?g|png)$/i.test(file.name);
+    if (!okType && !okExt) {
+      toast.error("Thumbnail must be a .jpg or .png image");
+      return;
+    }
+    setThumbnailFile(file);
+  };
 
   const openEnrollments = (event: AppEvent) => {
     setEnrollmentsEvent(event);
@@ -207,6 +238,7 @@ export function ClassesEvents() {
     setDialogMode("create");
     setEditingId(null);
     setForm(emptyForm());
+    setThumbnailFile(null);
     setDialogOpen(true);
   };
 
@@ -224,7 +256,22 @@ export function ClassesEvents() {
       thumbnail: event.thumbnail ?? "",
       featured: event.featured,
     });
+    setThumbnailFile(null);
     setDialogOpen(true);
+  };
+
+  const uploadThumbnailFor = async (eventId: string, file: File): Promise<string> => {
+    const presign = await requestEventThumbnailPresign("SUPERADMIN", eventId, {
+      filename: file.name,
+      contentType: file.type || "image/jpeg",
+    });
+    const putRes = await fetch(presign.url, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || "image/jpeg" },
+      body: file,
+    });
+    if (!putRes.ok) throw new Error("Thumbnail upload failed");
+    return presign.storePath;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -232,16 +279,29 @@ export function ClassesEvents() {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const payload: CreateEventInput = {
+      const basePayload: CreateEventInput = {
         ...form,
         date: new Date(form.date).toISOString(),
         thumbnail: form.thumbnail?.trim() || undefined,
       };
+
       if (dialogMode === "create") {
-        await createEvent("SUPERADMIN", payload);
+        // Create first to obtain the event ID, then upload thumbnail (S3 key requires the ID).
+        const created = await createEvent("SUPERADMIN", {
+          ...basePayload,
+          thumbnail: thumbnailFile ? undefined : basePayload.thumbnail,
+        });
+        if (thumbnailFile) {
+          const thumbnail = await uploadThumbnailFor(created.id, thumbnailFile);
+          await updateEvent("SUPERADMIN", created.id, { thumbnail });
+        }
         toast.success("Event created");
       } else if (editingId) {
-        await updateEvent("SUPERADMIN", editingId, payload);
+        let thumbnail = basePayload.thumbnail;
+        if (thumbnailFile) {
+          thumbnail = await uploadThumbnailFor(editingId, thumbnailFile);
+        }
+        await updateEvent("SUPERADMIN", editingId, { ...basePayload, thumbnail });
         toast.success("Event updated");
       }
       setDialogOpen(false);
@@ -477,7 +537,7 @@ export function ClassesEvents() {
                           <div className="flex items-start gap-2.5 min-w-0">
                             {event.thumbnail ? (
                               <img
-                                src={event.thumbnail}
+                                src={resolveMediaUrl(event.thumbnail)}
                                 alt=""
                                 className="w-10 h-10 rounded-lg object-cover shrink-0 border border-border/60"
                               />
@@ -757,14 +817,76 @@ export function ClassesEvents() {
               </div>
 
               <div className="grid gap-1.5">
-                <Label htmlFor="ev-thumbnail">Thumbnail URL</Label>
-                <Input
-                  id="ev-thumbnail"
-                  type="url"
-                  value={form.thumbnail}
-                  onChange={(e) => setForm((f) => ({ ...f, thumbnail: e.target.value }))}
-                  placeholder="https://..."
-                />
+                <Label htmlFor="ev-thumb-pick">
+                  Thumbnail{" "}
+                  <span className="text-xs text-muted-foreground font-normal">
+                    · optional · .jpg or .png
+                  </span>
+                </Label>
+                {(thumbnailFileUrl || form.thumbnail) && (
+                  <div className="relative rounded-lg overflow-hidden bg-black/5 aspect-video max-h-48">
+                    <img
+                      src={thumbnailFileUrl ?? resolveMediaUrl(form.thumbnail)}
+                      alt="Thumbnail preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors">
+                  <input
+                    id="ev-thumb-pick"
+                    type="file"
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    className="hidden"
+                    disabled={isSubmitting}
+                    onChange={(e) => handleThumbnailChosen(e.target.files?.[0] ?? null)}
+                  />
+                  <label
+                    htmlFor="ev-thumb-pick"
+                    className="cursor-pointer flex flex-col items-center gap-1.5"
+                  >
+                    {thumbnailFile ? (
+                      <>
+                        <ImageIcon className="w-6 h-6 text-[#610981]" />
+                        <p className="text-sm font-medium truncate max-w-full px-2">
+                          {thumbnailFile.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Click to choose a different image
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          {form.thumbnail
+                            ? "Click to replace thumbnail"
+                            : "Click to upload thumbnail (JPG or PNG)"}
+                        </p>
+                      </>
+                    )}
+                  </label>
+                </div>
+                {(thumbnailFile || form.thumbnail) && (
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      disabled={isSubmitting}
+                      onClick={() => {
+                        setThumbnailFile(null);
+                        setForm((f) => ({ ...f, thumbnail: "" }));
+                      }}
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" /> Remove
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-2.5 pt-1">
@@ -826,7 +948,7 @@ export function ClassesEvents() {
               <div className="space-y-4 py-2">
                 {viewEvent.thumbnail && (
                   <img
-                    src={viewEvent.thumbnail}
+                    src={resolveMediaUrl(viewEvent.thumbnail)}
                     alt={viewEvent.title}
                     className="w-full h-44 object-cover rounded-lg border border-border/60"
                   />

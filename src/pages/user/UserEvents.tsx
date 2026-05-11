@@ -40,6 +40,7 @@ import { initiatePayment, verifyPayment } from "../../api/payments";
 import type { AppEvent } from "../../api/types";
 import { useRazorpay } from "react-razorpay";
 import { UserWorkshopsList } from "./UserWorkshopsList";
+import { resolveMediaUrl } from "../../lib/media";
 
 interface Event {
   id: string;
@@ -85,7 +86,7 @@ function mapAppEvent(e: AppEvent): Event {
     price: Number.isFinite(priceNum) ? priceNum : 0,
     capacity: e.capacity,
     registered: e.occupancy,
-    image: e.thumbnail ?? FALLBACK_IMG,
+    image: resolveMediaUrl(e.thumbnail) ?? FALLBACK_IMG,
     featured: e.featured,
   };
 }

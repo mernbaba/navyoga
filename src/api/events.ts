@@ -95,6 +95,26 @@ export function deleteEvent(role: Role, id: string) {
   );
 }
 
+export type EventThumbnailPresign = {
+  url: string;
+  storePath: string;
+  expiresIn: number;
+};
+
+export function requestEventThumbnailPresign(
+  role: Role,
+  eventId: string,
+  body: { filename: string; contentType: string },
+) {
+  return unwrap<EventThumbnailPresign>(
+    authedRequest<ApiSuccess<EventThumbnailPresign>>(role, {
+      method: "POST",
+      url: `/api/events/${eventId}/thumbnail-presign`,
+      data: body,
+    }),
+  );
+}
+
 export type UpcomingEventListParams = {
   q?: string;
   page?: number;
