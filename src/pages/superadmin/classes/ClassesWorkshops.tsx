@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import {
   Card,
   CardContent,
@@ -43,7 +44,6 @@ import {
   IndianRupee,
   Sparkles,
   ClipboardList,
-  ListVideo,
   Layers,
   Upload,
   Image as ImageIcon,
@@ -56,28 +56,21 @@ import {
   deleteWorkshop,
   listWorkshopEnrollments,
   removeWorkshopEnrollment,
-  listWorkshopSessions,
-  addWorkshopSession,
-  updateWorkshopSession,
-  deleteWorkshopSession,
   requestWorkshopThumbnailPresign,
   type CreateWorkshopInput,
-  type CreateSessionInput,
 } from "../../../api/workshops";
 import type {
   Workshop,
   WorkshopEnrollmentRow,
-  WorkshopSession,
   WorkshopMode,
   ClassLevel,
-  WorkshopSessionStatus,
 } from "../../../api/types";
+import { resolveMediaUrl } from "../../../lib/media";
 
 const LIMIT = 15;
 const ENROLLMENTS_LIMIT = 20;
 const MODES: WorkshopMode[] = ["LIVE", "RECORDED", "HYBRID"];
 const LEVELS: ClassLevel[] = ["BEGINNER", "INTERMEDIATE", "ADVANCED", "ALL_LEVELS"];
-const SESSION_STATUSES: WorkshopSessionStatus[] = ["UPCOMING", "LIVE", "COMPLETED", "CANCELLED"];
 
 type WorkshopFormFields = {
   title: string;
@@ -107,28 +100,6 @@ const emptyWorkshopForm = (): WorkshopFormFields => ({
   endDate: "",
   totalDuration: "",
   capacity: "",
-});
-
-type SessionFormFields = {
-  title: string;
-  sortOrder: string;
-  mode: WorkshopMode;
-  scheduledAt: string;
-  duration: string;
-  link: string;
-  video: string;
-  status: WorkshopSessionStatus;
-};
-
-const emptySessionForm = (workshopMode: WorkshopMode): SessionFormFields => ({
-  title: "",
-  sortOrder: "",
-  mode: workshopMode,
-  scheduledAt: "",
-  duration: "",
-  link: "",
-  video: "",
-  status: "UPCOMING",
 });
 
 function toDatetimeLocal(iso: string | null | undefined): string {
@@ -222,6 +193,7 @@ function levelLabel(level: ClassLevel) {
 type FormMode = "create" | "edit";
 
 export function ClassesWorkshops() {
+  const navigate = useNavigate();
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -251,16 +223,6 @@ export function ClassesWorkshops() {
   const [enrollmentsPage, setEnrollmentsPage] = useState(1);
   const [enrollmentsTotal, setEnrollmentsTotal] = useState(0);
   const [enrollmentsTotalPages, setEnrollmentsTotalPages] = useState(1);
-
-  // Sessions dialog
-  const [sessionsWorkshop, setSessionsWorkshop] = useState<Workshop | null>(null);
-  const [sessions, setSessions] = useState<WorkshopSession[]>([]);
-  const [sessionsLoading, setSessionsLoading] = useState(false);
-  const [sessionDialogOpen, setSessionDialogOpen] = useState(false);
-  const [sessionFormMode, setSessionFormMode] = useState<FormMode>("create");
-  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
-  const [sessionForm, setSessionForm] = useState<SessionFormFields>(emptySessionForm("LIVE"));
-  const [sessionSaving, setSessionSaving] = useState(false);
 
   // Debounce search
   useEffect(() => {
@@ -332,26 +294,6 @@ export function ClassesWorkshops() {
     };
   }, [enrollmentsWorkshop, enrollmentsPage, debouncedEnrollSearch]);
 
-  // Load sessions
-  useEffect(() => {
-    if (!sessionsWorkshop) return;
-    let cancelled = false;
-    setSessionsLoading(true);
-    listWorkshopSessions("SUPERADMIN", sessionsWorkshop.id)
-      .then((res) => {
-        if (!cancelled) setSessions(res);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load sessions.");
-      })
-      .finally(() => {
-        if (!cancelled) setSessionsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [sessionsWorkshop]);
-
   // Manage object URL lifetime for the picked thumbnail preview.
   useEffect(() => {
     if (!thumbnailFile) { setThumbnailFileUrl(null); return; }
@@ -387,34 +329,44 @@ export function ClassesWorkshops() {
     setFormOpen(true);
   }
 
+  async function uploadThumbnailFor(workshopId: string, file: File): Promise<string> {
+    const presign = await requestWorkshopThumbnailPresign("SUPERADMIN", workshopId, {
+      filename: file.name,
+      contentType: file.type || "image/jpeg",
+    });
+    const putRes = await fetch(presign.url, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || "image/jpeg" },
+      body: file,
+    });
+    if (!putRes.ok) throw new Error("Thumbnail upload failed");
+    return presign.storePath;
+  }
+
   async function handleSaveWorkshop() {
     if (!isWorkshopFormValid(form)) return;
     setSaving(true);
     try {
-      let uploadedThumbnailUrl: string | null = null;
-      if (thumbnailFile) {
-        const presign = await requestWorkshopThumbnailPresign("SUPERADMIN", {
-          filename: thumbnailFile.name,
-          contentType: thumbnailFile.type || "image/jpeg",
-        });
-        const putRes = await fetch(presign.url, {
-          method: "PUT",
-          headers: { "Content-Type": thumbnailFile.type || "image/jpeg" },
-          body: thumbnailFile,
-        });
-        if (!putRes.ok) throw new Error("Thumbnail upload failed");
-        uploadedThumbnailUrl = presign.cdnUrl || presign.publicUrl;
-      }
+      const basePayload = buildWorkshopBody(form);
 
-      const body = buildWorkshopBody({
-        ...form,
-        thumbnail: uploadedThumbnailUrl ?? form.thumbnail,
-      });
       if (formMode === "create") {
-        await createWorkshop("SUPERADMIN", body);
+        // Create first to obtain the workshop ID, then upload thumbnail
+        // (S3 key requires the ID).
+        const createdWorkshop = await createWorkshop("SUPERADMIN", {
+          ...basePayload,
+          thumbnail: thumbnailFile ? undefined : basePayload.thumbnail,
+        });
+        if (thumbnailFile) {
+          const thumbnail = await uploadThumbnailFor(createdWorkshop.id, thumbnailFile);
+          await updateWorkshop("SUPERADMIN", createdWorkshop.id, { thumbnail });
+        }
         toast.success("Workshop created");
       } else if (editingId) {
-        await updateWorkshop("SUPERADMIN", editingId, body);
+        let thumbnail = basePayload.thumbnail;
+        if (thumbnailFile) {
+          thumbnail = await uploadThumbnailFor(editingId, thumbnailFile);
+        }
+        await updateWorkshop("SUPERADMIN", editingId, { ...basePayload, thumbnail });
         toast.success("Workshop updated");
       }
       setFormOpen(false);
@@ -472,92 +424,7 @@ export function ClassesWorkshops() {
   }
 
   function openSessions(w: Workshop) {
-    setSessionsWorkshop(w);
-  }
-
-  function openCreateSession() {
-    if (!sessionsWorkshop) return;
-    setSessionFormMode("create");
-    setEditingSessionId(null);
-    setSessionForm({
-      ...emptySessionForm(sessionsWorkshop.mode),
-      sortOrder: String(sessions.length + 1),
-    });
-    setSessionDialogOpen(true);
-  }
-
-  function openEditSession(s: WorkshopSession) {
-    setSessionFormMode("edit");
-    setEditingSessionId(s.id);
-    setSessionForm({
-      title: s.title,
-      sortOrder: String(s.sortOrder),
-      mode: s.mode,
-      scheduledAt: toDatetimeLocal(s.scheduledAt),
-      duration: s.duration != null ? String(s.duration) : "",
-      link: s.link ?? "",
-      video: s.video ?? "",
-      status: s.status ?? "UPCOMING",
-    });
-    setSessionDialogOpen(true);
-  }
-
-  async function handleSaveSession() {
-    if (!sessionsWorkshop) return;
-    if (!sessionForm.title.trim()) return;
-    const sortOrder = Number(sessionForm.sortOrder);
-    if (!Number.isFinite(sortOrder) || sortOrder < 0) return;
-    setSessionSaving(true);
-    try {
-      const body: CreateSessionInput = {
-        title: sessionForm.title.trim(),
-        sortOrder,
-        mode: sessionForm.mode,
-        status: sessionForm.status,
-      };
-      const scheduledIso = fromDatetimeLocal(sessionForm.scheduledAt);
-      if (scheduledIso) body.scheduledAt = scheduledIso;
-      if (sessionForm.duration.trim()) {
-        const n = Number(sessionForm.duration);
-        if (Number.isFinite(n) && n > 0) body.duration = n;
-      }
-      if (sessionForm.link.trim()) body.link = sessionForm.link.trim();
-      if (sessionForm.video.trim()) body.video = sessionForm.video.trim();
-
-      if (sessionFormMode === "create") {
-        const created = await addWorkshopSession("SUPERADMIN", sessionsWorkshop.id, body);
-        setSessions((prev) => [...prev, created].sort((a, b) => a.sortOrder - b.sortOrder));
-        toast.success("Session added");
-      } else if (editingSessionId) {
-        const updated = await updateWorkshopSession(
-          "SUPERADMIN",
-          sessionsWorkshop.id,
-          editingSessionId,
-          body,
-        );
-        setSessions((prev) =>
-          prev.map((s) => (s.id === editingSessionId ? updated : s)).sort((a, b) => a.sortOrder - b.sortOrder),
-        );
-        toast.success("Session updated");
-      }
-      setSessionDialogOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save session.");
-    } finally {
-      setSessionSaving(false);
-    }
-  }
-
-  async function handleDeleteSession(sessionId: string) {
-    if (!sessionsWorkshop) return;
-    if (!confirm("Delete this session?")) return;
-    try {
-      await deleteWorkshopSession("SUPERADMIN", sessionsWorkshop.id, sessionId);
-      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-      toast.success("Session deleted");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete session.");
-    }
+    navigate(`/superadmin/classes/workshops/${w.id}`);
   }
 
   const totalCapacity = workshops.reduce((sum, w) => sum + (w.capacity ?? 0), 0);
@@ -602,7 +469,7 @@ export function ClassesWorkshops() {
       <Card className="border-0 shadow-md">
         <CardContent className="py-4 flex flex-col md:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4 pointer-events-none z-10" />
             <Input
               placeholder="Search by title, yoga type or description..."
               className="pl-9"
@@ -675,12 +542,17 @@ export function ClassesWorkshops() {
                   </TableRow>
                 ) : (
                   workshops.map((w) => (
-                    <TableRow key={w.id} className="hover:bg-muted/20">
+                    <TableRow
+                      key={w.id}
+                      className="hover:bg-muted/20 cursor-pointer"
+                      onClick={() => openSessions(w)}
+                      title="Open sessions"
+                    >
                       <TableCell className="pl-4">
                         <div className="flex items-center gap-3">
                           {w.thumbnail ? (
                             <img
-                              src={w.thumbnail}
+                              src={resolveMediaUrl(w.thumbnail)}
                               alt={w.title}
                               className="w-10 h-10 rounded-md object-cover"
                               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
@@ -719,10 +591,7 @@ export function ClassesWorkshops() {
                         )}
                       </TableCell>
                       <TableCell className="pr-4 text-right">
-                        <div className="inline-flex items-center gap-1">
-                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Sessions" onClick={() => openSessions(w)}>
-                            <ListVideo className="w-4 h-4" />
-                          </Button>
+                        <div className="inline-flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button size="icon" variant="ghost" className="h-8 w-8" title="Enrollments" onClick={() => openEnrollments(w)}>
                             <ClipboardList className="w-4 h-4" />
                           </Button>
@@ -869,7 +738,7 @@ export function ClassesWorkshops() {
               {(thumbnailFileUrl || form.thumbnail) && (
                 <div className="relative rounded-lg overflow-hidden bg-black/5 aspect-video max-h-48">
                   <img
-                    src={thumbnailFileUrl || form.thumbnail}
+                    src={thumbnailFileUrl ?? resolveMediaUrl(form.thumbnail)}
                     alt="Thumbnail preview"
                     className="w-full h-full object-cover"
                     onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
@@ -965,7 +834,7 @@ export function ClassesWorkshops() {
           </DialogHeader>
 
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4 pointer-events-none z-10" />
             <Input
               placeholder="Search by name, email or phone..."
               className="pl-9"
@@ -1037,160 +906,6 @@ export function ClassesWorkshops() {
         </DialogContent>
       </Dialog>
 
-      {/* Sessions Dialog */}
-      <Dialog open={!!sessionsWorkshop} onOpenChange={(v) => { if (!v) { setSessionsWorkshop(null); setSessions([]); } }}>
-        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ListVideo className="w-5 h-5" /> Sessions
-            </DialogTitle>
-            <DialogDescription className="truncate">
-              {sessionsWorkshop?.title} · {sessions.length} session{sessions.length === 1 ? "" : "s"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex justify-end">
-            <Button size="sm" onClick={openCreateSession} style={{ background: "#610981", color: "white" }}>
-              <Plus className="w-4 h-4 mr-1" /> Add Session
-            </Button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/30">
-                  <TableHead className="pl-4 w-12">#</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Mode</TableHead>
-                  <TableHead>Scheduled</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="pr-4 text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sessionsLoading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
-                    <div className="w-6 h-6 mx-auto border-2 border-purple-300 border-t-purple-600 rounded-full animate-spin" />
-                  </TableCell></TableRow>
-                ) : sessions.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-10 text-sm text-muted-foreground">
-                    No sessions yet.
-                  </TableCell></TableRow>
-                ) : (
-                  sessions.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell className="pl-4 text-xs text-muted-foreground">{s.sortOrder}</TableCell>
-                      <TableCell className="text-sm font-medium">{s.title}</TableCell>
-                      <TableCell>
-                        <Badge style={{ background: modeBadgeColor(s.mode), color: "white" }}>{s.mode}</Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {s.scheduledAt ? new Date(s.scheduledAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {s.duration != null ? `${s.duration} min` : "—"}
-                      </TableCell>
-                      <TableCell>
-                        {s.status ? <Badge variant="outline">{s.status}</Badge> : <span className="text-xs text-muted-foreground">—</span>}
-                      </TableCell>
-                      <TableCell className="pr-4 text-right">
-                        <div className="inline-flex items-center gap-1">
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditSession(s)}>
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600" onClick={() => handleDeleteSession(s.id)}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add / Edit Session Dialog */}
-      <Dialog open={sessionDialogOpen} onOpenChange={(v) => { if (!sessionSaving) setSessionDialogOpen(v); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{sessionFormMode === "create" ? "Add Session" : "Edit Session"}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-3 py-2">
-            <div className="space-y-1">
-              <Label htmlFor="ses-title">Title <span className="text-red-500">*</span></Label>
-              <Input id="ses-title" value={sessionForm.title} onChange={(e) => setSessionForm({ ...sessionForm, title: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="ses-order">Order <span className="text-red-500">*</span></Label>
-                <Input
-                  id="ses-order"
-                  type="number"
-                  min={0}
-                  value={sessionForm.sortOrder}
-                  onChange={(e) => setSessionForm({ ...sessionForm, sortOrder: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Mode</Label>
-                <Select value={sessionForm.mode} onValueChange={(v: WorkshopMode) => setSessionForm({ ...sessionForm, mode: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {MODES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="ses-when">Scheduled At</Label>
-                <Input id="ses-when" type="datetime-local" value={sessionForm.scheduledAt} onChange={(e) => setSessionForm({ ...sessionForm, scheduledAt: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="ses-dur">Duration (min)</Label>
-                <Input
-                  id="ses-dur"
-                  type="number"
-                  min={0}
-                  value={sessionForm.duration}
-                  onChange={(e) => setSessionForm({ ...sessionForm, duration: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="ses-link">Join Link</Label>
-              <Input id="ses-link" value={sessionForm.link} onChange={(e) => setSessionForm({ ...sessionForm, link: e.target.value })} placeholder="optional · live join URL" />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="ses-video">Recording URL</Label>
-              <Input id="ses-video" value={sessionForm.video} onChange={(e) => setSessionForm({ ...sessionForm, video: e.target.value })} placeholder="optional · recording URL" />
-            </div>
-            <div className="space-y-1">
-              <Label>Status</Label>
-              <Select value={sessionForm.status} onValueChange={(v: WorkshopSessionStatus) => setSessionForm({ ...sessionForm, status: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {SESSION_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" disabled={sessionSaving} onClick={() => setSessionDialogOpen(false)}>Cancel</Button>
-            <Button
-              disabled={sessionSaving || !sessionForm.title.trim()}
-              onClick={handleSaveSession}
-              style={{ background: "#610981", color: "white" }}
-            >
-              {sessionSaving ? "Saving..." : sessionFormMode === "create" ? "Add" : "Save"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -1571,13 +1571,15 @@ interface CourseCardProps {
 }
 
 function CourseCard({ course, onSelect, onEdit, onDelete }: CourseCardProps) {
+  const [imgError, setImgError] = useState(false);
+  const showImg = !!course.thumbnail && !imgError;
   return (
     <Card className="hover:shadow-md transition-shadow cursor-pointer group" onClick={onSelect}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${BRAND}15` }}>
-            {course.thumbnail ? (
-              <img src={course.thumbnail} alt={course.title} className="w-10 h-10 rounded-xl object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden" style={{ background: `${BRAND}15` }}>
+            {showImg ? (
+              <img src={course.thumbnail} alt={course.title} className="w-10 h-10 rounded-xl object-cover" onError={() => setImgError(true)} />
             ) : (
               <Video className="w-5 h-5" style={{ color: BRAND }} />
             )}

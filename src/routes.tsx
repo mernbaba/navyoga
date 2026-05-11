@@ -18,6 +18,7 @@ import { ClassesYTTLive } from "./pages/superadmin/classes/ClassesYTTLive";
 import { ClassesYTTRecorded } from "./pages/superadmin/classes/ClassesYTTRecorded";
 import { ClassesEvents } from "./pages/superadmin/classes/ClassesEvents";
 import { ClassesWorkshops } from "./pages/superadmin/classes/ClassesWorkshops";
+import { WorkshopSessions } from "./pages/superadmin/classes/WorkshopSessions";
 import { Attendance } from "./pages/superadmin/Attendance";
 import { FinancialsLayout } from "./pages/superadmin/financials/FinancialsLayout";
 import { FinancialsOverview } from "./pages/superadmin/financials/FinancialsOverview";
@@ -143,6 +144,7 @@ export const router = createBrowserRouter([
           { path: "ytt-recorded", Component: ClassesYTTRecorded },
           { path: "events", Component: ClassesEvents },
           { path: "workshops", Component: ClassesWorkshops },
+          { path: "workshops/:id", Component: WorkshopSessions },
         ],
       },
       { path: "attendance", Component: Attendance },

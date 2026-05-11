@@ -43,6 +43,7 @@ import type {
   WorkshopSession,
   WorkshopWithSessions,
 } from "../../api/types";
+import { resolveMediaUrl } from "../../lib/media";
 
 const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1506126613408-eca07ce68773";
@@ -365,7 +366,7 @@ export function UserWorkshopsList() {
                       >
                         <div className="relative h-40 overflow-hidden">
                           <img
-                            src={w.thumbnail ?? FALLBACK_IMG}
+                            src={resolveMediaUrl(w.thumbnail) ?? FALLBACK_IMG}
                             alt={w.title}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                             onError={(e) => { (e.currentTarget as HTMLImageElement).src = FALLBACK_IMG; }}
@@ -459,7 +460,7 @@ export function UserWorkshopsList() {
                   <div className="space-y-4">
                     <div className="relative aspect-video rounded-2xl overflow-hidden">
                       <img
-                        src={detail.thumbnail ?? FALLBACK_IMG}
+                        src={resolveMediaUrl(detail.thumbnail) ?? FALLBACK_IMG}
                         alt={detail.title}
                         className="w-full h-full object-cover"
                         onError={(e) => { (e.currentTarget as HTMLImageElement).src = FALLBACK_IMG; }}
@@ -559,8 +560,53 @@ function InfoTile({ icon: Icon, label, value }: { icon: typeof Calendar; label: 
   );
 }
 
+type SessionState = "upcoming" | "live" | "ended";
+
+function getSessionState(session: WorkshopSession): SessionState {
+  if (session.status === "COMPLETED" || session.status === "CANCELLED") return "ended";
+  if (!session.scheduledAt) return "upcoming";
+  const start = new Date(session.scheduledAt).getTime();
+  if (Number.isNaN(start)) return "upcoming";
+  const durationMs = (session.duration ?? 0) * 60 * 1000;
+  const now = Date.now();
+  if (now > start + durationMs) return "ended";
+  if (now >= start) return "live";
+  return "upcoming";
+}
+
+function SessionStateBadge({ state, mode }: { state: SessionState; mode: WorkshopMode }) {
+  if (state === "live") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-white bg-emerald-500">
+        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+        LIVE
+      </span>
+    );
+  }
+  if (state === "ended") {
+    return (
+      <Badge variant="secondary" className="text-xs bg-gray-200 text-gray-600 hover:bg-gray-200">
+        Ended
+      </Badge>
+    );
+  }
+  // upcoming
+  if (mode === "LIVE" || mode === "HYBRID") {
+    return (
+      <Badge variant="outline" className="text-xs border-amber-400 text-amber-700 bg-amber-50">
+        Upcoming
+      </Badge>
+    );
+  }
+  return <Badge variant="outline" className="text-xs">{mode}</Badge>;
+}
+
 function SessionRow({ session, enrolled }: { session: WorkshopSession; enrolled: boolean }) {
-  const canSeeMedia = enrolled && (session.link || session.video);
+  const state = getSessionState(session);
+  const ended = state === "ended";
+  // After end, the live join link expires; only the recording (if any) is usable.
+  const mediaHref = !ended && session.link ? session.link : session.video || null;
+  const canSeeMedia = enrolled && mediaHref;
   return (
     <div className="flex items-center gap-3 p-3 rounded-lg border bg-white">
       <div className="w-8 h-8 rounded-full bg-purple-100 text-[#610981] font-semibold flex items-center justify-center text-xs">
@@ -573,17 +619,19 @@ function SessionRow({ session, enrolled }: { session: WorkshopSession; enrolled:
           {session.duration != null && ` · ${session.duration} min`}
         </p>
       </div>
-      <Badge variant="outline" className="text-xs">{session.mode}</Badge>
-      {canSeeMedia && (session.link || session.video) && (
+      <SessionStateBadge state={state} mode={session.mode} />
+      {canSeeMedia ? (
         <a
-          href={(session.link || session.video) as string}
+          href={mediaHref}
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center gap-1 text-xs font-medium text-[#610981] hover:underline"
         >
-          <PlayCircle className="w-4 h-4" /> Open
+          <PlayCircle className="w-4 h-4" /> {ended ? "Recording" : state === "live" ? "Join" : "Open"}
         </a>
-      )}
+      ) : ended ? (
+        <span className="text-xs text-muted-foreground">No recording</span>
+      ) : null}
     </div>
   );
 }

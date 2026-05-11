@@ -95,19 +95,19 @@ export function deleteWorkshop(role: Role, id: string) {
 
 export type WorkshopThumbnailPresign = {
   url: string;
-  publicUrl: string;
-  cdnUrl: string;
+  storePath: string;
   expiresIn: number;
 };
 
 export function requestWorkshopThumbnailPresign(
   role: Role,
+  workshopId: string,
   body: { filename: string; contentType: string },
 ) {
   return unwrap<WorkshopThumbnailPresign>(
     authedRequest<ApiSuccess<WorkshopThumbnailPresign>>(role, {
       method: "POST",
-      url: `${BASE}/thumbnail-presign`,
+      url: `${BASE}/${workshopId}/thumbnail-presign`,
       data: body,
     }),
   );
