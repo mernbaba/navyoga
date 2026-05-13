@@ -804,12 +804,12 @@ export function ClassesYTTLive() {
           <h1 className="text-2xl font-bold" style={{ color: BRAND }}>YTT Live</h1>
           <p className="text-muted-foreground text-sm mt-1">Yoga Teacher Training — live batch courses</p>
         </div>
-        {!selected && (
+        {/* {!selected && (
           <Button onClick={openCreate} className="gap-2 shrink-0" style={{ background: BRAND }}>
             <Plus className="w-4 h-4" />
             New Course
           </Button>
-        )}
+        )} */}
       </div>
 
       {loading && (

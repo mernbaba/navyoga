@@ -11,6 +11,8 @@ import {
   Loader2,
   Search,
   X,
+  Upload,
+  Video as VideoIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -48,6 +50,7 @@ import {
   createLiveClass,
   updateLiveClass,
   deleteLiveClass,
+  requestLiveClassRecordingPresign,
 } from "@/api/live";
 import { listTutors } from "@/api/tutors";
 import { listBatches } from "@/api/batches";
@@ -106,6 +109,7 @@ export function ClassesLive() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<LiveClass | null>(null);
   const [form, setForm] = useState<FormState>(BLANK_FORM);
+  const [recordingFile, setRecordingFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<LiveClass | null>(null);
@@ -139,6 +143,7 @@ export function ClassesLive() {
   function openCreate() {
     setEditing(null);
     setForm(BLANK_FORM);
+    setRecordingFile(null);
     setDialogOpen(true);
   }
 
@@ -158,6 +163,7 @@ export function ClassesLive() {
       link: cls.link ?? "",
       recording: cls.recording ?? "",
     });
+    setRecordingFile(null);
     setDialogOpen(true);
   }
 
@@ -167,41 +173,58 @@ export function ClassesLive() {
 
   async function handleSave() {
     if (!form.title.trim()) return toast.error("Title is required");
-    if (!form.yogaType) return toast.error("Yoga type is required");
+    if (!form.yogaType.trim()) return toast.error("Yoga type is required");
     if (!form.difficulty) return toast.error("Difficulty is required");
     if (!form.duration || isNaN(Number(form.duration))) return toast.error("Valid duration is required");
+    if (!form.scheduledAt) return toast.error("Scheduled date/time is required");
+    if (!form.link.trim()) return toast.error("Join link is required");
+    if (!form.tutorId) return toast.error("Tutor is required");
+    if (!form.batchId) return toast.error("Batch is required");
 
     setSaving(true);
     try {
       const payload = {
         title: form.title.trim(),
-        yogaType: form.yogaType,
+        yogaType: form.yogaType.trim(),
         difficulty: form.difficulty as ClassDifficulty,
         duration: Number(form.duration),
         ...(form.description ? { description: form.description } : {}),
-        tutorId: form.tutorId || null,
-        batchId: form.batchId || null,
-        scheduledAt: form.scheduledAt ? new Date(form.scheduledAt).toISOString() : null,
-        link: form.link || null,
-        recording: form.recording || null,
+        tutorId: form.tutorId,
+        batchId: form.batchId,
+        scheduledAt: new Date(form.scheduledAt).toISOString(),
+        link: form.link.trim(),
+        recording: recordingFile ? null : form.recording || null,
       };
 
+      let saved: LiveClass;
       if (editing) {
-        const updated = await updateLiveClass("SUPERADMIN", editing.id, payload);
-        setClasses((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-        toast.success("Class updated");
+        saved = await updateLiveClass("SUPERADMIN", editing.id, payload);
       } else {
-        const created = await createLiveClass("SUPERADMIN", {
+        saved = await createLiveClass("SUPERADMIN", {
           ...payload,
-          tutorId: payload.tutorId ?? undefined,
-          batchId: payload.batchId ?? undefined,
-          scheduledAt: payload.scheduledAt ?? undefined,
-          link: payload.link ?? undefined,
           recording: payload.recording ?? undefined,
         });
-        setClasses((prev) => [created, ...prev]);
-        toast.success("Live class created");
       }
+
+      if (recordingFile) {
+        const presign = await requestLiveClassRecordingPresign("SUPERADMIN", saved.id, {
+          filename: recordingFile.name,
+          contentType: recordingFile.type || "video/mp4",
+        });
+        const putRes = await fetch(presign.url, {
+          method: "PUT",
+          headers: { "Content-Type": recordingFile.type || "video/mp4" },
+          body: recordingFile,
+        });
+        if (!putRes.ok) throw new Error("Recording upload failed");
+        saved = await updateLiveClass("SUPERADMIN", saved.id, { recording: presign.storePath });
+      }
+
+      setClasses((prev) => {
+        const exists = prev.some((c) => c.id === saved.id);
+        return exists ? prev.map((c) => (c.id === saved.id ? saved : c)) : [saved, ...prev];
+      });
+      toast.success(editing ? "Class updated" : "Live class created");
       setDialogOpen(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Save failed");
@@ -319,14 +342,14 @@ export function ClassesLive() {
 
       {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden">
+          <DialogHeader className="min-w-0">
             <DialogTitle className="text-[#610981]">
               {editing ? "Edit Live Class" : "New Live Class"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 min-w-0">
             {/* Title */}
             <div className="space-y-1.5">
               <Label>
@@ -388,7 +411,9 @@ export function ClassesLive() {
 
             {/* Scheduled At */}
             <div className="space-y-1.5">
-              <Label>Scheduled At</Label>
+              <Label>
+                Scheduled At <span className="text-red-500">*</span>
+              </Label>
               <Input
                 type="datetime-local"
                 value={form.scheduledAt}
@@ -398,7 +423,9 @@ export function ClassesLive() {
 
             {/* Join Link */}
             <div className="space-y-1.5">
-              <Label>Join Link</Label>
+              <Label>
+                Join Link <span className="text-red-500">*</span>
+              </Label>
               <Input
                 placeholder="https://meet.google.com/…"
                 value={form.link}
@@ -408,26 +435,79 @@ export function ClassesLive() {
 
             {/* Recording */}
             <div className="space-y-1.5">
-              <Label>Recording URL</Label>
-              <Input
-                placeholder="https://… (paste recording link after class)"
-                value={form.recording}
-                onChange={(e) => setField("recording", e.target.value)}
-              />
+              <Label>
+                Recording{" "}
+                <span className="text-xs text-muted-foreground font-normal">
+                  · optional · MP4, WEBM, MOV, or MKV
+                </span>
+              </Label>
+              <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors overflow-hidden">
+                <input
+                  id="live-recording-pick"
+                  type="file"
+                  accept=".mp4,.webm,.mov,.mkv,video/mp4,video/webm,video/quicktime,video/x-matroska"
+                  className="hidden"
+                  disabled={saving}
+                  onChange={(e) => setRecordingFile(e.target.files?.[0] ?? null)}
+                />
+                <label
+                  htmlFor="live-recording-pick"
+                  className="cursor-pointer flex flex-col items-center gap-1.5 w-full min-w-0"
+                >
+                  {recordingFile ? (
+                    <>
+                      <VideoIcon className="w-6 h-6 text-[#610981]" />
+                      <p className="text-sm font-medium w-full px-2 truncate text-center">
+                        {recordingFile.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Click to choose a different file
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-6 h-6 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        {form.recording
+                          ? "Click to replace recording"
+                          : "Click to upload recording from your device"}
+                      </p>
+                    </>
+                  )}
+                </label>
+              </div>
+              {(recordingFile || form.recording) && (
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    disabled={saving}
+                    onClick={() => {
+                      setRecordingFile(null);
+                      setField("recording", "");
+                    }}
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" /> Remove
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Tutor */}
             <div className="space-y-1.5">
-              <Label>Tutor</Label>
+              <Label>
+                Tutor <span className="text-red-500">*</span>
+              </Label>
               <Select
-                value={form.tutorId || "__none__"}
-                onValueChange={(v) => setField("tutorId", v === "__none__" ? "" : v)}
+                value={form.tutorId}
+                onValueChange={(v) => setField("tutorId", v)}
               >
                 <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
                   <SelectValue placeholder="Assign a tutor" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">No tutor assigned</SelectItem>
                   {tutors.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       <span className="flex items-center gap-2">
@@ -445,16 +525,17 @@ export function ClassesLive() {
 
             {/* Batch */}
             <div className="space-y-1.5">
-              <Label>Batch</Label>
+              <Label>
+                Batch <span className="text-red-500">*</span>
+              </Label>
               <Select
-                value={form.batchId || "__none__"}
-                onValueChange={(v) => setField("batchId", v === "__none__" ? "" : v)}
+                value={form.batchId}
+                onValueChange={(v) => setField("batchId", v)}
               >
                 <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
                   <SelectValue placeholder="Assign to a batch" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">No batch</SelectItem>
                   {batches.map((b) => (
                     <SelectItem key={b.id} value={b.id}>
                       {b.name}
@@ -560,6 +641,12 @@ function LiveClassCard({
             >
               {diffCfg.label}
             </span>
+            {cls.recording && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium bg-[#610981]/10 text-[#610981] border-[#610981]/20">
+                <VideoIcon className="w-3 h-3" />
+                Recording added
+              </span>
+            )}
           </div>
 
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">

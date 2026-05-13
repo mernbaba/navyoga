@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
-import { Users, GraduationCap, Calendar, TrendingUp, IndianRupee, Award, Sparkles, Target, TrendingDown, Clock, BarChart3, Gift, ArrowRight } from "lucide-react";
+import { Users, GraduationCap, UserPlus, TrendingUp, IndianRupee, Award, Sparkles, Target, TrendingDown, BarChart3, Gift, ArrowRight } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Badge } from "../../components/ui/badge";
 import { Link } from "react-router";
@@ -38,8 +38,8 @@ export function Dashboard() {
   const studentsDiff = data?.cards.students.diff ?? 0;
   const tutorsTotal = data?.cards.tutors.total ?? 0;
   const tutorsDiff = data?.cards.tutors.diff ?? 0;
-  const classesTotal = data?.cards.classes.total ?? 0;
-  const classesDiff = data?.cards.classes.diff ?? 0;
+  const leadsTotal = data?.cards.leads.total ?? 0;
+  const leadsDiff = data?.cards.leads.diff ?? 0;
   const revenueTotal = data?.cards.revenue.total ?? 0;
   const revenueDiff = data?.cards.revenue.diff ?? 0;
 
@@ -71,13 +71,13 @@ export function Dashboard() {
       trend: tutorsDiff >= 0 ? 'up' : 'down',
     },
     {
-      name: 'Active Classes',
-      value: classesTotal,
-      icon: Calendar,
+      name: 'Total Leads',
+      value: leadsTotal,
+      icon: UserPlus,
       color: 'text-[#ff691d]',
       bgColor: 'bg-[#ff691d]/10',
-      change: formatDiff(classesDiff),
-      trend: classesDiff >= 0 ? 'up' : 'down',
+      change: formatDiff(leadsDiff),
+      trend: leadsDiff >= 0 ? 'up' : 'down',
     },
     {
       name: 'Monthly Revenue',
@@ -356,6 +356,7 @@ export function Dashboard() {
         </Card>
       </div>
 
+      {/*
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="md:col-span-2 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-40 h-40 bg-[#ff691d]/5 rounded-full blur-3xl" />
@@ -364,20 +365,7 @@ export function Dashboard() {
             <CardDescription>Latest updates and notifications</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {data?.activity && data.activity.length > 0 ? (
-              data.activity.map((item, index) => (
-                <div key={index} className="flex items-start gap-3 p-3 rounded-xl bg-[#610981]/5 border border-[#610981]/10 hover:border-[#610981]/30 transition-colors">
-                  <div className="p-2 bg-[#610981] rounded-lg mt-0.5">
-                    <Clock className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{String(item)}</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="flex items-center justify-center py-10 text-muted-foreground text-sm">No recent activity</div>
-            )}
+            <div className="flex items-center justify-center py-10 text-muted-foreground text-sm">No recent activity</div>
           </CardContent>
         </Card>
 
@@ -405,6 +393,7 @@ export function Dashboard() {
           </CardContent>
         </Card>
       </div>
+      */}
     </div>
   );
 }

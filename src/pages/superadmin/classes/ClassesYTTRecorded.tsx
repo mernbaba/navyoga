@@ -267,23 +267,27 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             />
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="course-thumb">Thumbnail URL</Label>
-            <Input
-              id="course-thumb"
-              placeholder="optional · image URL"
-              value={form.thumbnail ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, thumbnail: e.target.value }))}
-            />
-          </div>
-          <div className="flex items-center gap-3 pt-1">
-            <Switch
-              id="course-active"
-              checked={form.isActive ?? true}
-              onCheckedChange={(v) => setForm((f) => ({ ...f, isActive: v }))}
-            />
-            <Label htmlFor="course-active">Active</Label>
-          </div>
+          {!isEdit && (
+            <>
+              <div className="space-y-1">
+                <Label htmlFor="course-thumb">Thumbnail URL</Label>
+                <Input
+                  id="course-thumb"
+                  placeholder="optional · image URL"
+                  value={form.thumbnail ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, thumbnail: e.target.value }))}
+                />
+              </div>
+              <div className="flex items-center gap-3 pt-1">
+                <Switch
+                  id="course-active"
+                  checked={form.isActive ?? true}
+                  onCheckedChange={(v) => setForm((f) => ({ ...f, isActive: v }))}
+                />
+                <Label htmlFor="course-active">Active</Label>
+              </div>
+            </>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" disabled={saving} onClick={onClose}>Cancel</Button>
@@ -1571,18 +1575,12 @@ interface CourseCardProps {
 }
 
 function CourseCard({ course, onSelect, onEdit, onDelete }: CourseCardProps) {
-  const [imgError, setImgError] = useState(false);
-  const showImg = !!course.thumbnail && !imgError;
   return (
     <Card className="hover:shadow-md transition-shadow cursor-pointer group" onClick={onSelect}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden" style={{ background: `${BRAND}15` }}>
-            {showImg ? (
-              <img src={course.thumbnail} alt={course.title} className="w-10 h-10 rounded-xl object-cover" onError={() => setImgError(true)} />
-            ) : (
-              <Video className="w-5 h-5" style={{ color: BRAND }} />
-            )}
+            <Video className="w-5 h-5" style={{ color: BRAND }} />
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <Badge variant={course.isActive ? "default" : "secondary"}>
@@ -1597,7 +1595,7 @@ function CourseCard({ course, onSelect, onEdit, onDelete }: CourseCardProps) {
             >
               <Pencil className="w-3.5 h-3.5" />
             </Button>
-            <Button
+            {/* <Button
               size="icon"
               variant="ghost"
               className="h-7 w-7 text-destructive hover:text-destructive"
@@ -1605,7 +1603,7 @@ function CourseCard({ course, onSelect, onEdit, onDelete }: CourseCardProps) {
               title="Delete course"
             >
               <Trash2 className="w-3.5 h-3.5" />
-            </Button>
+            </Button> */}
           </div>
         </div>
         <CardTitle className="text-base leading-snug mt-2">{course.title}</CardTitle>
@@ -1681,9 +1679,9 @@ export function ClassesYTTRecorded() {
           <h1 className="text-2xl font-bold" style={{ color: BRAND }}>YTT Recorded</h1>
           <p className="text-muted-foreground text-sm mt-1">Yoga Teacher Training — recorded sessions</p>
         </div>
-        <Button onClick={openCreateCourse} style={{ background: BRAND }}>
+        {/* <Button onClick={openCreateCourse} style={{ background: BRAND }}>
           <Plus className="w-4 h-4 mr-1" /> Add Course
-        </Button>
+        </Button> */}
       </div>
 
       {loading && (

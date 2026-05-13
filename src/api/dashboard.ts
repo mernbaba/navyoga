@@ -10,7 +10,7 @@ export type SuperadminDashboard = {
   cards: {
     students: DashboardCardValue;
     tutors: DashboardCardValue;
-    classes: DashboardCardValue;
+    leads: DashboardCardValue;
     revenue: DashboardCardValue;
   };
   revenue: Array<{ month: string; revenue: number }>;
@@ -21,9 +21,7 @@ export type SuperadminDashboard = {
     capacity: number;
     attendance: number;
   };
-  marketing: Record<string, unknown>;
   referral: Record<string, unknown>;
-  activity: unknown[];
   stats: unknown[];
 };
 

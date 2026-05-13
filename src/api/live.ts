@@ -78,3 +78,23 @@ export function deleteLiveClass(role: Role, id: string) {
     }),
   );
 }
+
+export type LiveClassRecordingPresign = {
+  url: string;
+  storePath: string;
+  expiresIn: number;
+};
+
+export function requestLiveClassRecordingPresign(
+  role: Role,
+  id: string,
+  body: { filename: string; contentType: string },
+) {
+  return unwrap<LiveClassRecordingPresign>(
+    authedRequest<ApiSuccess<LiveClassRecordingPresign>>(role, {
+      method: "POST",
+      url: `/api/live/${id}/recording-presign`,
+      data: body,
+    }),
+  );
+}
