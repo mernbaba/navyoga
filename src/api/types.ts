@@ -159,7 +159,6 @@ export type Student = StudentUser;
 
 export type Lead = {
   id: string;
-  leadId: string;
   name: string;
   email: string;
   phone: string;

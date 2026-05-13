@@ -20,9 +20,10 @@ export type SuperadminDashboard = {
     rating: number;
     capacity: number;
     attendance: number;
+    referrals: number;
+    eventsAndWorkshops: number;
+    subscriptions: number;
   };
-  referral: Record<string, unknown>;
-  stats: unknown[];
 };
 
 export type OperationsDashboard = {

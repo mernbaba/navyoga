@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
-import { Users, GraduationCap, UserPlus, TrendingUp, IndianRupee, Award, Sparkles, Target, TrendingDown, BarChart3, Gift, ArrowRight } from "lucide-react";
+import { Users, GraduationCap, UserPlus, TrendingUp, IndianRupee, Sparkles, TrendingDown, BarChart3, Gift, ArrowRight, CalendarDays, BadgeCheck } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Badge } from "../../components/ui/badge";
 import { Link } from "react-router";
@@ -43,9 +43,9 @@ export function Dashboard() {
   const revenueTotal = data?.cards.revenue.total ?? 0;
   const revenueDiff = data?.cards.revenue.diff ?? 0;
 
-  const avgTutorRating = data?.performance.rating ?? null;
-  const classCapacity = data?.performance.capacity ?? null;
-  const attendanceRate = data?.performance.attendance ?? null;
+  const referralsCount = data?.performance.referrals ?? null;
+  const eventsAndWorkshops = data?.performance.eventsAndWorkshops ?? null;
+  const subscriptionsCount = data?.performance.subscriptions ?? null;
 
   const revenueChartData = data?.revenue ?? [];
   const popularityChartData = data?.popularity ?? [];
@@ -268,41 +268,41 @@ export function Dashboard() {
           <CardContent className="space-y-4">
             <div className="group relative flex items-center justify-between p-4 border border-border/50 rounded-xl hover:shadow-lg hover:shadow-[#ffac96]/20 transition-all duration-300 hover:border-[#ffac96]/50">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-[#610981]/10 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                  <Award className="w-5 h-5 text-[#610981]" />
+                <div className="p-3 bg-[#ff691d]/10 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                  <Gift className="w-5 h-5 text-[#ff691d]" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Average Tutor Rating</p>
-                  <p className="text-xs" style={{ color: '#ffac96' }}>Based on student feedback</p>
+                  <p className="text-sm font-medium">Total Referrals</p>
+                  <p className="text-xs" style={{ color: '#ffac96' }}>All-time referral count</p>
                 </div>
               </div>
-              <span className="text-2xl font-bold">{avgTutorRating != null ? avgTutorRating.toFixed(1) : "—"}</span>
+              <span className="text-2xl font-bold">{referralsCount != null ? referralsCount.toLocaleString() : "—"}</span>
             </div>
 
             <div className="group relative flex items-center justify-between p-4 border border-border/50 rounded-xl hover:shadow-lg hover:shadow-[#ffac96]/20 transition-all duration-300 hover:border-[#ffac96]/50">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-green-500/10 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                  <Target className="w-5 h-5 text-green-500" />
+                  <CalendarDays className="w-5 h-5 text-green-500" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Class Capacity</p>
-                  <p className="text-xs" style={{ color: '#ffac96' }}>Average enrollment rate</p>
+                  <p className="text-sm font-medium">Events &amp; Workshops</p>
+                  <p className="text-xs" style={{ color: '#ffac96' }}>Total enrollments</p>
                 </div>
               </div>
-              <span className="text-2xl font-bold">{classCapacity != null ? `${classCapacity}%` : "—"}</span>
+              <span className="text-2xl font-bold">{eventsAndWorkshops != null ? eventsAndWorkshops.toLocaleString() : "—"}</span>
             </div>
 
             <div className="group relative flex items-center justify-between p-4 border border-border/50 rounded-xl hover:shadow-lg hover:shadow-[#ffac96]/20 transition-all duration-300 hover:border-[#ffac96]/50">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-blue-500/10 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                  <Users className="w-5 h-5 text-blue-500" />
+                  <BadgeCheck className="w-5 h-5 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Attendance Rate</p>
-                  <p className="text-xs" style={{ color: '#ffac96' }}>Last 30 days</p>
+                  <p className="text-sm font-medium">Active Subscriptions</p>
+                  <p className="text-xs" style={{ color: '#ffac96' }}>Self-Paced, Live &amp; YTT</p>
                 </div>
               </div>
-              <span className="text-2xl font-bold">{attendanceRate != null ? `${attendanceRate}%` : "—"}</span>
+              <span className="text-2xl font-bold">{subscriptionsCount != null ? subscriptionsCount.toLocaleString() : "—"}</span>
             </div>
           </CardContent>
         </Card>

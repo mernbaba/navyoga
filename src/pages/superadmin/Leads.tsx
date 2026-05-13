@@ -109,7 +109,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
 
   const handleDelete = async (lead: Lead) => {
     if (deletingId) return;
-    if (!confirm(`Delete lead "${lead.name}" (${lead.leadId})? This cannot be undone.`)) return;
+    if (!confirm(`Delete lead "${lead.name}" (${lead.id})? This cannot be undone.`)) return;
     setDeletingId(lead.id);
     try {
       await deleteLead(role, lead.id);
@@ -281,7 +281,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                 ) : (
                   leads.map((lead) => (
                     <TableRow key={lead.id}>
-                      <TableCell className="font-medium">{lead.leadId}</TableCell>
+                      <TableCell className="font-medium">{lead.id}</TableCell>
                       <TableCell>{lead.name}</TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
