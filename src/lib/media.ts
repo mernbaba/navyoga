@@ -18,6 +18,7 @@ export function resolveMediaUrl(path: string | null | undefined): string | undef
     }
     return path;
   }
+  
   const normalised = path.startsWith("/") ? path : `/${path}`;
   const segment = PREFIX ? `/${PREFIX}` : "";
   return `${CDN}${segment}${normalised}`;
