@@ -16,3 +16,4 @@ export * as yttLiveApi from "./yttLive";
 export * as yttRecordedApi from "./yttRecorded";
 export * as eventsApi from "./events";
 export * as paymentsApi from "./payments";
+export * as financialsApi from "./financials";
