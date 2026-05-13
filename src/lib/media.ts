@@ -1,8 +1,15 @@
-const DEFAULT_CDN = "https://navyoga.s3.ap-south-1.amazonaws.com";
-const DEFAULT_PREFIX = "assets";
+const CDN_RAW = import.meta.env.VITE_CDN_ENDPOINT as string | undefined;
+const PREFIX_RAW = import.meta.env.VITE_AWS_S3_FILE_PREFIX as string | undefined;
 
-const CDN = ((import.meta.env.VITE_CDN_ENDPOINT as string | undefined) || DEFAULT_CDN).replace(/\/+$/, "");
-const PREFIX = ((import.meta.env.VITE_AWS_S3_FILE_PREFIX as string | undefined) || DEFAULT_PREFIX).replace(/^\/+|\/+$/g, "");
+if (!CDN_RAW) {
+  throw new Error("VITE_CDN_ENDPOINT is not set");
+}
+if (!PREFIX_RAW) {
+  throw new Error("VITE_AWS_S3_FILE_PREFIX is not set");
+}
+
+const CDN = CDN_RAW.replace(/\/+$/, "");
+const PREFIX = PREFIX_RAW.replace(/^\/+|\/+$/g, "");
 
 export function resolveMediaUrl(path: string | null | undefined): string | undefined {
   if (!path) return undefined;
@@ -18,7 +25,7 @@ export function resolveMediaUrl(path: string | null | undefined): string | undef
     }
     return path;
   }
-  
+
   const normalised = path.startsWith("/") ? path : `/${path}`;
   const segment = PREFIX ? `/${PREFIX}` : "";
   return `${CDN}${segment}${normalised}`;

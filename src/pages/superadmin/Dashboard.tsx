@@ -187,12 +187,39 @@ export function Dashboard() {
           <CardContent>
             {popularityChartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={popularityChartData}>
+                <BarChart data={popularityChartData} margin={{ top: 10, right: 10, bottom: 8, left: 0 }}>
                   <CartesianGrid key="grid" strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />
-                  <XAxis key="xaxis" dataKey="name" stroke="#9ca3af" />
-                  <YAxis key="yaxis" stroke="#9ca3af" />
+                  <XAxis
+                    key="xaxis"
+                    dataKey="name"
+                    stroke="#9ca3af"
+                    interval={0}
+                    height={48}
+                    tick={(props: { x: number; y: number; payload: { value: string } }) => {
+                      const { x, y, payload } = props;
+                      const parts = payload.value.split(/[\s-]+/);
+                      return (
+                        <g transform={`translate(${x},${y + 6})`}>
+                          {parts.map((part, i) => (
+                            <text
+                              key={i}
+                              x={0}
+                              y={i * 13}
+                              textAnchor="middle"
+                              fill="#6b7280"
+                              fontSize={11}
+                            >
+                              {part}
+                            </text>
+                          ))}
+                        </g>
+                      );
+                    }}
+                  />
+                  <YAxis key="yaxis" stroke="#9ca3af" allowDecimals={false} />
                   <Tooltip
                     key="tooltip"
+                    cursor={{ fill: 'rgba(97, 9, 129, 0.06)' }}
                     contentStyle={{
                       backgroundColor: 'rgba(255, 255, 255, 0.95)',
                       border: '1px solid #ffac96',

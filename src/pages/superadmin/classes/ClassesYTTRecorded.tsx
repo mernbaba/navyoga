@@ -146,7 +146,7 @@ function extractVideoMeta(file: File): Promise<{ durationSec: number; thumbnail:
   });
 }
 
-const LEVELS: ClassLevel[] = ["BEGINNER", "INTERMEDIATE", "ADVANCED", "ALL_LEVELS"];
+const LEVELS: Exclude<ClassLevel, "ALL_LEVELS">[] = ["BEGINNER", "INTERMEDIATE", "ADVANCED"];
 const levelLabel = (l: ClassLevel) =>
   l === "ALL_LEVELS" ? "All Levels" : l.charAt(0) + l.slice(1).toLowerCase();
 
@@ -159,18 +159,20 @@ interface CourseFormDialogProps {
   onSaved: (course: YTTCourse, mode: "create" | "edit") => void;
 }
 
-const EMPTY_COURSE: YTTCourseBody = {
+type CourseFormState = Omit<YTTCourseBody, "level"> & { level: Exclude<ClassLevel, "ALL_LEVELS"> | "" };
+
+const EMPTY_COURSE: CourseFormState = {
   title: "",
   yogaType: "",
   description: "",
   thumbnail: "",
-  level: "ALL_LEVELS",
+  level: "",
   isActive: true,
 };
 
 function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogProps) {
   const isEdit = !!initial;
-  const [form, setForm] = useState<YTTCourseBody>(EMPTY_COURSE);
+  const [form, setForm] = useState<CourseFormState>(EMPTY_COURSE);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -180,7 +182,7 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
         yogaType: initial.yogaType,
         description: initial.description ?? "",
         thumbnail: initial.thumbnail ?? "",
-        level: initial.level,
+        level: initial.level === "ALL_LEVELS" ? "" : initial.level,
         isActive: initial.isActive,
       });
     } else {
@@ -189,7 +191,11 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
     setSaving(false);
   }, [initial, open]);
 
-  const valid = form.title.trim().length > 0 && form.yogaType.trim().length > 0;
+  const valid =
+    form.title.trim().length > 0 &&
+    form.yogaType.trim().length > 0 &&
+    !!form.level &&
+    (form.description?.trim().length ?? 0) > 0;
 
   async function handleSave() {
     if (!valid) return;
@@ -198,9 +204,9 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
       const body: YTTCourseBody = {
         title: form.title.trim(),
         yogaType: form.yogaType.trim(),
-        level: form.level,
+        level: form.level as ClassLevel,
         isActive: form.isActive,
-        ...(form.description?.trim() ? { description: form.description.trim() } : {}),
+        description: form.description!.trim(),
         ...(form.thumbnail?.trim() ? { thumbnail: form.thumbnail.trim() } : {}),
       };
       const saved = isEdit && initial
@@ -244,12 +250,12 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
               />
             </div>
             <div className="space-y-1">
-              <Label>Level</Label>
+              <Label>Level *</Label>
               <Select
-                value={form.level ?? "ALL_LEVELS"}
-                onValueChange={(v: ClassLevel) => setForm((f) => ({ ...f, level: v }))}
+                value={form.level || undefined}
+                onValueChange={(v: Exclude<ClassLevel, "ALL_LEVELS">) => setForm((f) => ({ ...f, level: v }))}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
                 <SelectContent>
                   {LEVELS.map((l) => <SelectItem key={l} value={l}>{levelLabel(l)}</SelectItem>)}
                 </SelectContent>
@@ -257,7 +263,7 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
             </div>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="course-desc">Description</Label>
+            <Label htmlFor="course-desc">Description *</Label>
             <Textarea
               id="course-desc"
               rows={3}

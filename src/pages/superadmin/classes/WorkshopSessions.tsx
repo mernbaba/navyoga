@@ -26,13 +26,20 @@ import {
   SelectValue,
 } from "../../../components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "../../../components/ui/dialog";
+import {
   ArrowLeft,
   Plus,
   Edit2,
   Trash2,
   ListVideo,
   Save,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -49,13 +56,14 @@ import type {
   WorkshopSessionStatus,
 } from "../../../api/types";
 
-const MODES: WorkshopMode[] = ["LIVE", "RECORDED", "HYBRID"];
+type SessionMode = "LIVE" | "RECORDED";
+const MODES: SessionMode[] = ["LIVE", "RECORDED"];
 const SESSION_STATUSES: WorkshopSessionStatus[] = ["UPCOMING", "LIVE", "COMPLETED", "CANCELLED"];
 
 type SessionFormFields = {
   title: string;
   sortOrder: string;
-  mode: WorkshopMode;
+  mode: SessionMode;
   scheduledAt: string;
   duration: string;
   link: string;
@@ -67,7 +75,7 @@ function emptySessionForm(workshopMode: WorkshopMode): SessionFormFields {
   return {
     title: "",
     sortOrder: "",
-    mode: workshopMode,
+    mode: workshopMode === "RECORDED" ? "RECORDED" : "LIVE",
     scheduledAt: "",
     duration: "",
     link: "",
@@ -146,7 +154,7 @@ export function WorkshopSessions() {
     setForm({
       title: s.title,
       sortOrder: String(s.sortOrder),
-      mode: s.mode,
+      mode: s.mode === "RECORDED" ? "RECORDED" : "LIVE",
       scheduledAt: toDatetimeLocal(s.scheduledAt),
       duration: s.duration != null ? String(s.duration) : "",
       link: s.link ?? "",
@@ -166,6 +174,17 @@ export function WorkshopSessions() {
     if (!form.title.trim()) return;
     const sortOrder = Number(form.sortOrder);
     if (!Number.isFinite(sortOrder) || sortOrder < 0) return;
+
+    const hasLink = !!form.link.trim();
+    const hasVideo = !!form.video.trim();
+    if (form.mode === "LIVE" && !hasLink) {
+      toast.error("Join link is required for live sessions");
+      return;
+    }
+    if (form.mode === "RECORDED" && !hasVideo) {
+      toast.error("Recording URL is required for recorded sessions");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -265,141 +284,141 @@ export function WorkshopSessions() {
             </p>
           </div>
         </div>
-        {!editorOpen && (
-          <Button onClick={openCreate} className="gap-2 shrink-0" style={{ background: "#610981", color: "white" }}>
-            <Plus className="w-4 h-4" /> Add Session
-          </Button>
-        )}
+        <Button onClick={openCreate} className="gap-2 shrink-0" style={{ background: "#610981", color: "white" }}>
+          <Plus className="w-4 h-4" /> Add Session
+        </Button>
       </div>
 
-      {/* Inline form panel */}
-      {editorOpen && (
-        <Card className="border-0 shadow-md max-w-3xl mx-auto">
-          <CardHeader className="flex flex-row items-center justify-between pb-3 border-b">
-            <div>
-              <CardTitle className="text-base" style={{ color: "#610981" }}>
-                {editor.kind === "create" ? "Add Session" : "Edit Session"}
-              </CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {editor.kind === "create" ? "Create a new session for this workshop." : "Update the session details."}
-              </p>
+      {/* Session form modal */}
+      <Dialog open={editorOpen} onOpenChange={(o) => { if (!o) closeEditor(); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
+          <DialogHeader className="min-w-0">
+            <DialogTitle style={{ color: "#610981" }}>
+              {editor.kind === "create" ? "Add Session" : "Edit Session"}
+            </DialogTitle>
+            <DialogDescription>
+              {editor.kind === "create"
+                ? "Create a new session for this workshop."
+                : "Update the session details."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-2 min-w-0">
+            {/* Row 1: Title (full) */}
+            <div className="space-y-1.5">
+              <Label htmlFor="ses-title" className="text-xs font-medium">
+                Title <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="ses-title"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder="e.g. Track 1 — Sound Bath Journey"
+                autoFocus
+              />
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={closeEditor} disabled={saving}>
-              <X className="w-4 h-4" />
-            </Button>
-          </CardHeader>
-          <CardContent className="pt-5">
-            <div className="grid gap-4">
-              {/* Row 1: Title (full) */}
+
+            {/* Row 2: Order · Mode · Status */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="ses-title" className="text-xs font-medium">
-                  Title <span className="text-red-500">*</span>
+                <Label htmlFor="ses-order" className="text-xs font-medium">
+                  Order <span className="text-red-500">*</span>
                 </Label>
                 <Input
-                  id="ses-title"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="e.g. Track 1 — Sound Bath Journey"
-                  autoFocus
+                  id="ses-order"
+                  type="number"
+                  min={0}
+                  value={form.sortOrder}
+                  onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
                 />
               </div>
-
-              {/* Row 2: Order · Mode · Status */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="ses-order" className="text-xs font-medium">
-                    Order <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="ses-order"
-                    type="number"
-                    min={0}
-                    value={form.sortOrder}
-                    onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Mode</Label>
-                  <Select value={form.mode} onValueChange={(v: WorkshopMode) => setForm({ ...form, mode: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {MODES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Status</Label>
-                  <Select value={form.status} onValueChange={(v: WorkshopSessionStatus) => setForm({ ...form, status: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {SESSION_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Mode</Label>
+                <Select value={form.mode} onValueChange={(v: SessionMode) => setForm({ ...form, mode: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {MODES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
-
-              {/* Row 3: Scheduled · Duration */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="ses-when" className="text-xs font-medium">Scheduled At</Label>
-                  <Input
-                    id="ses-when"
-                    type="datetime-local"
-                    value={form.scheduledAt}
-                    onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="ses-dur" className="text-xs font-medium">Duration (min)</Label>
-                  <Input
-                    id="ses-dur"
-                    type="number"
-                    min={0}
-                    value={form.duration}
-                    onChange={(e) => setForm({ ...form, duration: e.target.value })}
-                    placeholder="e.g. 45"
-                  />
-                </div>
-              </div>
-
-              {/* Row 4: Join Link · Recording URL */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="ses-link" className="text-xs font-medium">Join Link</Label>
-                  <Input
-                    id="ses-link"
-                    value={form.link}
-                    onChange={(e) => setForm({ ...form, link: e.target.value })}
-                    placeholder="optional · live join URL"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="ses-video" className="text-xs font-medium">Recording URL</Label>
-                  <Input
-                    id="ses-video"
-                    value={form.video}
-                    onChange={(e) => setForm({ ...form, video: e.target.value })}
-                    placeholder="optional · recording URL"
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Status</Label>
+                <Select value={form.status} onValueChange={(v: WorkshopSessionStatus) => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {SESSION_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
-              <Button variant="outline" disabled={saving} onClick={closeEditor}>Cancel</Button>
-              <Button
-                disabled={saving || !form.title.trim()}
-                onClick={handleSave}
-                style={{ background: "#610981", color: "white" }}
-                className="gap-2"
-              >
-                <Save className="w-4 h-4" />
-                {saving ? "Saving..." : editor.kind === "create" ? "Add Session" : "Save Changes"}
-              </Button>
+            {/* Row 3: Scheduled · Duration */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="ses-when" className="text-xs font-medium">Scheduled At</Label>
+                <Input
+                  id="ses-when"
+                  type="datetime-local"
+                  value={form.scheduledAt}
+                  onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="ses-dur" className="text-xs font-medium">Duration (min)</Label>
+                <Input
+                  id="ses-dur"
+                  type="number"
+                  min={0}
+                  value={form.duration}
+                  onChange={(e) => setForm({ ...form, duration: e.target.value })}
+                  placeholder="e.g. 45"
+                />
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+
+            {/* Row 4: Join Link · Recording URL */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="ses-link" className="text-xs font-medium">
+                  Join Link
+                  {form.mode === "LIVE" && <span className="text-red-500"> *</span>}
+                </Label>
+                <Input
+                  id="ses-link"
+                  value={form.link}
+                  onChange={(e) => setForm({ ...form, link: e.target.value })}
+                  placeholder={form.mode === "LIVE" ? "required · live join URL" : "optional · live join URL"}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="ses-video" className="text-xs font-medium">
+                  Recording URL
+                  {form.mode === "RECORDED" && <span className="text-red-500"> *</span>}
+                </Label>
+                <Input
+                  id="ses-video"
+                  value={form.video}
+                  onChange={(e) => setForm({ ...form, video: e.target.value })}
+                  placeholder={form.mode === "RECORDED" ? "required · recording URL" : "optional · recording URL"}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" disabled={saving} onClick={closeEditor}>Cancel</Button>
+            <Button
+              disabled={saving || !form.title.trim()}
+              onClick={handleSave}
+              style={{ background: "#610981", color: "white" }}
+              className="gap-2"
+            >
+              <Save className="w-4 h-4" />
+              {saving ? "Saving..." : editor.kind === "create" ? "Add Session" : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Sessions table */}
       <Card className="border-0 shadow-xl">

@@ -47,6 +47,7 @@ import {
   Layers,
   Upload,
   Image as ImageIcon,
+  Video,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -188,6 +189,25 @@ function modeBadgeColor(mode: WorkshopMode) {
 
 function levelLabel(level: ClassLevel) {
   return level === "ALL_LEVELS" ? "All Levels" : level.charAt(0) + level.slice(1).toLowerCase();
+}
+
+function WorkshopThumb({ src, alt }: { src: string | undefined; alt: string }) {
+  const [errored, setErrored] = useState(false);
+  if (!src || errored) {
+    return (
+      <div className="w-10 h-10 rounded-md bg-linear-to-br from-[#610981]/15 to-[#ff691d]/10 flex items-center justify-center shrink-0">
+        <Video className="w-4 h-4 text-[#610981]" />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="w-10 h-10 rounded-md object-cover shrink-0"
+      onError={() => setErrored(true)}
+    />
+  );
 }
 
 type FormMode = "create" | "edit";
@@ -550,18 +570,7 @@ export function ClassesWorkshops() {
                     >
                       <TableCell className="pl-4">
                         <div className="flex items-center gap-3">
-                          {w.thumbnail ? (
-                            <img
-                              src={resolveMediaUrl(w.thumbnail)}
-                              alt={w.title}
-                              className="w-10 h-10 rounded-md object-cover"
-                              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-md bg-linear-to-br from-[#610981]/15 to-[#ff691d]/10 flex items-center justify-center">
-                              <Sparkles className="w-4 h-4 text-[#610981]" />
-                            </div>
-                          )}
+                          <WorkshopThumb src={resolveMediaUrl(w.thumbnail)} alt={w.title} />
                           <div className="min-w-0">
                             <p className="font-medium text-sm truncate">{w.title}</p>
                             <p className="text-xs text-muted-foreground truncate">{w.yogaType}</p>

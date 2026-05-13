@@ -431,6 +431,27 @@ export type LiveClass = {
   updatedAt: string;
 };
 
+export type TutorClassState = "LIVE" | "UPCOMING";
+
+export type TutorAssignedClass = {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnail: string | null;
+  yogaType: string;
+  difficulty: ClassDifficulty;
+  scheduledAt: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  duration: number;
+  link: string | null;
+  recording: string | null;
+  batch: { id: string; name: string } | null;
+  state: TutorClassState;
+  createdAt: string;
+  updatedAt: string;
+};
+
 // ─── SELF-PACED ───────────────────────────────────────────────────────────────
 
 export type SelfPacedClass = {

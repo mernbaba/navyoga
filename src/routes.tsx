@@ -72,6 +72,7 @@ import { UserEvents } from "./pages/user/UserEvents";
 import { UserYTTLive } from "./pages/user/UserYTTLive";
 import { UserYTTRecorded } from "./pages/user/UserYTTRecorded";
 import { UserYTTRecordedCourse } from "./pages/user/UserYTTRecordedCourse";
+import { NotFound } from "./pages/NotFound";
 
 const ProtectedRoute = ({ role, children }: { role: LoginRole; children: React.ReactNode }) => {
   if (!isRoleAuthenticated(role)) {
@@ -245,5 +246,9 @@ export const router = createBrowserRouter([
       { path: "ytt-recorded", Component: UserYTTRecorded },
       { path: "ytt-recorded/:courseId", Component: UserYTTRecordedCourse },
     ],
+  },
+  {
+    path: "*",
+    element: <NotFound />,
   },
 ]);
