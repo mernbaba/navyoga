@@ -1139,6 +1139,8 @@ function EditClassDialog({
   const [detectedDurationMin, setDetectedDurationMin] = useState<number | null>(null);
   const [autoThumb, setAutoThumb] = useState<Blob | null>(null);
   const [autoThumbUrl, setAutoThumbUrl] = useState<string | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailFileUrl, setThumbnailFileUrl] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -1154,6 +1156,7 @@ function EditClassDialog({
     setVideoFile(null);
     setDetectedDurationMin(null);
     setAutoThumb(null);
+    setThumbnailFile(null);
     setExtracting(false);
     setSaving(false);
     setUploading(false);
@@ -1165,6 +1168,13 @@ function EditClassDialog({
     setAutoThumbUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [autoThumb]);
+
+  useEffect(() => {
+    if (!thumbnailFile) { setThumbnailFileUrl(null); return; }
+    const url = URL.createObjectURL(thumbnailFile);
+    setThumbnailFileUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [thumbnailFile]);
 
   async function handleVideoChosen(file: File | null) {
     setVideoFile(file);
@@ -1183,6 +1193,17 @@ function EditClassDialog({
     } finally {
       setExtracting(false);
     }
+  }
+
+  function handleThumbnailChosen(file: File | null) {
+    if (!file) { setThumbnailFile(null); return; }
+    const okType = /^image\/(jpeg|png)$/i.test(file.type);
+    const okExt = /\.(jpe?g|png)$/i.test(file.name);
+    if (!okType && !okExt) {
+      toast.error("Thumbnail must be a .jpg or .png image");
+      return;
+    }
+    setThumbnailFile(file);
   }
 
   async function handleUploadVideo() {
@@ -1249,7 +1270,22 @@ function EditClassDialog({
     if (!isClassFormValid(form)) return;
     setSaving(true);
     try {
-      const updated = await updateClass("SUPERADMIN", mod.id, cls.id, buildClassBody(form));
+      let updated = await updateClass("SUPERADMIN", mod.id, cls.id, buildClassBody(form));
+
+      if (thumbnailFile) {
+        const thumbName = thumbnailFile.name || "thumbnail.jpg";
+        const thumbType = thumbnailFile.type || "image/jpeg";
+        const thumbPresign = await requestPresignedUrl(
+          "SUPERADMIN", mod.id, cls.id, thumbName, thumbType, "thumbnail",
+        );
+        await fetch(thumbPresign.url, {
+          method: "PUT",
+          headers: { "Content-Type": thumbType },
+          body: thumbnailFile,
+        });
+        updated = await updateClass("SUPERADMIN", mod.id, cls.id, { thumbnail: thumbPresign.storePath });
+      }
+
       toast.success("Class updated");
       onUpdated(updated);
     } catch (err) {
@@ -1282,7 +1318,71 @@ function EditClassDialog({
         <div className="flex-1 overflow-y-auto px-6 py-2 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
           {step === 1 ? (
             <div className="space-y-3">
-              <ClassFormView form={form} onChange={(patch) => setForm((f) => ({ ...f, ...patch }))} />
+              <ClassFormView
+                form={form}
+                onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+                showThumbnail={false}
+              />
+
+              {/* Thumbnail upload — from device, .jpg/.png only */}
+              <div className="space-y-2">
+                <Label htmlFor="ec-thumb-pick">
+                  Thumbnail <span className="text-xs text-muted-foreground font-normal">· optional · .jpg or .png</span>
+                </Label>
+                {(() => {
+                  const preview = thumbnailFileUrl ?? (cls.thumbnail || form.thumbnail.trim() || null);
+                  return preview ? (
+                    <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+                      <img
+                        key={preview}
+                        src={preview}
+                        alt="Thumbnail preview"
+                        className="w-full h-full object-cover opacity-90"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                      />
+                    </div>
+                  ) : null;
+                })()}
+                <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors">
+                  <input
+                    id="ec-thumb-pick"
+                    type="file"
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    className="hidden"
+                    disabled={saving}
+                    onChange={(e) => handleThumbnailChosen(e.target.files?.[0] ?? null)}
+                  />
+                  <label htmlFor="ec-thumb-pick" className="cursor-pointer flex flex-col items-center gap-1.5">
+                    {thumbnailFile ? (
+                      <>
+                        <ImageIcon className="w-6 h-6" style={{ color: BRAND }} />
+                        <p className="text-sm font-medium truncate max-w-full px-2">{thumbnailFile.name}</p>
+                        <p className="text-xs text-muted-foreground">Click to choose a different image</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          {cls.thumbnail ? "Click to replace thumbnail" : "Click to upload thumbnail"}
+                        </p>
+                      </>
+                    )}
+                  </label>
+                </div>
+                {thumbnailFile && (
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      disabled={saving}
+                      onClick={() => setThumbnailFile(null)}
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" /> Remove
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="space-y-3">

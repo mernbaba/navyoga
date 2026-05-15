@@ -563,7 +563,6 @@ function InfoTile({ icon: Icon, label, value }: { icon: typeof Calendar; label: 
 type SessionState = "upcoming" | "live" | "ended";
 
 function getSessionState(session: WorkshopSession): SessionState {
-  if (session.status === "COMPLETED" || session.status === "CANCELLED") return "ended";
   if (!session.scheduledAt) return "upcoming";
   const start = new Date(session.scheduledAt).getTime();
   if (Number.isNaN(start)) return "upcoming";

@@ -4,6 +4,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { User, Mail, Phone, MapPin, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { getMe, patchMe } from "../../api/auth";
@@ -16,6 +17,7 @@ export function UserProfile() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [gender, setGender] = useState("");
   const [age, setAge] = useState<number | "">("");
   const [bloodGroup, setBloodGroup] = useState("");
   const [emergencyContact, setEmergencyContact] = useState("");
@@ -37,6 +39,7 @@ export function UserProfile() {
         setEmail(fresh.email);
         setPhone(fresh.phone);
         setAddress(fresh.address ?? "");
+        setGender(fresh.gender ?? "");
         setAge(fresh.age ?? "");
         setBloodGroup(fresh.bloodGroup ?? "");
         setEmergencyContact(fresh.emergencyContact ?? "");
@@ -79,7 +82,7 @@ export function UserProfile() {
       return;
     }
     void savePartial(
-      { name, email, phone, address: address || null },
+      { name, email, phone, address: address || null, gender: gender || null },
       setIsSavingPersonal,
       "Profile updated successfully.",
     );
@@ -174,6 +177,19 @@ export function UserProfile() {
                       title="Enter a 10-digit phone number"
                     />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Gender</Label>
+                  <Select value={gender} onValueChange={setGender} disabled={isLoading}>
+                    <SelectTrigger id="gender" className="w-full">
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">MALE</SelectItem>
+                      <SelectItem value="Female">FEMALE</SelectItem>
+                      <SelectItem value="Others">OTHERS</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="address">Address</Label>

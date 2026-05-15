@@ -127,6 +127,7 @@ export type StudentUser = {
   referralCode: string;
   isActive: boolean;
   address?: string | null;
+  gender?: string | null;
   age?: number | null;
   bloodGroup?: string | null;
   emergencyContact?: string | null;
@@ -684,7 +685,6 @@ export type AppEvent = {
 // ─── Workshops ───────────────────────────────────────────────────────────────
 
 export type WorkshopMode = "LIVE" | "RECORDED" | "HYBRID";
-export type WorkshopSessionStatus = "UPCOMING" | "LIVE" | "COMPLETED" | "CANCELLED";
 
 export type WorkshopTutorRef = {
   id: string;
@@ -704,7 +704,6 @@ export type WorkshopSession = {
   duration: number | null;
   link?: string | null;
   video?: string | null;
-  status: WorkshopSessionStatus | null;
   createdAt: string;
   updatedAt: string;
 };

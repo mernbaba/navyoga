@@ -11,7 +11,6 @@ import {
   type MyWorkshopEnrollmentResponse,
   type WorkshopMode,
   type ClassLevel,
-  type WorkshopSessionStatus,
 } from "./types";
 
 const BASE = "/api/workshops";
@@ -123,7 +122,6 @@ export type CreateSessionInput = {
   duration?: number | null;
   link?: string | null;
   video?: string | null;
-  status?: WorkshopSessionStatus | null;
 };
 
 export type UpdateSessionInput = Partial<CreateSessionInput>;

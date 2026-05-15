@@ -53,12 +53,10 @@ import type {
   WorkshopWithSessions,
   WorkshopSession,
   WorkshopMode,
-  WorkshopSessionStatus,
 } from "../../../api/types";
 
 type SessionMode = "LIVE" | "RECORDED";
 const MODES: SessionMode[] = ["LIVE", "RECORDED"];
-const SESSION_STATUSES: WorkshopSessionStatus[] = ["UPCOMING", "LIVE", "COMPLETED", "CANCELLED"];
 
 type SessionFormFields = {
   title: string;
@@ -68,7 +66,6 @@ type SessionFormFields = {
   duration: string;
   link: string;
   video: string;
-  status: WorkshopSessionStatus;
 };
 
 function emptySessionForm(workshopMode: WorkshopMode): SessionFormFields {
@@ -80,7 +77,6 @@ function emptySessionForm(workshopMode: WorkshopMode): SessionFormFields {
     duration: "",
     link: "",
     video: "",
-    status: "UPCOMING",
   };
 }
 
@@ -159,7 +155,6 @@ export function WorkshopSessions() {
       duration: s.duration != null ? String(s.duration) : "",
       link: s.link ?? "",
       video: s.video ?? "",
-      status: s.status ?? "UPCOMING",
     });
     setEditor({ kind: "edit", sessionId: s.id });
   }
@@ -192,7 +187,6 @@ export function WorkshopSessions() {
         title: form.title.trim(),
         sortOrder,
         mode: form.mode,
-        status: form.status,
       };
       const scheduledIso = fromDatetimeLocal(form.scheduledAt);
       if (scheduledIso) body.scheduledAt = scheduledIso;
@@ -318,8 +312,8 @@ export function WorkshopSessions() {
               />
             </div>
 
-            {/* Row 2: Order · Mode · Status */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Row 2: Order · Mode */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="ses-order" className="text-xs font-medium">
                   Order <span className="text-red-500">*</span>
@@ -338,15 +332,6 @@ export function WorkshopSessions() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {MODES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Status</Label>
-                <Select value={form.status} onValueChange={(v: WorkshopSessionStatus) => setForm({ ...form, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {SESSION_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -437,14 +422,13 @@ export function WorkshopSessions() {
                   <TableHead>Mode</TableHead>
                   <TableHead>Scheduled</TableHead>
                   <TableHead>Duration</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead className="pr-4 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sessions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-10 text-sm text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-10 text-sm text-muted-foreground">
                       No sessions yet. Click "Add Session" to create one.
                     </TableCell>
                   </TableRow>
@@ -463,9 +447,6 @@ export function WorkshopSessions() {
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {s.duration != null ? `${s.duration} min` : "—"}
-                        </TableCell>
-                        <TableCell>
-                          {s.status ? <Badge variant="outline">{s.status}</Badge> : <span className="text-xs text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="pr-4 text-right">
                           <div className="inline-flex items-center gap-1">
