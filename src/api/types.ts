@@ -118,6 +118,15 @@ export type FrontlineUser = {
   createdAt: string;
 };
 
+export type FrontlineAgentRow = FrontlineUser & {
+  isActive: boolean;
+  updatedAt: string;
+  callsToday: number;
+  leadsAssigned: number;
+  conversions: number;
+  performance: number;
+};
+
 export type StudentUser = {
   id: string;
   email: string;

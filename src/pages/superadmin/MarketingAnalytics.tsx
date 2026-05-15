@@ -365,7 +365,7 @@ export function MarketingAnalytics() {
             </div>
 
             <div className="grid gap-6 lg:grid-cols-2">
-              <Card className="border-border/60 shadow-none">
+              {/* <Card className="border-border/60 shadow-none">
                 <CardContent className="p-6">
                   {sectionTitle(ArrowUpRight, "Acquisition Medium", "How users discovered the platform")}
                   <ResponsiveContainer width="100%" height={280}>
@@ -384,7 +384,7 @@ export function MarketingAnalytics() {
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
-              </Card>
+              </Card> */}
 
               <Card className="border-border/60 shadow-none">
                 <CardContent className="p-6">
@@ -409,9 +409,7 @@ export function MarketingAnalytics() {
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
-            </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
               <Card className="border-border/60 shadow-none">
                 <CardContent className="p-6">
                   {sectionTitle(PieChartIcon, "Subscription Plans", "Distribution of subscription types")}
@@ -436,7 +434,7 @@ export function MarketingAnalytics() {
                 </CardContent>
               </Card>
 
-              <Card className="border-border/60 shadow-none">
+              {/* <Card className="border-border/60 shadow-none">
                 <CardContent className="p-6">
                   {sectionTitle(Smartphone, "Device Usage", "User access by device type")}
                   <div className="space-y-3 mt-4">
@@ -464,7 +462,7 @@ export function MarketingAnalytics() {
                     ))}
                   </div>
                 </CardContent>
-              </Card>
+              </Card> */}
             </div>
 
             <Card className="border-border/60 shadow-none">
@@ -576,7 +574,7 @@ export function MarketingAnalytics() {
               </Card>
             </div>
 
-            <Card className="border-border/60 shadow-none">
+            {/* <Card className="border-border/60 shadow-none">
               <CardContent className="p-6">
                 {sectionTitle(Target, "User Retention Cohort", "Weekly retention rate for new users")}
                 <ResponsiveContainer width="100%" height={320}>
@@ -599,7 +597,7 @@ export function MarketingAnalytics() {
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
-            </Card>
+            </Card> */}
           </TabsContent>
         </Tabs>
     </div>

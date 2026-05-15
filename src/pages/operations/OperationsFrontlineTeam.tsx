@@ -1,156 +1,189 @@
-import { useState } from 'react';
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Badge } from "../../components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
-import { Phone, Plus, Search, Edit, Trash2, TrendingUp, Users } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { Phone, Plus, Search, Edit, Trash2, TrendingUp, Users, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
-import { registerFrontline } from "../../api/auth";
+import { listFrontline, createFrontline, updateFrontline, deleteFrontline } from "../../api/frontline";
+import type { FrontlineAgentRow, StaffStatus } from "../../api/types";
 
-interface FrontlineAgent {
-  id: number | string;
-  name: string;
-  email: string;
-  phone: string;
-  employeeId: string;
-  status: 'Active' | 'Inactive';
-  callsToday: number;
-  leadsAssigned: number;
-  conversions: number;
-  performance: number;
-}
+const STATUSES: StaffStatus[] = ["ACTIVE", "ON_LEAVE", "TERMINATED"];
 
 const EMPTY_ADD_FORM = {
-  firstName: '',
-  lastName: '',
-  email: '',
-  phone: '',
-  password: '',
-  salary: '',
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  password: "",
+  salary: "",
   joinDate: new Date().toISOString().slice(0, 10),
 };
 
+function toDateInput(value: string): string {
+  return value ? value.slice(0, 10) : "";
+}
+
 export function OperationsFrontlineTeam() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState<FrontlineAgent | null>(null);
+  const [agents, setAgents] = useState<FrontlineAgentRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedTerm, setDebouncedTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StaffStatus | "ALL">("ALL");
+  const [isLoading, setIsLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [addForm, setAddForm] = useState(EMPTY_ADD_FORM);
-  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
 
-  const [agents, setAgents] = useState<FrontlineAgent[]>([
-    { id: 1, name: 'Sarah Johnson', email: 'sarah.j@navyoga.com', phone: '+91 98765 43230', employeeId: 'FL-001', status: 'Active', callsToday: 45, leadsAssigned: 120, conversions: 15, performance: 92 },
-    { id: 2, name: 'Michael Chen', email: 'michael.c@navyoga.com', phone: '+91 98765 43231', employeeId: 'FL-002', status: 'Active', callsToday: 38, leadsAssigned: 95, conversions: 12, performance: 88 },
-    { id: 3, name: 'Priya Gupta', email: 'priya.g@navyoga.com', phone: '+91 98765 43232', employeeId: 'FL-003', status: 'Active', callsToday: 42, leadsAssigned: 110, conversions: 18, performance: 95 },
-    { id: 4, name: 'David Lee', email: 'david.l@navyoga.com', phone: '+91 98765 43233', employeeId: 'FL-004', status: 'Active', callsToday: 35, leadsAssigned: 88, conversions: 10, performance: 85 },
-    { id: 5, name: 'Anita Desai', email: 'anita.d@navyoga.com', phone: '+91 98765 43234', employeeId: 'FL-005', status: 'Inactive', callsToday: 0, leadsAssigned: 0, conversions: 0, performance: 0 },
-  ]);
+  const [editing, setEditing] = useState<FrontlineAgentRow | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const filteredAgents = agents.filter(agent =>
-    agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    agent.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    agent.employeeId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    const handle = setTimeout(() => setDebouncedTerm(searchTerm.trim()), 300);
+    return () => clearTimeout(handle);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    listFrontline("OPERATIONS", {
+      q: debouncedTerm || undefined,
+      status: statusFilter === "ALL" ? undefined : statusFilter,
+      page,
+      limit: 20,
+    })
+      .then((res) => {
+        if (cancelled) return;
+        setAgents(res.items);
+        setTotal(res.total);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load agents.");
+      })
+      .finally(() => !cancelled && setIsLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedTerm, statusFilter, page, refreshKey]);
+
+  const refetch = () => setRefreshKey((k) => k + 1);
+
+  const activeCount = agents.filter((a) => a.status === "ACTIVE").length;
+  const callsToday = agents.reduce((sum, a) => sum + a.callsToday, 0);
+  const conversions = agents.reduce((sum, a) => sum + a.conversions, 0);
 
   const metrics = [
-    { title: 'Total Agents', value: agents.length.toString(), icon: Users, color: '#ff691d' },
-    { title: 'Active Agents', value: agents.filter(a => a.status === 'Active').length.toString(), icon: Phone, color: '#10b981' },
-    { title: 'Total Calls Today', value: agents.reduce((sum, a) => sum + a.callsToday, 0).toString(), icon: Phone, color: '#610981' },
-    { title: 'Total Conversions', value: agents.reduce((sum, a) => sum + a.conversions, 0).toString(), icon: TrendingUp, color: '#f59e0b' },
+    { title: "Total Agents", value: String(total), icon: Users, color: "#ff691d" },
+    { title: "Active (page)", value: String(activeCount), icon: Phone, color: "#10b981" },
+    { title: "Calls Today (page)", value: String(callsToday), icon: Phone, color: "#610981" },
+    { title: "Conversions (page)", value: String(conversions), icon: TrendingUp, color: "#f59e0b" },
   ];
 
-  const handleAddAgent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmittingAdd) return;
-
+  const handleAdd = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (isAdding) return;
     const salaryNum = Number(addForm.salary);
     if (!Number.isFinite(salaryNum) || salaryNum < 0) {
-      toast.error('Salary must be a non-negative number');
+      toast.error("Salary must be a non-negative number");
       return;
     }
     if (addForm.password.length < 8) {
-      toast.error('Password must be at least 8 characters');
+      toast.error("Password must be at least 8 characters");
       return;
     }
-
-    setIsSubmittingAdd(true);
+    if (!/^\d{10}$/.test(addForm.phone)) {
+      toast.error("Phone number must be exactly 10 digits.");
+      return;
+    }
+    setIsAdding(true);
     try {
-      const user = await registerFrontline({
-        email: addForm.email.trim(),
+      await createFrontline("OPERATIONS", {
         firstName: addForm.firstName.trim(),
         lastName: addForm.lastName.trim(),
+        email: addForm.email.trim(),
         phone: addForm.phone.trim(),
         password: addForm.password,
         salary: salaryNum,
         joinDate: addForm.joinDate,
       });
-
-      const newAgent: FrontlineAgent = {
-        id: user.id,
-        name: `${user.firstName} ${user.lastName}`.trim(),
-        email: user.email,
-        phone: user.phone,
-        employeeId: user.employeeId,
-        status: user.status === 'TERMINATED' ? 'Inactive' : 'Active',
-        callsToday: 0,
-        leadsAssigned: 0,
-        conversions: 0,
-        performance: 0,
-      };
-      setAgents((prev) => [newAgent, ...prev]);
-      toast.success(`Agent ${user.employeeId} added successfully`);
+      toast.success("Agent added successfully");
+      setIsAddOpen(false);
       setAddForm(EMPTY_ADD_FORM);
-      setIsAddModalOpen(false);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to add agent';
-      toast.error(message);
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to add agent.");
     } finally {
-      setIsSubmittingAdd(false);
+      setIsAdding(false);
     }
   };
 
-  const handleEditAgent = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success('Agent updated successfully');
-    setIsEditModalOpen(false);
-    setSelectedAgent(null);
-  };
-
-  const handleDeleteAgent = (id: number | string) => {
-    if (confirm('Are you sure you want to delete this agent?')) {
-      setAgents(agents.filter(a => a.id !== id));
-      toast.success('Agent deleted successfully');
+  const handleEdit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editing || isUpdating) return;
+    const fd = new FormData(event.currentTarget);
+    const phone = String(fd.get("phone") || "");
+    if (!/^\d{10}$/.test(phone)) {
+      toast.error("Phone number must be exactly 10 digits.");
+      return;
+    }
+    setIsUpdating(true);
+    try {
+      await updateFrontline("OPERATIONS", editing.id, {
+        firstName: String(fd.get("firstName") || ""),
+        lastName: String(fd.get("lastName") || ""),
+        email: String(fd.get("email") || ""),
+        phone,
+        designation: String(fd.get("designation") || ""),
+        department: String(fd.get("department") || ""),
+        dailyTarget: Number(fd.get("dailyTarget") || 0),
+        salary: Number(fd.get("salary") || 0),
+        joinDate: String(fd.get("joinDate") || ""),
+        status: fd.get("status") as StaffStatus,
+      });
+      toast.success("Agent updated successfully");
+      setEditing(null);
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update agent.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
-  const openEditModal = (agent: FrontlineAgent) => {
-    setSelectedAgent(agent);
-    setIsEditModalOpen(true);
+  const handleDelete = async (agent: FrontlineAgentRow) => {
+    if (!confirm(`Delete ${agent.firstName} ${agent.lastName}? This cannot be undone.`)) return;
+    try {
+      await deleteFrontline("OPERATIONS", agent.id);
+      toast.success("Agent deleted successfully");
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete agent.");
+    }
   };
 
   return (
     <div className="p-6 lg:p-8">
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-semibold" style={{ color: '#ff691d' }}>Frontline Team Management</h1>
+          <h1 className="text-3xl font-semibold" style={{ color: "#ff691d" }}>Frontline Team Management</h1>
           <p className="text-muted-foreground mt-1">Manage lead generation team members and their performance</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {metrics.map((metric, index) => {
+          {metrics.map((metric) => {
             const Icon = metric.icon;
             return (
-              <Card key={index} className="relative overflow-hidden">
-                <div 
-                  className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10"
-                  style={{ backgroundColor: metric.color }}
-                />
+              <Card key={metric.title} className="relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10" style={{ backgroundColor: metric.color }} />
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {metric.title}
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{metric.title}</CardTitle>
                   <div className="p-2 rounded-lg" style={{ backgroundColor: `${metric.color}20` }}>
                     <Icon className="w-4 h-4" style={{ color: metric.color }} />
                   </div>
@@ -166,24 +199,26 @@ export function OperationsFrontlineTeam() {
         <Card>
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <CardTitle style={{ color: '#ff691d' }}>All Agents</CardTitle>
+              <CardTitle style={{ color: "#ff691d" }}>All Agents</CardTitle>
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
                   <Input
                     placeholder="Search agents..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                     className="pl-10 w-full sm:w-64"
                   />
                 </div>
-                <Button 
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="gap-2"
-                  style={{ backgroundColor: '#610981' }}
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Agent
+                <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as StaffStatus | "ALL"); setPage(1); }}>
+                  <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All statuses</SelectItem>
+                    {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace("_", " ")}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button onClick={() => setIsAddOpen(true)} className="gap-2" style={{ backgroundColor: "#610981" }}>
+                  <Plus className="w-4 h-4" />Add Agent
                 </Button>
               </div>
             </div>
@@ -193,260 +228,249 @@ export function OperationsFrontlineTeam() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: '#ffac96' }}>Agent ID</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: '#ffac96' }}>Name</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: '#ffac96' }}>Contact</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: '#ffac96' }}>Calls Today</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: '#ffac96' }}>Leads</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: '#ffac96' }}>Conversions</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: '#ffac96' }}>Performance</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: '#ffac96' }}>Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: '#ffac96' }}>Actions</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Agent ID</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Name</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Contact</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Calls Today</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Leads</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Conversions</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Performance</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Status</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredAgents.map((agent) => (
-                    <tr key={agent.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4">
-                        <span className="font-medium">{agent.employeeId}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div>
-                          <p className="font-medium">{agent.name}</p>
+                  {isLoading && agents.length === 0 ? (
+                    <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">Loading...</td></tr>
+                  ) : agents.length === 0 ? (
+                    <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">No agents found.</td></tr>
+                  ) : (
+                    agents.map((agent) => (
+                      <tr key={agent.id} className="border-b hover:bg-gray-50">
+                        <td className="py-3 px-4">
+                          <span className="font-medium">{agent.employeeId}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <p className="font-medium">{agent.firstName} {agent.lastName}</p>
                           <p className="text-sm text-muted-foreground">{agent.email}</p>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">{agent.phone}</td>
-                      <td className="py-3 px-4">
-                        <Badge variant="outline" style={{ borderColor: '#610981', color: '#610981' }}>
-                          {agent.callsToday}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge variant="outline" style={{ borderColor: '#3b82f6', color: '#3b82f6' }}>
-                          {agent.leadsAssigned}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge variant="outline" style={{ borderColor: '#10b981', color: '#10b981' }}>
-                          {agent.conversions}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full rounded-full"
-                              style={{ 
-                                width: `${agent.performance}%`,
-                                backgroundColor: agent.performance >= 90 ? '#10b981' : agent.performance >= 70 ? '#f59e0b' : '#ef4444'
-                              }}
-                            />
+                        </td>
+                        <td className="py-3 px-4">{agent.phone}</td>
+                        <td className="py-3 px-4">
+                          <Badge variant="outline" style={{ borderColor: "#610981", color: "#610981" }}>
+                            {agent.callsToday}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4">
+                          <Badge variant="outline" style={{ borderColor: "#3b82f6", color: "#3b82f6" }}>
+                            {agent.leadsAssigned}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4">
+                          <Badge variant="outline" style={{ borderColor: "#10b981", color: "#10b981" }}>
+                            {agent.conversions}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden min-w-16">
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width: `${agent.performance}%`,
+                                  backgroundColor: agent.performance >= 90 ? "#10b981" : agent.performance >= 70 ? "#f59e0b" : "#ef4444",
+                                }}
+                              />
+                            </div>
+                            <span className="text-sm font-medium">{agent.performance}%</span>
                           </div>
-                          <span className="text-sm font-medium">{agent.performance}%</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge variant={agent.status === 'Active' ? 'default' : 'secondary'}>
-                          {agent.status}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditModal(agent)}
-                            className="hover:bg-blue-50"
-                          >
-                            <Edit className="w-4 h-4 text-blue-600" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteAgent(agent.id)}
-                            className="hover:bg-red-50"
-                          >
-                            <Trash2 className="w-4 h-4 text-red-600" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="py-3 px-4">
+                          <Badge variant={agent.status === "ACTIVE" ? "default" : "secondary"}>
+                            {agent.status.replace("_", " ")}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => setEditing(agent)} className="hover:bg-blue-50">
+                              <Edit className="w-4 h-4 text-blue-600" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDelete(agent)} className="hover:bg-red-50">
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
+            {total > 20 && (
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Page {page} of {Math.ceil(total / 20)} • {total} total</p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+                  <Button variant="outline" size="sm" disabled={page >= Math.ceil(total / 20)} onClick={() => setPage((p) => p + 1)}>Next</Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
- 
-      <Dialog open={isAddModalOpen} onOpenChange={(open) => {
-        setIsAddModalOpen(open);
-        if (!open) setAddForm(EMPTY_ADD_FORM);
-      }}>
+
+      <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) setAddForm(EMPTY_ADD_FORM); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle style={{ color: '#ff691d' }}>Add New Agent</DialogTitle>
-            <DialogDescription>Employee ID is auto-assigned (FL-{new Date().getFullYear()}-NNN). Status defaults to Active.</DialogDescription>
+            <DialogTitle style={{ color: "#ff691d" }}>Add New Agent</DialogTitle>
+            <DialogDescription>Employee ID is auto-assigned. Status defaults to Active.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleAddAgent} className="space-y-4">
+          <form onSubmit={handleAdd} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="firstName" style={{ color: '#ffac96' }}>First Name</Label>
-                <Input
-                  id="firstName"
-                  placeholder="Sarah"
-                  className="mt-1"
-                  required
-                  maxLength={50}
-                  value={addForm.firstName}
-                  onChange={(e) => setAddForm({ ...addForm, firstName: e.target.value })}
-                />
+                <Label htmlFor="firstName" style={{ color: "#ffac96" }}>First Name</Label>
+                <Input id="firstName" value={addForm.firstName} onChange={(e) => setAddForm({ ...addForm, firstName: e.target.value })} className="mt-1" required maxLength={50} />
               </div>
               <div>
-                <Label htmlFor="lastName" style={{ color: '#ffac96' }}>Last Name</Label>
-                <Input
-                  id="lastName"
-                  placeholder="Johnson"
-                  className="mt-1"
-                  required
-                  maxLength={50}
-                  value={addForm.lastName}
-                  onChange={(e) => setAddForm({ ...addForm, lastName: e.target.value })}
-                />
+                <Label htmlFor="lastName" style={{ color: "#ffac96" }}>Last Name</Label>
+                <Input id="lastName" value={addForm.lastName} onChange={(e) => setAddForm({ ...addForm, lastName: e.target.value })} className="mt-1" required maxLength={50} />
               </div>
               <div>
-                <Label htmlFor="email" style={{ color: '#ffac96' }}>Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="email@navyoga.com"
-                  className="mt-1"
-                  required
-                  value={addForm.email}
-                  onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
-                />
+                <Label htmlFor="email" style={{ color: "#ffac96" }}>Email</Label>
+                <Input id="email" type="email" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} className="mt-1" required />
               </div>
               <div>
-                <Label htmlFor="phone" style={{ color: '#ffac96' }}>Phone</Label>
+                <Label htmlFor="phone" style={{ color: "#ffac96" }}>Phone</Label>
                 <Input
                   id="phone"
-                  placeholder="9876543210"
-                  className="mt-1"
-                  required
-                  minLength={7}
-                  maxLength={15}
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="\d{10}"
+                  maxLength={10}
                   value={addForm.phone}
-                  onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
+                  onChange={(e) => setAddForm({ ...addForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                  className="mt-1"
+                  required
+                  title="Enter a 10-digit phone number"
                 />
               </div>
               <div>
-                <Label htmlFor="password" style={{ color: '#ffac96' }}>Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Min 8 characters"
-                  className="mt-1"
-                  required
-                  minLength={8}
-                  maxLength={128}
-                  value={addForm.password}
-                  onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
-                />
+                <Label htmlFor="password" style={{ color: "#ffac96" }}>Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={addForm.password}
+                    onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                    className="mt-1 pr-10"
+                    required
+                    minLength={8}
+                    maxLength={128}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 z-10"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
               <div>
-                <Label htmlFor="salary" style={{ color: '#ffac96' }}>Salary (₹)</Label>
-                <Input
-                  id="salary"
-                  type="number"
-                  min={0}
-                  placeholder="30000"
-                  className="mt-1"
-                  required
-                  value={addForm.salary}
-                  onChange={(e) => setAddForm({ ...addForm, salary: e.target.value })}
-                />
+                <Label htmlFor="salary" style={{ color: "#ffac96" }}>Salary (₹)</Label>
+                <Input id="salary" type="number" min={0} value={addForm.salary} onChange={(e) => setAddForm({ ...addForm, salary: e.target.value })} className="mt-1" required />
               </div>
               <div>
-                <Label htmlFor="joinDate" style={{ color: '#ffac96' }}>Join Date</Label>
-                <Input
-                  id="joinDate"
-                  type="date"
-                  className="mt-1"
-                  required
-                  value={addForm.joinDate}
-                  onChange={(e) => setAddForm({ ...addForm, joinDate: e.target.value })}
-                />
+                <Label htmlFor="joinDate" style={{ color: "#ffac96" }}>Join Date</Label>
+                <Input id="joinDate" type="date" value={addForm.joinDate} onChange={(e) => setAddForm({ ...addForm, joinDate: e.target.value })} className="mt-1" required />
               </div>
             </div>
             <div className="flex justify-end gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setIsAddModalOpen(false);
-                  setAddForm(EMPTY_ADD_FORM);
-                }}
-                disabled={isSubmittingAdd}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                style={{ backgroundColor: '#610981' }}
-                disabled={isSubmittingAdd}
-              >
-                {isSubmittingAdd ? 'Adding…' : 'Add Agent'}
-              </Button>
+              <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} disabled={isAdding}>Cancel</Button>
+              <Button type="submit" style={{ backgroundColor: "#610981" }} disabled={isAdding}>{isAdding ? "Adding..." : "Add Agent"}</Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
- 
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+
+      <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle style={{ color: '#ff691d' }}>Edit Agent</DialogTitle>
+            <DialogTitle style={{ color: "#ff691d" }}>Edit Agent</DialogTitle>
             <DialogDescription>Update agent details</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleEditAgent} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="editName" style={{ color: '#ffac96' }}>Full Name</Label>
-                <Input id="editName" defaultValue={selectedAgent?.name} className="mt-1" />
+          {editing && (
+            <form onSubmit={handleEdit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="editFirstName" style={{ color: "#ffac96" }}>First Name</Label>
+                  <Input id="editFirstName" name="firstName" defaultValue={editing.firstName} className="mt-1" required maxLength={50} />
+                </div>
+                <div>
+                  <Label htmlFor="editLastName" style={{ color: "#ffac96" }}>Last Name</Label>
+                  <Input id="editLastName" name="lastName" defaultValue={editing.lastName} className="mt-1" required maxLength={50} />
+                </div>
+                <div>
+                  <Label htmlFor="editEmployeeId" style={{ color: "#ffac96" }}>Employee ID</Label>
+                  <Input id="editEmployeeId" defaultValue={editing.employeeId} className="mt-1" disabled />
+                </div>
+                <div>
+                  <Label htmlFor="editEmail" style={{ color: "#ffac96" }}>Email</Label>
+                  <Input id="editEmail" name="email" type="email" defaultValue={editing.email} className="mt-1" required />
+                </div>
+                <div>
+                  <Label htmlFor="editPhone" style={{ color: "#ffac96" }}>Phone</Label>
+                  <Input
+                    id="editPhone"
+                    name="phone"
+                    type="tel"
+                    inputMode="numeric"
+                    pattern="\d{10}"
+                    maxLength={10}
+                    defaultValue={editing.phone}
+                    onChange={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "").slice(0, 10); }}
+                    className="mt-1"
+                    required
+                    title="Enter a 10-digit phone number"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editDesignation" style={{ color: "#ffac96" }}>Designation</Label>
+                  <Input id="editDesignation" name="designation" defaultValue={editing.designation} className="mt-1" maxLength={100} />
+                </div>
+                <div>
+                  <Label htmlFor="editDepartment" style={{ color: "#ffac96" }}>Department</Label>
+                  <Input id="editDepartment" name="department" defaultValue={editing.department} className="mt-1" maxLength={50} />
+                </div>
+                <div>
+                  <Label htmlFor="editDailyTarget" style={{ color: "#ffac96" }}>Daily Target</Label>
+                  <Input id="editDailyTarget" name="dailyTarget" type="number" min={0} defaultValue={String(editing.dailyTarget)} className="mt-1" />
+                </div>
+                <div>
+                  <Label htmlFor="editSalary" style={{ color: "#ffac96" }}>Salary (₹)</Label>
+                  <Input id="editSalary" name="salary" type="number" min={0} defaultValue={String(editing.salary)} className="mt-1" required />
+                </div>
+                <div>
+                  <Label htmlFor="editJoinDate" style={{ color: "#ffac96" }}>Join Date</Label>
+                  <Input id="editJoinDate" name="joinDate" type="date" defaultValue={toDateInput(editing.joinDate)} className="mt-1" required />
+                </div>
+                <div>
+                  <Label htmlFor="editStatus" style={{ color: "#ffac96" }}>Status</Label>
+                  <Select name="status" defaultValue={editing.status}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace("_", " ")}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="editEmployeeId" style={{ color: '#ffac96' }}>Employee ID</Label>
-                <Input id="editEmployeeId" defaultValue={selectedAgent?.employeeId} className="mt-1" disabled />
+              <div className="flex justify-end gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+                <Button type="submit" style={{ backgroundColor: "#610981" }} disabled={isUpdating}>{isUpdating ? "Updating..." : "Update Agent"}</Button>
               </div>
-              <div>
-                <Label htmlFor="editEmail" style={{ color: '#ffac96' }}>Email</Label>
-                <Input id="editEmail" type="email" defaultValue={selectedAgent?.email} className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="editPhone" style={{ color: '#ffac96' }}>Phone</Label>
-                <Input id="editPhone" defaultValue={selectedAgent?.phone} className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="editStatus" style={{ color: '#ffac96' }}>Status</Label>
-                <select id="editStatus" defaultValue={selectedAgent?.status} className="w-full mt-1 px-3 py-2 border rounded-md">
-                  <option>Active</option>
-                  <option>Inactive</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => {
-                setIsEditModalOpen(false);
-                setSelectedAgent(null);
-              }}>
-                Cancel
-              </Button>
-              <Button type="submit" style={{ backgroundColor: '#610981' }}>
-                Update Agent
-              </Button>
-            </div>
-          </form>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

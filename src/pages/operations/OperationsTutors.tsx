@@ -7,7 +7,7 @@ import { Textarea } from "../../components/ui/textarea";
 import { Badge } from "../../components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
-import { GraduationCap, Plus, Search, Edit, Trash2, Award } from "lucide-react";
+import { GraduationCap, Plus, Search, Edit, Trash2, Award, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { listTutors, createTutor, updateTutor, deleteTutor } from "../../api/tutors";
 import type { StaffStatus, Tutor } from "../../api/types";
@@ -26,6 +26,7 @@ export function OperationsTutors() {
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [addForm, setAddForm] = useState({
     name: "",
     email: "",
@@ -177,7 +178,7 @@ export function OperationsTutors() {
               <CardTitle style={{ color: "#ff691d" }}>All Tutors</CardTitle>
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
                   <Input
                     placeholder="Search tutors..."
                     value={searchTerm}
@@ -285,7 +286,27 @@ export function OperationsTutors() {
               </div>
               <div>
                 <Label htmlFor="password" style={{ color: "#ffac96" }}>Password</Label>
-                <Input id="password" type="password" value={addForm.password} onChange={(e) => setAddForm({ ...addForm, password: e.target.value })} className="mt-1" required minLength={8} maxLength={128} />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={addForm.password}
+                    onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                    className="mt-1 pr-10"
+                    required
+                    minLength={8}
+                    maxLength={128}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 z-10"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
               <div>
                 <Label htmlFor="experience" style={{ color: "#ffac96" }}>Experience (years)</Label>
