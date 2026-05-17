@@ -37,6 +37,8 @@ import { initiatePayment, verifyPayment } from "../../api/payments";
 import type { InitiatePaymentInput } from "../../api/payments";
 import { listBatches } from "../../api/batches";
 import type { LivePlan, SelfPacedPlan, YTTPlan, Batch } from "../../api/types";
+import { CouponInput, type CouponApplied } from "../../components/CouponInput";
+import type { CouponValidateBody } from "../../api/coupons";
 
 type PlanCategory = "live" | "self-paced" | "ytt-recorded" | "ytt-live";
 
@@ -247,10 +249,12 @@ const isSubscribed = (plan: UiPlan): boolean => {
 
 const [isEnrolling, setIsEnrolling] = useState(false);
   const { Razorpay } = useRazorpay();
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponApplied | null>(null);
 
   const handleUpgrade = (plan: UiPlan) => {
     setSelectedPlan(plan);
     setShowUpgradeDialog(true);
+    setAppliedCoupon(null);
 
     if (plan.category === "live") {
       setSelectedBatchId("");
@@ -267,6 +271,34 @@ const [isEnrolling, setIsEnrolling] = useState(false);
     }
   };
 
+  // Build the coupon validation context for the selected plan, or null if the
+  // required product fields aren't ready yet (e.g. LIVE without a chosen batch).
+  const couponContext: Omit<CouponValidateBody, "code"> | null = (() => {
+    if (!selectedPlan) return null;
+    switch (selectedPlan.category) {
+      case "live":
+        if (!selectedBatchId) return null;
+        return { type: "LIVE", planId: selectedPlan.id, batchId: selectedBatchId };
+      case "self-paced":
+        return { type: "SELF_PACED", planId: selectedPlan.id };
+      case "ytt-live":
+        if (!selectedPlan.courseId) return null;
+        return { type: "YTT_LIVE", planId: selectedPlan.id, courseId: selectedPlan.courseId };
+      case "ytt-recorded":
+        if (!selectedPlan.courseId) return null;
+        return { type: "YTT_RECORDED", planId: selectedPlan.id, courseId: selectedPlan.courseId };
+    }
+  })();
+
+  // Clear an applied coupon if the batch selection changes (LIVE only) — the
+  // validated price is tied to the previous context.
+  useEffect(() => {
+    if (selectedPlan?.category === "live" && appliedCoupon) {
+      setAppliedCoupon(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBatchId]);
+
   const handleConfirmPay = async () => {
     if (!selectedPlan) return;
 
@@ -282,16 +314,17 @@ const [isEnrolling, setIsEnrolling] = useState(false);
     setShowUpgradeDialog(false);
 
     try {
+      const couponCode = appliedCoupon?.code;
       const paymentInput: InitiatePaymentInput = (() => {
         switch (selectedPlan.category) {
           case "live":
-            return { type: "LIVE", planId: selectedPlan.id, batchId: selectedBatchId || undefined };
+            return { type: "LIVE", planId: selectedPlan.id, batchId: selectedBatchId || undefined, couponCode };
           case "self-paced":
-            return { type: "SELF_PACED", planId: selectedPlan.id };
+            return { type: "SELF_PACED", planId: selectedPlan.id, couponCode };
           case "ytt-live":
-            return { type: "YTT_LIVE", planId: selectedPlan.id, courseId: selectedPlan.courseId! };
+            return { type: "YTT_LIVE", planId: selectedPlan.id, courseId: selectedPlan.courseId!, couponCode };
           case "ytt-recorded":
-            return { type: "YTT_RECORDED", planId: selectedPlan.id, courseId: selectedPlan.courseId! };
+            return { type: "YTT_RECORDED", planId: selectedPlan.id, courseId: selectedPlan.courseId!, couponCode };
         }
       })();
 
@@ -316,6 +349,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                   razorpaySignature: response.razorpay_signature,
                 });
                 toast.success(`Successfully subscribed to ${selectedPlan.name}!`);
+                setAppliedCoupon(null);
                 void fetchSubscriptions();
                 resolve();
               } catch (err) {
@@ -888,7 +922,13 @@ const [isEnrolling, setIsEnrolling] = useState(false);
         </TabsContent>
       </Tabs>
  
-      <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+      <Dialog
+        open={showUpgradeDialog}
+        onOpenChange={(open) => {
+          setShowUpgradeDialog(open);
+          if (!open) setAppliedCoupon(null);
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle style={{ color: '#ff691d' }}>Subscribe to {selectedPlan?.name}</DialogTitle>
@@ -896,7 +936,11 @@ const [isEnrolling, setIsEnrolling] = useState(false);
               Review your plan details and confirm your subscription
             </DialogDescription>
           </DialogHeader>
-          {selectedPlan && (
+          {selectedPlan && (() => {
+            const discountedPrice = appliedCoupon
+              ? Math.max(0, selectedPlan.price - appliedCoupon.discountAmount)
+              : selectedPlan.price;
+            return (
             <div className="space-y-4">
               <div className="p-4 rounded-lg border-2" style={{ borderColor: selectedPlan.color }}>
                 <div className="flex items-center justify-between mb-3">
@@ -917,14 +961,20 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                       <span>₹{formatINR(selectedPlan.price)}</span>
                     </span>
                   </div>
+                  {appliedCoupon && (
+                    <div className="flex items-center justify-between text-sm text-green-700">
+                      <span>Coupon ({appliedCoupon.code})</span>
+                      <span>− ₹{formatINR(appliedCoupon.discountAmount)}</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">GST (5%)</span>
-                    <span>₹{formatINR(gstAmount(selectedPlan.price))}</span>
+                    <span>₹{formatINR(gstAmount(discountedPrice))}</span>
                   </div>
                   <div className="flex items-baseline justify-between pt-1.5">
                     <span className="font-semibold">Total payable</span>
                     <span className="text-3xl font-bold" style={{ color: selectedPlan.color }}>
-                      ₹{formatINR(priceWithGst(selectedPlan.price))}
+                      ₹{formatINR(priceWithGst(discountedPrice))}
                     </span>
                   </div>
                   {selectedPlan.monthlyPrice && (
@@ -969,8 +1019,19 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                   )}
                 </div>
               )}
+
+              {couponContext && (
+                <CouponInput
+                  context={couponContext}
+                  applied={appliedCoupon}
+                  disabled={isEnrolling}
+                  onApplied={setAppliedCoupon}
+                  onCleared={() => setAppliedCoupon(null)}
+                />
+              )}
             </div>
-          )}
+            );
+          })()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowUpgradeDialog(false)} disabled={isEnrolling}>
               Cancel

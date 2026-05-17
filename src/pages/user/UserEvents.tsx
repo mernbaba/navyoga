@@ -41,6 +41,7 @@ import type { AppEvent } from "../../api/types";
 import { useRazorpay } from "react-razorpay";
 import { UserWorkshopsList } from "./UserWorkshopsList";
 import { resolveMediaUrl } from "../../lib/media";
+import { CouponInput, type CouponApplied } from "../../components/CouponInput";
 
 interface Event {
   id: string;
@@ -102,6 +103,7 @@ export function UserEvents() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
   const { Razorpay } = useRazorpay();
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponApplied | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -222,6 +224,7 @@ export function UserEvents() {
       const paymentData = await initiatePayment("STUDENT", {
         type: "EVENT",
         entityId: event.id,
+        ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}),
       });
 
       document.body.style.overflow = "hidden";
@@ -278,6 +281,7 @@ export function UserEvents() {
   const openEventDetails = (event: Event) => {
     setSelectedEvent(event);
     setIsDetailsOpen(true);
+    setAppliedCoupon(null);
     // Lazily check enrollment for just this event — only if we don't already know.
     if (enrolledIds.has(event.id)) return;
     getMyEventEnrollment("STUDENT", event.id)
@@ -855,52 +859,69 @@ export function UserEvents() {
                 </div>
               )}
 
-              <div className="flex items-center justify-between pt-4 border-t">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">
-                    Event Price
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <IndianRupee
-                      className="w-6 h-6"
-                      style={{ color: "#ff691d" }}
+              <div className="pt-4 border-t space-y-3">
+                {selectedEvent.price > 0 &&
+                  !enrolledIds.has(selectedEvent.id) &&
+                  selectedEvent.registered < selectedEvent.capacity && (
+                    <CouponInput
+                      context={{ type: "EVENT", entityId: selectedEvent.id }}
+                      applied={appliedCoupon}
+                      disabled={isRegistering}
+                      onApplied={setAppliedCoupon}
+                      onCleared={() => setAppliedCoupon(null)}
                     />
-                    <span
-                      className="text-3xl font-bold"
-                      style={{ color: "#ff691d" }}
-                    >
-                      {selectedEvent.price === 0
-                        ? "Free"
-                        : selectedEvent.price.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-                <Button
-                  size="lg"
-                  onClick={() => handleRegister(selectedEvent)}
-                  className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white shadow-lg gap-2"
-                  disabled={
-                    isRegistering ||
-                    enrolledIds.has(selectedEvent.id) ||
-                    selectedEvent.registered >= selectedEvent.capacity
-                  }
-                >
-                  {enrolledIds.has(selectedEvent.id) ? (
-                    <>
-                      <Star className="w-5 h-5" />
-                      Already Registered
-                    </>
-                  ) : selectedEvent.registered >= selectedEvent.capacity ? (
-                    "Event Full"
-                  ) : isRegistering ? (
-                    "Registering…"
-                  ) : (
-                    <>
-                      <Sparkles className="w-5 h-5" />
-                      Register Now
-                    </>
                   )}
-                </Button>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      {appliedCoupon ? "Total payable" : "Event Price"}
+                    </p>
+                    <div className="flex items-baseline gap-2">
+                      {appliedCoupon && (
+                        <span className="text-base text-muted-foreground line-through">
+                          ₹{selectedEvent.price.toLocaleString()}
+                        </span>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <IndianRupee className="w-6 h-6" style={{ color: "#ff691d" }} />
+                        <span className="text-3xl font-bold" style={{ color: "#ff691d" }}>
+                          {selectedEvent.price === 0
+                            ? "Free"
+                            : (appliedCoupon
+                                ? appliedCoupon.finalAmount
+                                : selectedEvent.price
+                              ).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    size="lg"
+                    onClick={() => handleRegister(selectedEvent)}
+                    className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white shadow-lg gap-2"
+                    disabled={
+                      isRegistering ||
+                      enrolledIds.has(selectedEvent.id) ||
+                      selectedEvent.registered >= selectedEvent.capacity
+                    }
+                  >
+                    {enrolledIds.has(selectedEvent.id) ? (
+                      <>
+                        <Star className="w-5 h-5" />
+                        Already Registered
+                      </>
+                    ) : selectedEvent.registered >= selectedEvent.capacity ? (
+                      "Event Full"
+                    ) : isRegistering ? (
+                      "Registering…"
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5" />
+                        Register Now
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           )}

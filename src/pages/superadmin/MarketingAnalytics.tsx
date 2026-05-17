@@ -37,74 +37,11 @@ import {
   Legend,
 } from "recharts";
 
-const ageDistribution = [
-  { range: "18-25", users: 245 },
-  { range: "26-35", users: 412 },
-  { range: "36-45", users: 156 },
-  { range: "46-55", users: 78 },
-  { range: "55+", users: 32 },
-];
-
-const genderDistribution = [
-  { name: "Female", value: 520, color: "#ff691d" },
-  { name: "Male", value: 298, color: "#610981" },
-  { name: "Other", value: 55, color: "#ffac96" },
-];
-
-const topCities = [
-  { name: "New York", users: 234, percent: 27 },
-  { name: "London", users: 189, percent: 22 },
-  { name: "Los Angeles", users: 156, percent: 18 },
-  { name: "Toronto", users: 123, percent: 14 },
-  { name: "Sydney", users: 98, percent: 11 },
-  { name: "Others", users: 73, percent: 8 },
-];
-
-const countryDistribution = [
-  { name: "United States", value: 312, color: "#ff691d" },
-  { name: "United Kingdom", value: 234, color: "#610981" },
-  { name: "Canada", value: 187, color: "#f59e0b" },
-  { name: "Australia", value: 145, color: "#10b981" },
-  { name: "Others", value: 95, color: "#9ca3af" },
-];
-
-const acquisitionMedium = [
-  { channel: "Organic Search", users: 312, color: "#10b981" },
-  { channel: "Social Media", users: 245, color: "#3b82f6" },
-  { channel: "Paid Ads", users: 187, color: "#ff691d" },
-  { channel: "Referrals", users: 89, color: "#610981" },
-  { channel: "Direct", users: 65, color: "#ef4444" },
-  { channel: "Email", users: 45, color: "#f59e0b" },
-];
-
-const userGrowth = [
-  { month: "Oct", users: 412 },
-  { month: "Nov", users: 528 },
-  { month: "Dec", users: 645 },
-  { month: "Jan", users: 712 },
-  { month: "Feb", users: 768 },
-  { month: "Mar", users: 815 },
-  { month: "Apr", users: 873 },
-];
-
-const subscriptionPlans = [
-  { name: "Monthly", value: 456, color: "#ff691d" },
-  { name: "Quarterly", value: 234, color: "#610981" },
-  { name: "Half-Yearly", value: 123, color: "#f59e0b" },
-  { name: "Yearly", value: 89, color: "#10b981" },
-];
-
-const deviceUsage = [
-  { name: "Mobile", users: 567, percent: 65, color: "#10b981", icon: Smartphone, bg: "bg-green-100", iconColor: "text-green-600" },
-  { name: "Desktop", users: 245, percent: 28, color: "#610981", icon: Monitor, bg: "bg-purple-100", iconColor: "text-[#610981]" },
-  { name: "Tablet", users: 61, percent: 7, color: "#ff691d", icon: Tablet, bg: "bg-orange-100", iconColor: "text-[#ff691d]" },
-];
-
-const activityStatus = [
-  { label: "Active (Last 7 days)", value: 623, percent: 71, color: "#10b981", border: "border-green-200", bar: "bg-green-500" },
-  { label: "Inactive (7-30 days)", value: 156, percent: 18, color: "#f59e0b", border: "border-amber-200", bar: "bg-amber-500" },
-  { label: "Dormant (30+ days)", value: 94, percent: 11, color: "#ef4444", border: "border-red-200", bar: "bg-red-500" },
-];
+const ACTIVITY_STYLE: Record<string, { border: string; bar: string }> = {
+  "#10b981": { border: "border-green-200", bar: "bg-green-500" },
+  "#f59e0b": { border: "border-amber-200", bar: "bg-amber-500" },
+  "#ef4444": { border: "border-red-200", bar: "bg-red-500" },
+};
 
 const engagementStats = [
   {
@@ -171,34 +108,46 @@ const retentionCohort = [
   { week: "Week 8", retention: 65 },
 ];
 
-const stats = [
+const buildStats = (
+  s: MarketingAnalyticsData["stats"],
+): Array<{
+  name: string;
+  value: string;
+  change: string;
+  changeNeutral?: boolean;
+  icon: typeof Users;
+  iconBg: string;
+  cardBg: string;
+}> => [
   {
     name: "Total Users",
-    value: "873",
-    change: "+2.1%",
+    value: s.totalUsers.toLocaleString(),
+    change: "All registered",
+    changeNeutral: true,
     icon: Users,
     iconBg: "bg-linear-to-br from-[#ef4444] to-[#ff691d]",
     cardBg: "bg-linear-to-br from-[#ff691d]/10 via-white to-white",
   },
   {
     name: "Active Users",
-    value: "623",
-    change: "+5.4%",
+    value: s.activeUsers.toLocaleString(),
+    change: "Currently active",
     icon: Activity,
     iconBg: "bg-linear-to-br from-[#10b981] to-[#059669]",
     cardBg: "bg-linear-to-br from-[#10b981]/10 via-white to-white",
   },
   {
     name: "Countries",
-    value: "12",
-    change: "+2",
+    value: s.countries.toLocaleString(),
+    change: "Represented",
+    changeNeutral: true,
     icon: Globe2,
     iconBg: "bg-linear-to-br from-[#a020c8] to-[#610981]",
     cardBg: "bg-linear-to-br from-[#610981]/10 via-white to-white",
   },
   {
     name: "Avg. Age",
-    value: "31.2",
+    value: s.avgAge ? s.avgAge.toFixed(1) : "—",
     change: "Years",
     changeNeutral: true,
     icon: TrendingUp,
@@ -218,6 +167,40 @@ const sectionTitle = (Icon: typeof BarChart3, title: string, subtitle: string) =
 );
 
 export function MarketingAnalytics() {
+  const [data, setData] = useState<MarketingAnalyticsData | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getMarketingAnalytics("SUPERADMIN")
+      .then((res) => {
+        if (!cancelled) setData(res);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : "Failed to load analytics";
+          toast.error(message);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const stats = buildStats(
+    data?.stats ?? { totalUsers: 0, activeUsers: 0, countries: 0, avgAge: 0 },
+  );
+  const ageDistribution = data?.ageDistribution ?? [];
+  const genderDistribution = data?.genderDistribution ?? [];
+  const topCities = data?.topCities ?? [];
+  const countryDistribution = data?.countryDistribution ?? [];
+  const userGrowth = data?.userGrowth ?? [];
+  const subscriptionPlans = data?.subscriptionPlans ?? [];
+  const activityStatus = (data?.activityStatus ?? []).map((s) => ({
+    ...s,
+    border: ACTIVITY_STYLE[s.color]?.border ?? "border-border/50",
+    bar: ACTIVITY_STYLE[s.color]?.bar ?? "bg-gray-500",
+  }));
+
   return (
     <div className="space-y-6">
       <div className="relative overflow-hidden rounded-2xl bg-linear-to-r from-[#610981] via-[#a020c8] to-[#ff691d] p-7 text-white shadow-2xl shadow-[#ffac96]/30">

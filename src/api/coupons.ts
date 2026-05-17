@@ -9,6 +9,35 @@ import {
   type Role,
 } from "./types";
 
+export type CouponValidateBody = {
+  code: string;
+  type: "SELF_PACED" | "LIVE" | "YTT_LIVE" | "YTT_RECORDED" | "EVENT" | "WORKSHOP";
+  planId?: string;
+  courseId?: string;
+  batchId?: string;
+  entityId?: string;
+};
+
+export type CouponValidateResponse = {
+  code: string;
+  description: string | null;
+  discountType: DiscountType;
+  discountValue: number;
+  originalAmount: number;
+  discountAmount: number;
+  finalAmount: number;
+};
+
+export function validateCoupon(role: Role, body: CouponValidateBody) {
+  return unwrap<CouponValidateResponse>(
+    authedRequest<ApiSuccess<CouponValidateResponse>>(role, {
+      method: "POST",
+      url: "/api/coupons/validate",
+      data: body,
+    }),
+  );
+}
+
 export type CouponListParams = {
   q?: string;
   status?: CouponStatus;

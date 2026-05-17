@@ -1,13 +1,15 @@
 import { authedRequest } from "../lib/apiClient";
 import { unwrap, type ApiSuccess, type Role } from "./types";
 
+type WithCoupon<T> = T & { couponCode?: string };
+
 export type InitiatePaymentInput =
-  | { type: "SELF_PACED"; planId: string }
-  | { type: "LIVE"; planId: string; batchId?: string }
-  | { type: "YTT_LIVE"; planId: string; courseId: string }
-  | { type: "YTT_RECORDED"; planId: string; courseId: string }
-  | { type: "EVENT"; entityId: string }
-  | { type: "WORKSHOP"; entityId: string };
+  | WithCoupon<{ type: "SELF_PACED"; planId: string }>
+  | WithCoupon<{ type: "LIVE"; planId: string; batchId?: string }>
+  | WithCoupon<{ type: "YTT_LIVE"; planId: string; courseId: string }>
+  | WithCoupon<{ type: "YTT_RECORDED"; planId: string; courseId: string }>
+  | WithCoupon<{ type: "EVENT"; entityId: string }>
+  | WithCoupon<{ type: "WORKSHOP"; entityId: string }>;
 
 export type InitiatePaymentResponse = {
   orderId: string;
@@ -15,6 +17,8 @@ export type InitiatePaymentResponse = {
   currency: string;
   key: string;
   paymentRecordId: string;
+  originalAmount?: number;
+  discountAmount?: number;
 };
 
 export type VerifyPaymentInput = {

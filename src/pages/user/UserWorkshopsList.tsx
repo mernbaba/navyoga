@@ -44,6 +44,7 @@ import type {
   WorkshopWithSessions,
 } from "../../api/types";
 import { resolveMediaUrl } from "../../lib/media";
+import { CouponInput, type CouponApplied } from "../../components/CouponInput";
 
 const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1506126613408-eca07ce68773";
@@ -88,6 +89,7 @@ export function UserWorkshopsList() {
   const [detail, setDetail] = useState<WorkshopWithSessions | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponApplied | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -193,6 +195,7 @@ export function UserWorkshopsList() {
     setDetailOpen(true);
     setDetailLoading(true);
     setDetail(null);
+    setAppliedCoupon(null);
     try {
       const [full, enrollment] = await Promise.all([
         getWorkshop("STUDENT", w.id),
@@ -239,6 +242,7 @@ export function UserWorkshopsList() {
       const paymentData = await initiatePayment("STUDENT", {
         type: "WORKSHOP",
         entityId: workshop.id,
+        ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}),
       });
 
       document.body.style.overflow = "hidden";
@@ -514,33 +518,58 @@ export function UserWorkshopsList() {
                 </div>
               </div>
 
-              {/* Sticky footer — Price + CTA always visible, single scrollbar above */}
-              <div className="shrink-0 border-t px-6 py-4 bg-background flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Price</p>
-                  <div className="flex items-center gap-1">
-                    <IndianRupee className="w-5 h-5" style={{ color: "#ff691d" }} />
-                    <span className="text-2xl font-bold" style={{ color: "#ff691d" }}>
-                      {Number(detail.price) === 0 ? "Free" : Number(detail.price).toLocaleString("en-IN")}
-                    </span>
+              {/* Sticky footer — Price + coupon + CTA always visible, single scrollbar above */}
+              <div className="shrink-0 border-t px-6 py-4 bg-background space-y-3">
+                {Number(detail.price) > 0 && !enrolledIds.has(detail.id) && !isFull(detail) && (
+                  <CouponInput
+                    context={{ type: "WORKSHOP", entityId: detail.id }}
+                    applied={appliedCoupon}
+                    disabled={isRegistering}
+                    onApplied={setAppliedCoupon}
+                    onCleared={() => setAppliedCoupon(null)}
+                  />
+                )}
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      {appliedCoupon ? "Total payable" : "Price"}
+                    </p>
+                    <div className="flex items-baseline gap-2">
+                      {appliedCoupon && (
+                        <span className="text-sm text-muted-foreground line-through">
+                          ₹{Number(detail.price).toLocaleString("en-IN")}
+                        </span>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <IndianRupee className="w-5 h-5" style={{ color: "#ff691d" }} />
+                        <span className="text-2xl font-bold" style={{ color: "#ff691d" }}>
+                          {Number(detail.price) === 0
+                            ? "Free"
+                            : (appliedCoupon
+                                ? appliedCoupon.finalAmount
+                                : Number(detail.price)
+                              ).toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                    </div>
                   </div>
+                  <Button
+                    size="lg"
+                    onClick={() => handleRegister(detail)}
+                    className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white shadow-lg gap-2"
+                    disabled={isRegistering || enrolledIds.has(detail.id) || isFull(detail)}
+                  >
+                    {enrolledIds.has(detail.id) ? (
+                      <><Star className="w-5 h-5" /> Already Enrolled</>
+                    ) : isFull(detail) ? (
+                      "Workshop Full"
+                    ) : isRegistering ? (
+                      "Processing…"
+                    ) : (
+                      <><Sparkles className="w-5 h-5" /> Enroll Now</>
+                    )}
+                  </Button>
                 </div>
-                <Button
-                  size="lg"
-                  onClick={() => handleRegister(detail)}
-                  className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white shadow-lg gap-2"
-                  disabled={isRegistering || enrolledIds.has(detail.id) || isFull(detail)}
-                >
-                  {enrolledIds.has(detail.id) ? (
-                    <><Star className="w-5 h-5" /> Already Enrolled</>
-                  ) : isFull(detail) ? (
-                    "Workshop Full"
-                  ) : isRegistering ? (
-                    "Processing…"
-                  ) : (
-                    <><Sparkles className="w-5 h-5" /> Enroll Now</>
-                  )}
-                </Button>
               </div>
             </>
           )}
