@@ -1,43 +1,136 @@
-﻿import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { BookOpen, Video, Calendar, Award, Clock, TrendingUp, Sparkles, Target, Trophy, Flame, GraduationCap, Gift, Users, Copy, Share2, Star, Crown, IndianRupee } from "lucide-react";
+﻿import { useEffect, useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { BookOpen, Video, Calendar, Award, Clock, TrendingUp, Sparkles, GraduationCap, Gift, Users, Copy, Share2, Star, Crown, IndianRupee } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Link } from "react-router";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { ImageWithFallback } from "../../components/Fallback/ImageWithFallback";
+import { getStudentDashboard, type StudentDashboard } from "../../api/dashboard";
+
+const formatDiff = (n: number, suffix: string): string => {
+  if (n === 0) return "No change";
+  return `${n > 0 ? "+" : ""}${n} ${suffix}`;
+};
+
+const formatScheduled = (iso: string | null): { date: string; time: string } => {
+  if (!iso) return { date: "TBD", time: "" };
+  const d = new Date(iso);
+  const now = new Date();
+  const sameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const isTomorrow =
+    d.getFullYear() === tomorrow.getFullYear() &&
+    d.getMonth() === tomorrow.getMonth() &&
+    d.getDate() === tomorrow.getDate();
+  const dateLabel = sameDay
+    ? "Today"
+    : isTomorrow
+      ? "Tomorrow"
+      : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const time = d.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return { date: dateLabel, time };
+};
 
 export function UserDashboard() {
-  const metrics = [
-    { title: 'Enrolled Classes', value: '8', icon: BookOpen, color: '#ff691d', change: '+2 this month', gradient: 'from-orange-500 to-red-500' },
-    { title: 'Hours Completed', value: '124', icon: Clock, color: '#610981', change: '+18 this week', gradient: 'from-purple-600 to-pink-600' },
-    { title: 'Recordings Watched', value: '45', icon: Video, color: '#10b981', change: '+8 this week', gradient: 'from-green-500 to-teal-500' },
-    { title: 'Attendance Rate', value: '92%', icon: TrendingUp, color: '#f59e0b', change: '+5% improvement', gradient: 'from-yellow-500 to-orange-500' },
-  ];
+  const [data, setData] = useState<StudentDashboard | null>(null);
 
-  const upcomingClasses = [
-    { id: 1, name: 'Advanced Hatha Yoga', instructor: 'Priya Sharma', date: 'Today', time: '6:00 PM', status: 'upcoming', duration: '60 min', color: '#ff691d' },
-    { id: 2, name: 'Pranayama Basics', instructor: 'Rahul Kumar', date: 'Tomorrow', time: '7:00 AM', status: 'upcoming', duration: '45 min', color: '#610981' },
-    { id: 3, name: 'Meditation & Mindfulness', instructor: 'Anita Verma', date: 'Mar 12', time: '8:00 AM', status: 'upcoming', duration: '30 min', color: '#10b981' },
-    { id: 4, name: 'Power Yoga Flow', instructor: 'Vikram Singh', date: 'Mar 13', time: '6:30 PM', status: 'upcoming', duration: '75 min', color: '#f59e0b' },
-  ];
+  useEffect(() => {
+    let cancelled = false;
+    getStudentDashboard("STUDENT")
+      .then((res) => {
+        if (!cancelled) setData(res);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : "Failed to load dashboard";
+          toast.error(message);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const achievements = [
-    { id: 1, title: '30-Day Streak', description: 'Attended classes for 30 consecutive days', icon: Flame, color: '#ff691d', earned: true },
-    { id: 2, title: 'Early Bird', description: 'Attended 10 morning classes', icon: Target, color: '#10b981', earned: true },
-    { id: 3, title: 'Meditation Master', description: 'Completed 20 meditation sessions', icon: Trophy, color: '#610981', earned: false },
-  ];
- 
-  const referralStats = {
-    totalReferrals: 12,
-    totalEarned: 3600,
-    referralCode: "NAVYOGA-SARAH-2026",
-    unlockedBadges: 3,
+  const metrics = useMemo(() => {
+    const m = data?.metrics;
+    return [
+      {
+        title: "Enrolled Classes",
+        value: (m?.enrolledClasses ?? 0).toLocaleString(),
+        icon: BookOpen,
+        color: "#ff691d",
+        change: formatDiff(m?.enrolledChangeMonth ?? 0, "this month"),
+        gradient: "from-orange-500 to-red-500",
+      },
+      {
+        title: "Hours Completed",
+        value: (m?.hoursCompleted ?? 0).toLocaleString(),
+        icon: Clock,
+        color: "#610981",
+        change: formatDiff(m?.hoursChangeWeek ?? 0, "this week"),
+        gradient: "from-purple-600 to-pink-600",
+      },
+      {
+        title: "Recordings Watched",
+        value: (m?.recordingsWatched ?? 0).toLocaleString(),
+        icon: Video,
+        color: "#10b981",
+        change: formatDiff(m?.recordingsChangeWeek ?? 0, "this week"),
+        gradient: "from-green-500 to-teal-500",
+      },
+      {
+        title: "Attendance Rate",
+        value: `${m?.attendanceRate ?? 0}%`,
+        icon: TrendingUp,
+        color: "#f59e0b",
+        change: formatDiff(m?.attendanceImprovement ?? 0, "vs prev month"),
+        gradient: "from-yellow-500 to-orange-500",
+      },
+    ];
+  }, [data]);
+
+  const upcomingClasses = useMemo(
+    () =>
+      (data?.upcomingClasses ?? []).map((c) => {
+        const { date, time } = formatScheduled(c.scheduledAt);
+        return {
+          id: c.id,
+          name: c.name,
+          instructor: c.instructor,
+          date,
+          time,
+          duration: `${c.duration} min`,
+          link: c.link,
+          color: c.color,
+        };
+      }),
+    [data],
+  );
+
+  const referralStats = data?.referralStats ?? {
+    totalReferrals: 0,
+    totalEarned: 0,
+    referralCode: "",
+    unlockedBadges: 0,
   };
 
+  const REFERRAL_BADGE_TIERS = [1, 5, 10, 20, 50, 100];
+  const unlockedReferralBadges = REFERRAL_BADGE_TIERS.filter(
+    (t) => referralStats.totalReferrals >= t,
+  ).length;
+
   const handleCopyReferralCode = () => {
+    if (!referralStats.referralCode) return;
     navigator.clipboard.writeText(referralStats.referralCode);
-    toast.success('Referral code copied to clipboard!');
+    toast.success("Referral code copied to clipboard!");
   };
 
   return (
@@ -133,108 +226,63 @@ export function UserDashboard() {
               </CardHeader>
               <CardContent className="relative z-10">
                 <div className="space-y-3">
-                  {upcomingClasses.map((class_item, idx) => (
-                    <motion.div 
-                      key={class_item.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.5 + idx * 0.1 }}
-                      whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
-                      className="group relative overflow-hidden rounded-2xl p-4 border-2 border-gray-100 hover:border-purple-200 transition-all duration-300 bg-white hover:shadow-lg"
-                    >
-                      <div className="absolute inset-0 bg-linear-to-r from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="relative z-10 flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: class_item.color }} />
-                            <p className="font-semibold">{class_item.name}</p>
+                  {upcomingClasses.length === 0 ? (
+                    <div className="py-10 text-center text-sm text-muted-foreground">
+                      No upcoming classes scheduled.
+                    </div>
+                  ) : (
+                    upcomingClasses.map((class_item, idx) => (
+                      <motion.div
+                        key={class_item.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.5 + idx * 0.1 }}
+                        whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+                        className="group relative overflow-hidden rounded-2xl p-4 border-2 border-gray-100 hover:border-purple-200 transition-all duration-300 bg-white hover:shadow-lg"
+                      >
+                        <div className="absolute inset-0 bg-linear-to-r from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="relative z-10 flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: class_item.color }} />
+                              <p className="font-semibold">{class_item.name}</p>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {class_item.instructor} • {class_item.date}
+                              {class_item.time ? ` at ${class_item.time}` : ""}
+                            </p>
+                            <Badge variant="secondary" className="text-xs mt-2" style={{ backgroundColor: `${class_item.color}20`, color: class_item.color }}>
+                              {class_item.duration}
+                            </Badge>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {class_item.instructor} • {class_item.date} at {class_item.time}
-                          </p>
-                          <Badge variant="secondary" className="text-xs mt-2" style={{ backgroundColor: `${class_item.color}20`, color: class_item.color }}>
-                            {class_item.duration}
-                          </Badge>
+                          {class_item.link ? (
+                            <a href={class_item.link} target="_blank" rel="noreferrer">
+                              <Button
+                                size="sm"
+                                className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white shadow-lg"
+                              >
+                                Join
+                              </Button>
+                            </a>
+                          ) : (
+                            <Button
+                              size="sm"
+                              disabled
+                              className="bg-linear-to-r from-[#610981] to-[#8b0fa8] text-white shadow-lg opacity-60"
+                            >
+                              Join
+                            </Button>
+                          )}
                         </div>
-                        <Button 
-                          size="sm" 
-                          className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white shadow-lg"
-                        >
-                          Join
-                        </Button>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
           </motion.div>
  
         </div>
- 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-        >
-          <Card className="relative overflow-hidden border-0 shadow-xl">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-linear-to-bl from-[#ffac96]/20 to-transparent rounded-full blur-3xl" />
-            <CardHeader className="relative z-10">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-linear-to-br from-yellow-400 to-orange-500 shadow-lg">
-                  <Trophy className="w-5 h-5 text-white" />
-                </div>
-                <CardTitle className="text-xl" style={{ color: '#ff691d' }}>Your Achievements</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="relative z-10">
-              <div className="grid gap-4 md:grid-cols-3">
-                {achievements.map((achievement, idx) => {
-                  const Icon = achievement.icon;
-                  return (
-                    <motion.div 
-                      key={achievement.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.7 + idx * 0.1 }}
-                      whileHover={{ scale: achievement.earned ? 1.05 : 1, transition: { duration: 0.2 } }}
-                      className={`relative p-6 rounded-2xl transition-all duration-300 ${ 
-                        achievement.earned 
-                          ? 'bg-linear-to-br from-white to-gray-50 border-2 shadow-xl cursor-pointer' 
-                          : 'bg-gray-50 border-2 border-dashed border-gray-200 opacity-60'
-                      }`}
-                      style={{ borderColor: achievement.earned ? achievement.color : undefined }}
-                    >
-                      {achievement.earned && (
-                        <div 
-                          className="absolute inset-0 rounded-2xl opacity-10 blur-xl"
-                          style={{ backgroundColor: achievement.color }}
-                        />
-                      )}
-                      <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div 
-                            className={`p-3 rounded-xl shadow-lg ${achievement.earned ? 'bg-linear-to-br' : 'bg-gray-200'}`}
-                            style={achievement.earned ? { background: `linear-gradient(135deg, ${achievement.color}, ${achievement.color}dd)` } : {}}
-                          >
-                            <Icon className={`w-6 h-6 ${achievement.earned ? 'text-white' : 'text-gray-400'}`} />
-                          </div>
-                          {achievement.earned && (
-                            <Badge className="text-xs font-semibold" style={{ backgroundColor: `${achievement.color}20`, color: achievement.color }}>
-                              ✓ Earned
-                            </Badge>
-                          )}
-                        </div>
-                        <h4 className="font-bold text-base mb-1.5">{achievement.title}</h4>
-                        <p className="text-sm text-muted-foreground leading-relaxed">{achievement.description}</p>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
  
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[
@@ -366,7 +414,7 @@ export function UserDashboard() {
                         Unlocked
                       </Badge>
                     </div>
-                    <h4 className="font-bold text-2xl mb-1">{referralStats.unlockedBadges}/6</h4>
+                    <h4 className="font-bold text-2xl mb-1">{unlockedReferralBadges}/{REFERRAL_BADGE_TIERS.length}</h4>
                     <p className="text-sm text-muted-foreground">Achievement Badges</p>
                   </div>
                 </motion.div>
@@ -393,7 +441,7 @@ export function UserDashboard() {
                         Copy
                       </Button>
                     </div>
-                    <h4 className="font-bold text-lg mb-1 font-mono">{referralStats.referralCode}</h4>
+                    <h4 className="font-bold text-lg mb-1 font-mono">{referralStats.referralCode || "—"}</h4>
                     <p className="text-sm text-white/80">Your Referral Code</p>
                   </div>
                 </motion.div>

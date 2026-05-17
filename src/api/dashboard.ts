@@ -26,6 +26,42 @@ export type SuperadminDashboard = {
   };
 };
 
+export type StudentDashboard = {
+  metrics: {
+    enrolledClasses: number;
+    enrolledChangeMonth: number;
+    hoursCompleted: number;
+    hoursChangeWeek: number;
+    recordingsWatched: number;
+    recordingsChangeWeek: number;
+    attendanceRate: number;
+    attendanceImprovement: number;
+  };
+  upcomingClasses: Array<{
+    id: string;
+    name: string;
+    instructor: string;
+    scheduledAt: string | null;
+    duration: number;
+    link: string | null;
+    color: string;
+  }>;
+  achievements: Array<{
+    id: string;
+    title: string;
+    description: string;
+    icon: string | null;
+    color: string;
+    earned: boolean;
+  }>;
+  referralStats: {
+    totalReferrals: number;
+    totalEarned: number;
+    referralCode: string;
+    unlockedBadges: number;
+  };
+};
+
 export type MarketingAnalytics = {
   stats: {
     totalUsers: number;
@@ -70,6 +106,15 @@ export function getSuperadminDashboard(role: Role) {
     authedRequest<ApiSuccess<SuperadminDashboard>>(role, {
       method: "GET",
       url: "/api/dashboard/superadmin",
+    }),
+  );
+}
+
+export function getStudentDashboard(role: Role) {
+  return unwrap<StudentDashboard>(
+    authedRequest<ApiSuccess<StudentDashboard>>(role, {
+      method: "GET",
+      url: "/api/dashboard/student",
     }),
   );
 }
