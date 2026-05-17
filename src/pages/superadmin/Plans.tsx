@@ -104,8 +104,9 @@ function PlanCard({
         </div>
 
         <div className="mt-2">
-          <div className="flex items-baseline gap-3">
+          <div className="flex items-baseline gap-3 flex-wrap">
             <span className="text-5xl font-bold">{formatINR(price)}</span>
+            <span className="text-sm text-muted-foreground">+ GST</span>
             {originalPrice ? (
               <span className="text-base text-muted-foreground line-through">
                 {formatINR(originalPrice)}

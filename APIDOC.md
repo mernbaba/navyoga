@@ -1263,7 +1263,7 @@ Create an event.
 | `thumbnail`   | string  |    ⬜    | Image URL                                                            |
 | `featured`    | boolean |    ⬜    | Default `false`                                                      |
 
-`occupancy` defaults to `0` and is only mutated by enrollment flows (not exposed as a write field on this endpoint).
+`occupancy` in the response is computed live from the count of `EventEnrollment` rows (not stored or writable).
 
 **Responses:** `201` — `{ data: <Event> }`, `400` — required field missing.
 
@@ -1348,7 +1348,7 @@ No request body.
 }
 ```
 
-On success, `Event.occupancy` is incremented by `1` in the same transaction as the enrollment row creation.
+On success, a new `EventEnrollment` row is created. `occupancy` in subsequent event responses reflects the updated count automatically.
 
 **Errors:**
 
@@ -1357,7 +1357,7 @@ On success, `Event.occupancy` is incremented by `1` in the same transaction as t
 | `400`  | Event is paid (`price > 0`) — must enroll via payment flow.  |
 | `400`  | Event has already started or ended (`date <= now()`).        |
 | `404`  | Event does not exist.                                        |
-| `409`  | Event is full (`occupancy >= capacity`).                     |
+| `409`  | Event is full (enrollment count >= `capacity`).              |
 | `409`  | Caller is already enrolled in this event.                    |
 
 ---

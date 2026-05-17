@@ -99,7 +99,8 @@ export type StudentRegisterBody = {
   phone: string;
   password: string;
   avatar?: string;
-  address?: string;
+  city?: string;
+  country?: string;
   age?: number;
   bloodGroup?: string;
   emergencyContact?: string;

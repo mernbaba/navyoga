@@ -45,6 +45,7 @@ type UiPlan = {
   name: string;
   duration: string;
   price: number;
+  originalPrice?: number;
   monthlyPrice?: number;
   popular: boolean;
   badge?: string;
@@ -57,6 +58,12 @@ type UiPlan = {
 
 const COLOR_DEFAULT = "#ff691d";
 
+const GST_RATE = 0.05;
+const formatINR = (val: number) =>
+  val.toLocaleString("en-IN", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+const gstAmount = (price: number) => price * GST_RATE;
+const priceWithGst = (price: number) => price * (1 + GST_RATE);
+
 const formatValidity = (days: number) => {
   if (days <= 31) return "month";
   if (days <= 95) return "3 months";
@@ -67,11 +74,15 @@ const formatValidity = (days: number) => {
 
 const toNumber = (v: string | number): number => (typeof v === "number" ? v : Number(v));
 
+const optionalNumber = (v: string | number | null | undefined): number | undefined =>
+  v === null || v === undefined || v === "" ? undefined : toNumber(v);
+
 const livePlanToUi = (p: LivePlan): UiPlan => ({
   id: p.id,
   name: p.name,
   duration: formatValidity(p.validity),
   price: toNumber(p.price),
+  originalPrice: optionalNumber(p.originalPrice),
   popular: false,
   features: p.features,
   color: COLOR_DEFAULT,
@@ -83,6 +94,7 @@ const selfPacedToUi = (p: SelfPacedPlan): UiPlan => ({
   name: p.name,
   duration: formatValidity(p.validity),
   price: toNumber(p.price),
+  originalPrice: optionalNumber(p.originalPrice),
   popular: false,
   features: p.features,
   color: COLOR_DEFAULT,
@@ -94,6 +106,7 @@ const yttRecordedToUi = (plan: YTTPlan): UiPlan => ({
   name: plan.name,
   duration: formatValidity(plan.validity),
   price: toNumber(plan.price),
+  originalPrice: optionalNumber(plan.originalPrice),
   popular: false,
   features: plan.features,
   color: COLOR_DEFAULT,
@@ -106,6 +119,7 @@ const yttLiveToUi = (plan: YTTPlan): UiPlan => ({
   name: plan.name,
   duration: formatValidity(plan.validity),
   price: toNumber(plan.price),
+  originalPrice: optionalNumber(plan.originalPrice),
   popular: false,
   features: plan.features,
   color: COLOR_DEFAULT,
@@ -471,8 +485,14 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                       </div>
                       
                       <div className="mt-4">
-                        <div className="flex items-baseline gap-2">
+                        <div className="flex items-baseline gap-2 flex-wrap">
                           <span className="text-5xl font-bold">₹{plan.price}</span>
+                          {plan.originalPrice && plan.originalPrice > plan.price && (
+                            <span className="text-base text-muted-foreground line-through">
+                              ₹{plan.originalPrice}
+                            </span>
+                          )}
+                          <span className="text-sm text-muted-foreground">+ GST</span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
                           for {plan.duration}
@@ -484,7 +504,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                         )}
                       </div>
                     </CardHeader>
-                    
+
                     <CardContent className="space-y-6">
                       <div className="space-y-3">
                         {plan.features.map((feature, index) => (
@@ -496,18 +516,25 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                           </div>
                         ))}
                       </div>
-                      
-                      <Button
-                        className="w-full py-6 text-base font-semibold rounded-xl"
-                        style={{
-                          backgroundColor: isSubscribed(plan) ? '#16a34a' : isCategoryLocked(plan.category) ? '#9ca3af' : plan.color,
-                          color: 'white',
-                        }}
-                        onClick={() => handleUpgrade(plan)}
-                        disabled={isCategoryLocked(plan.category)}
-                      >
-                        {isSubscribed(plan) ? <><Check className="w-4 h-4 mr-2 inline" />Current Plan</> : isCategoryLocked(plan.category) ? "Unavailable" : "Get Started"}
-                      </Button>
+
+                      {isSubscribed(plan) ? (
+                        <div className="w-full py-4 text-base font-semibold rounded-xl flex items-center justify-center gap-2 bg-green-50 text-green-700 border-2 border-green-500">
+                          <Check className="w-5 h-5" />
+                          Your Current Plan
+                        </div>
+                      ) : (
+                        <Button
+                          className="w-full py-6 text-base font-semibold rounded-xl"
+                          style={{
+                            backgroundColor: isCategoryLocked(plan.category) ? '#9ca3af' : plan.color,
+                            color: 'white',
+                          }}
+                          onClick={() => handleUpgrade(plan)}
+                          disabled={isCategoryLocked(plan.category)}
+                        >
+                          {isCategoryLocked(plan.category) ? "Active on another plan" : "Get Started"}
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -577,8 +604,14 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                     </div>
                     
                     <div className="mt-4">
-                      <div className="flex items-baseline gap-2">
+                      <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="text-5xl font-bold">₹{plan.price}</span>
+                        {plan.originalPrice && plan.originalPrice > plan.price && (
+                          <span className="text-base text-muted-foreground line-through">
+                            ₹{plan.originalPrice}
+                          </span>
+                        )}
+                        <span className="text-sm text-muted-foreground">+ GST</span>
                       </div>
                       <p className="text-sm text-muted-foreground mt-1">
                         for {plan.duration}
@@ -603,17 +636,24 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                       ))}
                     </div>
                     
-                    <Button
-                      className="w-full py-6 text-base font-semibold rounded-xl"
-                      style={{
-                        backgroundColor: isSubscribed(plan) ? '#16a34a' : isCategoryLocked(plan.category) ? '#9ca3af' : plan.color,
-                        color: 'white',
-                      }}
-                      onClick={() => handleUpgrade(plan)}
-                      disabled={isCategoryLocked(plan.category)}
-                    >
-                      {isSubscribed(plan) ? <><Check className="w-4 h-4 mr-2 inline" />Current Plan</> : isCategoryLocked(plan.category) ? "Unavailable" : "Get Started"}
-                    </Button>
+                    {isSubscribed(plan) ? (
+                      <div className="w-full py-4 text-base font-semibold rounded-xl flex items-center justify-center gap-2 bg-green-50 text-green-700 border-2 border-green-500">
+                        <Check className="w-5 h-5" />
+                        Your Current Plan
+                      </div>
+                    ) : (
+                      <Button
+                        className="w-full py-6 text-base font-semibold rounded-xl"
+                        style={{
+                          backgroundColor: isCategoryLocked(plan.category) ? '#9ca3af' : plan.color,
+                          color: 'white',
+                        }}
+                        onClick={() => handleUpgrade(plan)}
+                        disabled={isCategoryLocked(plan.category)}
+                      >
+                        {isCategoryLocked(plan.category) ? "Active on another plan" : "Get Started"}
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -682,8 +722,14 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                       </div>
                       
                       <div className="mt-4">
-                        <div className="flex items-baseline gap-2">
+                        <div className="flex items-baseline gap-2 flex-wrap">
                           <span className="text-5xl font-bold">₹{plan.price}</span>
+                          {plan.originalPrice && plan.originalPrice > plan.price && (
+                            <span className="text-base text-muted-foreground line-through">
+                              ₹{plan.originalPrice}
+                            </span>
+                          )}
+                          <span className="text-sm text-muted-foreground">+ GST</span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
                           {plan.duration}
@@ -703,17 +749,24 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                         ))}
                       </div>
                       
-                      <Button
-                        className="w-full py-6 text-base font-semibold rounded-xl"
-                        style={{
-                          backgroundColor: isSubscribed(plan) ? '#16a34a' : isCategoryLocked(plan.category) ? '#9ca3af' : plan.color,
-                          color: 'white',
-                        }}
-                        onClick={() => handleUpgrade(plan)}
-                        disabled={isCategoryLocked(plan.category)}
-                      >
-                        {isSubscribed(plan) ? <><Check className="w-4 h-4 mr-2 inline" />Current Plan</> : isCategoryLocked(plan.category) ? "Unavailable" : "Enroll Now"}
-                      </Button>
+                      {isSubscribed(plan) ? (
+                        <div className="w-full py-4 text-base font-semibold rounded-xl flex items-center justify-center gap-2 bg-green-50 text-green-700 border-2 border-green-500">
+                          <Check className="w-5 h-5" />
+                          Your Current Plan
+                        </div>
+                      ) : (
+                        <Button
+                          className="w-full py-6 text-base font-semibold rounded-xl"
+                          style={{
+                            backgroundColor: isCategoryLocked(plan.category) ? '#9ca3af' : plan.color,
+                            color: 'white',
+                          }}
+                          onClick={() => handleUpgrade(plan)}
+                          disabled={isCategoryLocked(plan.category)}
+                        >
+                          {isCategoryLocked(plan.category) ? "Active on another plan" : "Enroll Now"}
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -781,8 +834,14 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                       </div>
                       
                       <div className="mt-4">
-                        <div className="flex items-baseline gap-2">
+                        <div className="flex items-baseline gap-2 flex-wrap">
                           <span className="text-5xl font-bold">₹{plan.price}</span>
+                          {plan.originalPrice && plan.originalPrice > plan.price && (
+                            <span className="text-base text-muted-foreground line-through">
+                              ₹{plan.originalPrice}
+                            </span>
+                          )}
+                          <span className="text-sm text-muted-foreground">+ GST</span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
                           {plan.duration}
@@ -802,17 +861,24 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                         ))}
                       </div>
                       
-                      <Button
-                        className="w-full py-6 text-base font-semibold rounded-xl shadow-lg"
-                        style={{
-                          background: isSubscribed(plan) ? '#16a34a' : isCategoryLocked(plan.category) ? '#9ca3af' : `linear-gradient(135deg, ${plan.color}, ${plan.color}dd)`,
-                          color: 'white',
-                        }}
-                        onClick={() => handleUpgrade(plan)}
-                        disabled={isCategoryLocked(plan.category)}
-                      >
-                        {isSubscribed(plan) ? <><Check className="w-4 h-4 mr-2 inline" />Current Plan</> : isCategoryLocked(plan.category) ? "Unavailable" : "Enroll Now"}
-                      </Button>
+                      {isSubscribed(plan) ? (
+                        <div className="w-full py-4 text-base font-semibold rounded-xl flex items-center justify-center gap-2 bg-green-50 text-green-700 border-2 border-green-500">
+                          <Check className="w-5 h-5" />
+                          Your Current Plan
+                        </div>
+                      ) : (
+                        <Button
+                          className="w-full py-6 text-base font-semibold rounded-xl shadow-lg"
+                          style={{
+                            background: isCategoryLocked(plan.category) ? '#9ca3af' : `linear-gradient(135deg, ${plan.color}, ${plan.color}dd)`,
+                            color: 'white',
+                          }}
+                          onClick={() => handleUpgrade(plan)}
+                          disabled={isCategoryLocked(plan.category)}
+                        >
+                          {isCategoryLocked(plan.category) ? "Active on another plan" : "Enroll Now"}
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -839,13 +905,35 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                     {selectedPlan.duration}
                   </Badge>
                 </div>
-                <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-3xl font-bold">₹{selectedPlan.price}</span>
+                <div className="space-y-1.5 mb-4 pb-3 border-b">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Plan price</span>
+                    <span className="flex items-baseline gap-2">
+                      {selectedPlan.originalPrice && selectedPlan.originalPrice > selectedPlan.price && (
+                        <span className="text-xs text-muted-foreground line-through">
+                          ₹{formatINR(selectedPlan.originalPrice)}
+                        </span>
+                      )}
+                      <span>₹{formatINR(selectedPlan.price)}</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">GST (5%)</span>
+                    <span>₹{formatINR(gstAmount(selectedPlan.price))}</span>
+                  </div>
+                  <div className="flex items-baseline justify-between pt-1.5">
+                    <span className="font-semibold">Total payable</span>
+                    <span className="text-3xl font-bold" style={{ color: selectedPlan.color }}>
+                      ₹{formatINR(priceWithGst(selectedPlan.price))}
+                    </span>
+                  </div>
                   {selectedPlan.monthlyPrice && (
-                    <span className="text-sm text-muted-foreground">(₹{selectedPlan.monthlyPrice}/month)</span>
+                    <p className="text-xs text-muted-foreground text-right">
+                      (₹{selectedPlan.monthlyPrice}/month)
+                    </p>
                   )}
                 </div>
-                <div className="pt-3 border-t">
+                <div className="pt-3">
                   <p className="text-sm font-medium mb-2">Key Features:</p>
                   <ul className="space-y-1">
                     {selectedPlan.features.slice(0, 4).map((feature: string, index: number) => (

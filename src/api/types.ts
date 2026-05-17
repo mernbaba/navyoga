@@ -135,7 +135,8 @@ export type StudentUser = {
   avatar: string | null;
   referralCode: string;
   isActive: boolean;
-  address?: string | null;
+  city?: string | null;
+  country?: string | null;
   gender?: string | null;
   age?: number | null;
   bloodGroup?: string | null;

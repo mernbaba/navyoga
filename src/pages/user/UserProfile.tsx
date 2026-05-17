@@ -16,7 +16,8 @@ export function UserProfile() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [country, setCountry] = useState("");
   const [gender, setGender] = useState("");
   const [age, setAge] = useState<number | "">("");
   const [bloodGroup, setBloodGroup] = useState("");
@@ -38,7 +39,8 @@ export function UserProfile() {
         setName(fresh.name);
         setEmail(fresh.email);
         setPhone(fresh.phone);
-        setAddress(fresh.address ?? "");
+        setCity(fresh.city ?? "");
+        setCountry(fresh.country ?? "");
         setGender(fresh.gender ?? "");
         setAge(fresh.age ?? "");
         setBloodGroup(fresh.bloodGroup ?? "");
@@ -82,7 +84,7 @@ export function UserProfile() {
       return;
     }
     void savePartial(
-      { name, email, phone, address: address || null, gender: gender || null },
+      { name, email, phone, city: city || null, country: country || null, gender: gender || null },
       setIsSavingPersonal,
       "Profile updated successfully.",
     );
@@ -192,10 +194,17 @@ export function UserProfile() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
+                  <Label htmlFor="city">City</Label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-3 w-4 h-4 pointer-events-none z-10" style={{ color: "#10b981" }} />
-                    <Textarea id="address" value={address} onChange={(e) => setAddress(e.target.value)} className="pl-9" rows={3} disabled={isLoading} />
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none z-10" style={{ color: "#10b981" }} />
+                    <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} className="pl-9" maxLength={100} disabled={isLoading} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country</Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none z-10" style={{ color: "#10b981" }} />
+                    <Input id="country" value={country} onChange={(e) => setCountry(e.target.value)} className="pl-9" maxLength={100} disabled={isLoading} />
                   </div>
                 </div>
                 <Button type="submit" disabled={isLoading || isSavingPersonal} className="w-full" style={{ backgroundColor: "#610981", color: "white" }}>

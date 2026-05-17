@@ -34,7 +34,8 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
     phone: "",
     password: "",
     age: "",
-    address: "",
+    city: "",
+    country: "",
     referredByCode: "",
   });
 
@@ -85,12 +86,13 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
         phone: addForm.phone,
         password: addForm.password,
         age: addForm.age ? Number(addForm.age) : undefined,
-        address: addForm.address || undefined,
+        city: addForm.city || undefined,
+        country: addForm.country || undefined,
         referredByCode: addForm.referredByCode || undefined,
       });
       toast.success("Sādhaka added successfully");
       setIsAddOpen(false);
-      setAddForm({ name: "", email: "", phone: "", password: "", age: "", address: "", referredByCode: "" });
+      setAddForm({ name: "", email: "", phone: "", password: "", age: "", city: "", country: "", referredByCode: "" });
       refetch();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to add sādhaka.");
@@ -187,9 +189,13 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                   <Label htmlFor="referredByCode">Referral Code (optional)</Label>
                   <Input id="referredByCode" value={addForm.referredByCode} onChange={(e) => setAddForm({ ...addForm, referredByCode: e.target.value })} maxLength={50} />
                 </div>
-                <div className="grid gap-2 sm:col-span-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Input id="address" value={addForm.address} onChange={(e) => setAddForm({ ...addForm, address: e.target.value })} maxLength={500} />
+                <div className="grid gap-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input id="city" value={addForm.city} onChange={(e) => setAddForm({ ...addForm, city: e.target.value })} maxLength={100} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="country">Country</Label>
+                  <Input id="country" value={addForm.country} onChange={(e) => setAddForm({ ...addForm, country: e.target.value })} maxLength={100} />
                 </div>
               </div>
               <DialogFooter>

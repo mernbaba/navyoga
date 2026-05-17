@@ -26,6 +26,24 @@ export type SuperadminDashboard = {
   };
 };
 
+export type MarketingAnalytics = {
+  stats: {
+    totalUsers: number;
+    activeUsers: number;
+    countries: number;
+    avgAge: number;
+  };
+  ageDistribution: Array<{ range: string; users: number }>;
+  genderDistribution: Array<{ name: string; value: number; color: string }>;
+  topCities: Array<{ name: string; users: number; percent: number; color: string }>;
+  countryDistribution: Array<{ name: string; value: number; color: string }>;
+  acquisitionMedium: Array<{ channel: string; users: number; color: string }>;
+  userGrowth: Array<{ month: string; users: number }>;
+  subscriptionPlans: Array<{ name: string; value: number; color: string }>;
+  activityStatus: Array<{ label: string; value: number; percent: number; color: string }>;
+  deviceUsage: Array<{ name: string; users: number; percent: number; color: string }>;
+};
+
 export type OperationsDashboard = {
   cards: {
     employees: DashboardCardValue;
@@ -52,6 +70,15 @@ export function getSuperadminDashboard(role: Role) {
     authedRequest<ApiSuccess<SuperadminDashboard>>(role, {
       method: "GET",
       url: "/api/dashboard/superadmin",
+    }),
+  );
+}
+
+export function getMarketingAnalytics(role: Role) {
+  return unwrap<MarketingAnalytics>(
+    authedRequest<ApiSuccess<MarketingAnalytics>>(role, {
+      method: "GET",
+      url: "/api/dashboard/marketing",
     }),
   );
 }

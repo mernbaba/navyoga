@@ -19,7 +19,8 @@ export type StudentCreateBody = StudentRegisterBody & { isActive?: boolean };
 export type StudentUpdateBody = Partial<Omit<StudentCreateBody, "password">> & {
   password?: string;
   avatar?: string | null;
-  address?: string | null;
+  city?: string | null;
+  country?: string | null;
   age?: number | null;
   bloodGroup?: string | null;
   emergencyContact?: string | null;

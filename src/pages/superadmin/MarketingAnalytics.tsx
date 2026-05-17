@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "../../components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../components/ui/tabs";
 import {
@@ -18,6 +19,8 @@ import {
   MousePointerClick,
   Target,
 } from "lucide-react";
+import { toast } from "sonner";
+import { getMarketingAnalytics, type MarketingAnalytics as MarketingAnalyticsData } from "../../api/dashboard";
 import {
   BarChart,
   Bar,
@@ -234,7 +237,7 @@ export function MarketingAnalytics() {
       </div>
 
         <Tabs defaultValue="analytics">
-          <TabsList className="grid w-full max-w-xl grid-cols-2 h-12 bg-muted/30 p-1.5 gap-1 rounded-xl border border-border/40">
+          {/* <TabsList className="grid w-full max-w-xl grid-cols-2 h-12 bg-muted/30 p-1.5 gap-1 rounded-xl border border-border/40">
             <TabsTrigger
               value="analytics"
               className="h-full rounded-lg gap-2 text-gray-400 bg-transparent border-0 transition-all data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-[#610981] data-[state=active]:font-semibold"
@@ -249,7 +252,7 @@ export function MarketingAnalytics() {
               <Zap className="w-4 h-4" />
               User Engagement
             </TabsTrigger>
-          </TabsList>
+          </TabsList> */}
 
           <TabsContent value="analytics" className="space-y-6 mt-6">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
