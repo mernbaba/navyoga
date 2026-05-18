@@ -11,6 +11,18 @@ if (!PREFIX_RAW) {
 const CDN = CDN_RAW.replace(/\/+$/, "");
 const PREFIX = PREFIX_RAW.replace(/^\/+|\/+$/g, "");
 
+export function extractRelativePath(path: string | null | undefined): string {
+  if (!path) return "";
+  if (/^(data:|blob:)/i.test(path)) return path;
+  if (/^https?:/i.test(path)) {
+    const prefixed = PREFIX ? `${CDN}/${PREFIX}/` : `${CDN}/`;
+    if (path.startsWith(prefixed)) return path.slice(prefixed.length);
+    if (path.startsWith(`${CDN}/`)) return path.slice(CDN.length + 1);
+    return path;
+  }
+  return path.startsWith("/") ? path.slice(1) : path;
+}
+
 export function resolveMediaUrl(path: string | null | undefined): string | undefined {
   if (!path) return undefined;
   if (/^(data:|blob:)/i.test(path)) return path;

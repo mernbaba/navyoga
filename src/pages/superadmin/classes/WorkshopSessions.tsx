@@ -40,8 +40,11 @@ import {
   Trash2,
   ListVideo,
   Save,
+  Copy,
+  CheckCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import { extractRelativePath } from "../../../lib/media";
 import {
   getWorkshop,
   addWorkshopSession,
@@ -115,6 +118,7 @@ export function WorkshopSessions() {
   const [editor, setEditor] = useState<EditorMode>({ kind: "closed" });
   const [form, setForm] = useState<SessionFormFields>(emptySessionForm("LIVE"));
   const [saving, setSaving] = useState(false);
+  const [videoCopied, setVideoCopied] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -380,12 +384,32 @@ export function WorkshopSessions() {
                   Recording URL
                   {form.mode === "RECORDED" && <span className="text-red-500"> *</span>}
                 </Label>
-                <Input
-                  id="ses-video"
-                  value={form.video}
-                  onChange={(e) => setForm({ ...form, video: e.target.value })}
-                  placeholder={form.mode === "RECORDED" ? "required · recording URL" : "optional · recording URL"}
-                />
+                <div className="flex gap-1.5">
+                  <Input
+                    id="ses-video"
+                    value={form.video}
+                    onChange={(e) => setForm({ ...form, video: e.target.value })}
+                    placeholder={form.mode === "RECORDED" ? "required · recording URL" : "optional · recording URL"}
+                  />
+                  {form.video.trim() && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="h-9 w-9 shrink-0"
+                      title="Copy path"
+                      onClick={() => {
+                        navigator.clipboard.writeText(extractRelativePath(form.video));
+                        setVideoCopied(true);
+                        setTimeout(() => setVideoCopied(false), 1500);
+                      }}
+                    >
+                      {videoCopied
+                        ? <CheckCheck className="w-3.5 h-3.5 text-green-600" />
+                        : <Copy className="w-3.5 h-3.5" />}
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

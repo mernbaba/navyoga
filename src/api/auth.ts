@@ -118,6 +118,15 @@ export async function registerStudent(body: StudentRegisterBody) {
   );
 }
 
+export function acceptStudentTerms() {
+  return unwrap<StudentUser>(
+    authedRequest<ApiSuccess<StudentUser>>("STUDENT", {
+      method: "POST",
+      url: "/api/auth/student/accept-terms",
+    }),
+  );
+}
+
 export function registerOperations(body: OperationsRegisterBody) {
   return unwrap<OperationsUser>(
     authedRequest<ApiSuccess<OperationsUser>>("SUPERADMIN", {

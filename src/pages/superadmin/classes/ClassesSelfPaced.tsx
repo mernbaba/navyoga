@@ -31,6 +31,8 @@ import {
   Upload,
   FileVideo,
   Image as ImageIcon,
+  Copy,
+  CheckCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -48,6 +50,7 @@ import {
   deleteClassMedia,
 } from "../../../api/selfPaced";
 import type { ClassCreateBody } from "../../../api/selfPaced";
+import { extractRelativePath } from "../../../lib/media";
 import type { SelfPacedModule, SelfPacedClass } from "../../../api/types";
 
 const BRAND = "#610981";
@@ -796,6 +799,8 @@ function AddClassDialog({
   const [step, setStep] = useState<1 | 2>(1);
   const [form, setForm] = useState<ClassFormFields>(EMPTY_CLASS_FORM);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [pasteVideoMode, setPasteVideoMode] = useState(false);
+  const [pastedVideoPath, setPastedVideoPath] = useState("");
   const [detectedDurationMin, setDetectedDurationMin] = useState<number | null>(null);
   const [autoThumb, setAutoThumb] = useState<Blob | null>(null);
   const [autoThumbUrl, setAutoThumbUrl] = useState<string | null>(null);
@@ -822,6 +827,8 @@ function AddClassDialog({
     setStep(1);
     setForm(EMPTY_CLASS_FORM);
     setVideoFile(null);
+    setPasteVideoMode(false);
+    setPastedVideoPath("");
     setDetectedDurationMin(null);
     setAutoThumb(null);
     setThumbnailFile(null);
@@ -861,22 +868,29 @@ function AddClassDialog({
   }
 
   async function handlePublish() {
-    if (!isClassFormValid(form) || !videoFile) return;
+    if (!isClassFormValid(form) || (!videoFile && !pastedVideoPath.trim())) return;
     setSaving(true);
     let createdId: string | null = null;
     try {
       const cls = await createClass("SUPERADMIN", mod.id, buildClassBody(form));
       createdId = cls.id;
 
-      const videoPresign = await requestPresignedUrl(
-        "SUPERADMIN", mod.id, cls.id, videoFile.name, videoFile.type, "video",
-      );
-      await fetch(videoPresign.url, {
-        method: "PUT",
-        headers: { "Content-Type": videoFile.type },
-        body: videoFile,
-      });
-      let updated = await updateClass("SUPERADMIN", mod.id, cls.id, { video: videoPresign.storePath });
+      let updated: SelfPacedClass;
+
+      if (videoFile) {
+        const videoPresign = await requestPresignedUrl(
+          "SUPERADMIN", mod.id, cls.id, videoFile.name, videoFile.type, "video",
+        );
+        await fetch(videoPresign.url, {
+          method: "PUT",
+          headers: { "Content-Type": videoFile.type },
+          body: videoFile,
+        });
+        updated = await updateClass("SUPERADMIN", mod.id, cls.id, { video: videoPresign.storePath });
+      } else {
+        // Reuse an existing path directly — no upload needed.
+        updated = await updateClass("SUPERADMIN", mod.id, cls.id, { video: pastedVideoPath.trim() });
+      }
 
       // Prefer user-uploaded thumbnail file; fall back to the frame captured from the video.
       const thumbBlob: Blob | null = thumbnailFile ?? autoThumb;
@@ -1025,30 +1039,59 @@ function AddClassDialog({
                 <Label htmlFor="sp-video-pick">
                   Video File <span className="text-red-500">*</span>
                 </Label>
-                <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors">
-                  <input
-                    id="sp-video-pick"
-                    type="file"
-                    accept=".mp4,video/mp4"
-                    className="hidden"
-                    disabled={saving}
-                    onChange={(e) => handleVideoChosen(e.target.files?.[0] ?? null)}
-                  />
-                  <label htmlFor="sp-video-pick" className="cursor-pointer flex flex-col items-center gap-1.5">
-                    {videoFile ? (
-                      <>
-                        <FileVideo className="w-6 h-6" style={{ color: BRAND }} />
-                        <p className="text-sm font-medium truncate max-w-full px-2">{videoFile.name}</p>
-                        <p className="text-xs text-muted-foreground">Click to choose a different file</p>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-6 h-6 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">Click to upload video (MP4)</p>
-                      </>
-                    )}
-                  </label>
-                </div>
+                {pasteVideoMode ? (
+                  <div className="space-y-1.5">
+                    <Input
+                      placeholder="Paste a video path, e.g. /self-paced/abc-123/video.mp4"
+                      value={pastedVideoPath}
+                      disabled={saving}
+                      onChange={(e) => setPastedVideoPath(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="text-xs hover:underline"
+                      style={{ color: BRAND }}
+                      onClick={() => { setPasteVideoMode(false); setPastedVideoPath(""); }}
+                    >
+                      Upload a file instead
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors">
+                      <input
+                        id="sp-video-pick"
+                        type="file"
+                        accept=".mp4,video/mp4"
+                        className="hidden"
+                        disabled={saving}
+                        onChange={(e) => handleVideoChosen(e.target.files?.[0] ?? null)}
+                      />
+                      <label htmlFor="sp-video-pick" className="cursor-pointer flex flex-col items-center gap-1.5">
+                        {videoFile ? (
+                          <>
+                            <FileVideo className="w-6 h-6" style={{ color: BRAND }} />
+                            <p className="text-sm font-medium truncate max-w-full px-2">{videoFile.name}</p>
+                            <p className="text-xs text-muted-foreground">Click to choose a different file</p>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-6 h-6 text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground">Click to upload video (MP4)</p>
+                          </>
+                        )}
+                      </label>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-xs hover:underline"
+                      style={{ color: BRAND }}
+                      onClick={() => { setPasteVideoMode(true); setVideoFile(null); }}
+                    >
+                      Or paste a path instead
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Metadata grid — only after video is picked */}
@@ -1098,7 +1141,7 @@ function AddClassDialog({
               </Button>
               <Button
                 onClick={handlePublish}
-                disabled={!videoFile || saving || !isValidThumbnailUrl(form.thumbnail)}
+                disabled={(!videoFile && !pastedVideoPath.trim()) || saving || !isValidThumbnailUrl(form.thumbnail)}
                 style={{ background: BRAND, color: "white" }}
               >
                 {saving ? "Publishing…" : "Publish"}
@@ -1136,6 +1179,10 @@ function EditClassDialog({
   });
   const [saving, setSaving] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [pastePathMode, setPastePathMode] = useState(false);
+  const [pastedPath, setPastedPath] = useState("");
+  const [applyingPath, setApplyingPath] = useState(false);
+  const [videoCopied, setVideoCopied] = useState(false);
   const [detectedDurationMin, setDetectedDurationMin] = useState<number | null>(null);
   const [autoThumb, setAutoThumb] = useState<Blob | null>(null);
   const [autoThumbUrl, setAutoThumbUrl] = useState<string | null>(null);
@@ -1154,6 +1201,9 @@ function EditClassDialog({
       isActive: cls.isActive,
     });
     setVideoFile(null);
+    setPastePathMode(false);
+    setPastedPath("");
+    setVideoCopied(false);
     setDetectedDurationMin(null);
     setAutoThumb(null);
     setThumbnailFile(null);
@@ -1263,6 +1313,23 @@ function EditClassDialog({
       toast.success("Video removed");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete video");
+    }
+  }
+
+  async function handleApplyPath() {
+    const path = pastedPath.trim();
+    if (!path) return;
+    setApplyingPath(true);
+    try {
+      const updated = await updateClass("SUPERADMIN", mod.id, cls.id, { video: path });
+      toast.success("Video path applied");
+      onUpdated(updated);
+      setPastePathMode(false);
+      setPastedPath("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to apply path");
+    } finally {
+      setApplyingPath(false);
     }
   }
 
@@ -1415,19 +1482,113 @@ function EditClassDialog({
 
               {/* Existing video status (only when no new pick) */}
               {cls.video && !videoFile && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/30">
-                  <FileVideo className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground truncate flex-1">Video uploaded</span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs"
-                    disabled={uploading}
-                    onClick={handleDeleteMedia}
-                  >
-                    <Trash2 className="w-3 h-3 mr-1" /> Remove
-                  </Button>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/30">
+                    <FileVideo className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="text-xs font-mono truncate flex-1 text-muted-foreground" title={extractRelativePath(cls.video)}>
+                      {extractRelativePath(cls.video)}
+                    </span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 shrink-0"
+                      onClick={() => {
+                        navigator.clipboard.writeText(extractRelativePath(cls.video));
+                        setVideoCopied(true);
+                        setTimeout(() => setVideoCopied(false), 1500);
+                      }}
+                    >
+                      {videoCopied
+                        ? <CheckCheck className="w-3.5 h-3.5 text-green-600" />
+                        : <Copy className="w-3.5 h-3.5" />}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs shrink-0"
+                      disabled={uploading}
+                      onClick={handleDeleteMedia}
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" /> Remove
+                    </Button>
+                  </div>
+
+                  {pastePathMode ? (
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        className="h-8 text-xs font-mono"
+                        placeholder="Paste a video path"
+                        value={pastedPath}
+                        disabled={applyingPath}
+                        onChange={(e) => setPastedPath(e.target.value)}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-8 text-xs shrink-0"
+                        style={{ background: BRAND, color: "white" }}
+                        disabled={!pastedPath.trim() || applyingPath}
+                        onClick={handleApplyPath}
+                      >
+                        {applyingPath ? "Applying…" : "Apply"}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs shrink-0"
+                        onClick={() => { setPastePathMode(false); setPastedPath(""); }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="text-xs hover:underline"
+                      style={{ color: BRAND }}
+                      onClick={() => setPastePathMode(true)}
+                    >
+                      Use an existing path instead
+                    </button>
+                  )}
                 </div>
+              )}
+
+              {/* Paste-path for classes with no video yet */}
+              {!cls.video && !videoFile && (
+                pastePathMode ? (
+                  <div className="space-y-1.5">
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        className="h-8 text-xs font-mono"
+                        placeholder="Paste a video path"
+                        value={pastedPath}
+                        disabled={applyingPath}
+                        onChange={(e) => setPastedPath(e.target.value)}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-8 text-xs shrink-0"
+                        style={{ background: BRAND, color: "white" }}
+                        disabled={!pastedPath.trim() || applyingPath}
+                        onClick={handleApplyPath}
+                      >
+                        {applyingPath ? "Applying…" : "Apply"}
+                      </Button>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-xs hover:underline"
+                      style={{ color: BRAND }}
+                      onClick={() => { setPastePathMode(false); setPastedPath(""); }}
+                    >
+                      Upload a file instead
+                    </button>
+                  </div>
+                ) : null
               )}
 
               {/* Video upload (replace or new) */}
@@ -1435,32 +1596,46 @@ function EditClassDialog({
                 <Label htmlFor="ec-video-pick">
                   {cls.video ? "Replace Video" : "Video File"}
                 </Label>
-                <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors">
-                  <input
-                    id="ec-video-pick"
-                    type="file"
-                    accept=".mp4,video/mp4"
-                    className="hidden"
-                    disabled={uploading}
-                    onChange={(e) => handleVideoChosen(e.target.files?.[0] ?? null)}
-                  />
-                  <label htmlFor="ec-video-pick" className="cursor-pointer flex flex-col items-center gap-1.5">
-                    {videoFile ? (
-                      <>
-                        <FileVideo className="w-6 h-6" style={{ color: BRAND }} />
-                        <p className="text-sm font-medium truncate max-w-full px-2">{videoFile.name}</p>
-                        <p className="text-xs text-muted-foreground">Click to choose a different file</p>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-6 h-6 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          {cls.video ? "Click to replace video (MP4)" : "Click to upload video (MP4)"}
-                        </p>
-                      </>
+                {!pastePathMode && (
+                  <>
+                    <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors">
+                      <input
+                        id="ec-video-pick"
+                        type="file"
+                        accept=".mp4,video/mp4"
+                        className="hidden"
+                        disabled={uploading}
+                        onChange={(e) => handleVideoChosen(e.target.files?.[0] ?? null)}
+                      />
+                      <label htmlFor="ec-video-pick" className="cursor-pointer flex flex-col items-center gap-1.5">
+                        {videoFile ? (
+                          <>
+                            <FileVideo className="w-6 h-6" style={{ color: BRAND }} />
+                            <p className="text-sm font-medium truncate max-w-full px-2">{videoFile.name}</p>
+                            <p className="text-xs text-muted-foreground">Click to choose a different file</p>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-6 h-6 text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground">
+                              {cls.video ? "Click to replace video (MP4)" : "Click to upload video (MP4)"}
+                            </p>
+                          </>
+                        )}
+                      </label>
+                    </div>
+                    {!cls.video && (
+                      <button
+                        type="button"
+                        className="text-xs hover:underline"
+                        style={{ color: BRAND }}
+                        onClick={() => setPastePathMode(true)}
+                      >
+                        Or paste a path instead
+                      </button>
                     )}
-                  </label>
-                </div>
+                  </>
+                )}
               </div>
 
               {/* Metadata grid — only after a new video is picked */}

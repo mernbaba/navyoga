@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
 } from "./ui/alert-dialog";
 import { performLogout, useRoleSession } from "../lib/session";
+import { TermsModal } from "./student/TermsModal";
 
 const navigation = [
   { name: 'Dashboard', href: '/user/dashboard', icon: LayoutDashboard },
@@ -49,7 +50,7 @@ export function UserLayout() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
-  useRoleSession("STUDENT");
+  const { user, setUser } = useRoleSession("STUDENT");
 
   const requestLogout = () => {
     setOpen(false);
@@ -172,6 +173,8 @@ export function UserLayout() {
       <main className="lg:pl-64">
         <Outlet />
       </main>
+
+      <TermsModal user={user} setUser={setUser} />
 
       <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
         <AlertDialogContent>

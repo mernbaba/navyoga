@@ -145,6 +145,7 @@ export type StudentUser = {
   yogaExperience?: string | null;
   currentLevel?: string | null;
   areasOfInterest?: string | null;
+  termsAcceptedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };

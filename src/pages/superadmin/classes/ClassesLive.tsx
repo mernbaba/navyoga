@@ -13,6 +13,8 @@ import {
   X,
   Upload,
   Video as VideoIcon,
+  Copy,
+  CheckCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -53,6 +55,7 @@ import {
   requestLiveClassRecordingPresign,
 } from "@/api/live";
 import { listTutors } from "@/api/tutors";
+import { extractRelativePath } from "@/lib/media";
 import { listBatches } from "@/api/batches";
 import type { LiveClass, ClassDifficulty, Tutor, Batch } from "@/api/types";
 import { BatchesDialog } from "./BatchesDialog";
@@ -110,6 +113,8 @@ export function ClassesLive() {
   const [editing, setEditing] = useState<LiveClass | null>(null);
   const [form, setForm] = useState<FormState>(BLANK_FORM);
   const [recordingFile, setRecordingFile] = useState<File | null>(null);
+  const [recordingPasteMode, setRecordingPasteMode] = useState(false);
+  const [recordingCopied, setRecordingCopied] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<LiveClass | null>(null);
@@ -144,6 +149,8 @@ export function ClassesLive() {
     setEditing(null);
     setForm(BLANK_FORM);
     setRecordingFile(null);
+    setRecordingPasteMode(false);
+    setRecordingCopied(false);
     setDialogOpen(true);
   }
 
@@ -164,6 +171,8 @@ export function ClassesLive() {
       recording: cls.recording ?? "",
     });
     setRecordingFile(null);
+    setRecordingPasteMode(false);
+    setRecordingCopied(false);
     setDialogOpen(true);
   }
 
@@ -441,41 +450,94 @@ export function ClassesLive() {
                   · optional · MP4, WEBM, MOV, or MKV
                 </span>
               </Label>
-              <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors overflow-hidden">
-                <input
-                  id="live-recording-pick"
-                  type="file"
-                  accept=".mp4,.webm,.mov,.mkv,video/mp4,video/webm,video/quicktime,video/x-matroska"
-                  className="hidden"
-                  disabled={saving}
-                  onChange={(e) => setRecordingFile(e.target.files?.[0] ?? null)}
-                />
-                <label
-                  htmlFor="live-recording-pick"
-                  className="cursor-pointer flex flex-col items-center gap-1.5 w-full min-w-0"
-                >
-                  {recordingFile ? (
-                    <>
-                      <VideoIcon className="w-6 h-6 text-[#610981]" />
-                      <p className="text-sm font-medium w-full px-2 truncate text-center">
-                        {recordingFile.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Click to choose a different file
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-6 h-6 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
-                        {form.recording
-                          ? "Click to replace recording"
-                          : "Click to upload recording from your device"}
-                      </p>
-                    </>
-                  )}
-                </label>
-              </div>
+
+              {recordingPasteMode ? (
+                <div className="space-y-1.5">
+                  <Input
+                    placeholder="Paste a recording path, e.g. /live/abc-123/recording.mp4"
+                    value={form.recording}
+                    disabled={saving}
+                    onChange={(e) => setField("recording", e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="text-xs text-[#610981] hover:underline"
+                    onClick={() => { setRecordingPasteMode(false); setField("recording", ""); setRecordingFile(null); }}
+                  >
+                    Upload a file instead
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors overflow-hidden">
+                    <input
+                      id="live-recording-pick"
+                      type="file"
+                      accept=".mp4,.webm,.mov,.mkv,video/mp4,video/webm,video/quicktime,video/x-matroska"
+                      className="hidden"
+                      disabled={saving}
+                      onChange={(e) => setRecordingFile(e.target.files?.[0] ?? null)}
+                    />
+                    <label
+                      htmlFor="live-recording-pick"
+                      className="cursor-pointer flex flex-col items-center gap-1.5 w-full min-w-0"
+                    >
+                      {recordingFile ? (
+                        <>
+                          <VideoIcon className="w-6 h-6 text-[#610981]" />
+                          <p className="text-sm font-medium w-full px-2 truncate text-center">
+                            {recordingFile.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Click to choose a different file
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-6 h-6 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">
+                            {form.recording
+                              ? "Click to replace recording"
+                              : "Click to upload recording from your device"}
+                          </p>
+                        </>
+                      )}
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-xs text-[#610981] hover:underline"
+                    onClick={() => setRecordingPasteMode(true)}
+                  >
+                    Or paste a path instead
+                  </button>
+                </>
+              )}
+
+              {/* Saved path display with copy button */}
+              {form.recording && !recordingFile && (
+                <div className="flex items-center gap-2 p-2 rounded-md bg-muted/40 border text-xs font-mono">
+                  <span className="truncate flex-1 text-muted-foreground" title={extractRelativePath(form.recording)}>
+                    {extractRelativePath(form.recording)}
+                  </span>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 shrink-0"
+                    onClick={() => {
+                      navigator.clipboard.writeText(extractRelativePath(form.recording));
+                      setRecordingCopied(true);
+                      setTimeout(() => setRecordingCopied(false), 1500);
+                    }}
+                  >
+                    {recordingCopied
+                      ? <CheckCheck className="w-3.5 h-3.5 text-green-600" />
+                      : <Copy className="w-3.5 h-3.5" />}
+                  </Button>
+                </div>
+              )}
+
               {(recordingFile || form.recording) && (
                 <div className="flex justify-end">
                   <Button
