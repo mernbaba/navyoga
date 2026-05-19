@@ -439,6 +439,29 @@ export type LiveClass = {
   recording: string | null;
   tutor: LiveClassTutor | null;
   batch: { id: string; name: string } | null;
+  recurringId: string | null;
+  dayOfWeek: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DayOfWeek = "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+
+export type RecurringLiveClass = {
+  id: string;
+  title: string;
+  description: string | null;
+  yogaType: string;
+  difficulty: ClassDifficulty;
+  duration: number;
+  link: string | null;
+  daysOfWeek: DayOfWeek[];
+  timeOfDay: string;
+  startDate: string;
+  endDate: string | null;
+  isActive: boolean;
+  tutor: LiveClassTutor | null;
+  batch: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
 };

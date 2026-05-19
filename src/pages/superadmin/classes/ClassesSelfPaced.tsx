@@ -50,7 +50,7 @@ import {
   deleteClassMedia,
 } from "../../../api/selfPaced";
 import type { ClassCreateBody } from "../../../api/selfPaced";
-import { extractRelativePath } from "../../../lib/media";
+import { extractRelativePath, resolveMediaUrl } from "../../../lib/media";
 import type { SelfPacedModule, SelfPacedClass } from "../../../api/types";
 
 const BRAND = "#610981";
@@ -1364,7 +1364,7 @@ function EditClassDialog({
   const [step, setStep] = useState<1 | 2>(1);
   useEffect(() => { setStep(1); }, [cls.id]);
 
-  const previewImageUrl = autoThumbUrl ?? (form.thumbnail.trim() || cls.thumbnail || null);
+  const previewImageUrl = autoThumbUrl ?? resolveMediaUrl(form.thumbnail.trim() || cls.thumbnail) ?? null;
   const displayDuration = detectedDurationMin ?? (form.duration ? Number(form.duration) : null);
 
   return (
@@ -1397,7 +1397,7 @@ function EditClassDialog({
                   Thumbnail <span className="text-xs text-muted-foreground font-normal">· optional · .jpg or .png</span>
                 </Label>
                 {(() => {
-                  const preview = thumbnailFileUrl ?? (cls.thumbnail || form.thumbnail.trim() || null);
+                  const preview = thumbnailFileUrl ?? resolveMediaUrl(cls.thumbnail || form.thumbnail.trim()) ?? null;
                   return preview ? (
                     <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
                       <img

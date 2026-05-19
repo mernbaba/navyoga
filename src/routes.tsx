@@ -12,6 +12,8 @@ import { Students } from "./pages/superadmin/Students";
 import { Employees } from "./pages/superadmin/Employees";
 import { Tutors } from "./pages/superadmin/Tutors";
 import { ClassesLive } from "./pages/superadmin/classes/ClassesLive";
+import { ClassesLiveRecurring } from "./pages/superadmin/classes/ClassesLiveRecurring";
+import { OperationsClassesRecurring } from "./pages/operations/OperationsClassesRecurring";
 import { ClassesSelfPaced } from "./pages/superadmin/classes/ClassesSelfPaced";
 import { SelfPacedModules } from "./pages/superadmin/classes/SelfPacedModules";
 import { ClassesYTTLive } from "./pages/superadmin/classes/ClassesYTTLive";
@@ -134,6 +136,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/superadmin/classes/live" replace /> },
           { path: "live", Component: ClassesLive },
+          { path: "live-recurring", Component: ClassesLiveRecurring },
           {
             path: "self-paced",
             children: [
@@ -216,6 +219,7 @@ export const router = createBrowserRouter([
       { path: "leads", Component: OperationsLeads },
       { path: "users", Component: OperationsUsers },
       { path: "classes", Component: OperationsClasses },
+      { path: "classes/live-recurring", Component: OperationsClassesRecurring },
       { path: "recorded-classes", Component: OperationsRecordedClasses },
       { path: "events", Component: OperationsEvents },
       { path: "settings", Component: OperationsSettings },

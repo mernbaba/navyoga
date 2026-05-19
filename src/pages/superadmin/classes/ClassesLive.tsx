@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router";
 import {
   Radio,
   Plus,
@@ -15,6 +16,7 @@ import {
   Video as VideoIcon,
   Copy,
   CheckCheck,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -102,7 +104,13 @@ function initials(name: string) {
     .slice(0, 2);
 }
 
+const DAY_FULL: Record<string, string> = {
+  MON: "Monday", TUE: "Tuesday", WED: "Wednesday",
+  THU: "Thursday", FRI: "Friday", SAT: "Saturday", SUN: "Sunday",
+};
+
 export function ClassesLive() {
+  const navigate = useNavigate();
   const [classes, setClasses] = useState<LiveClass[]>([]);
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -277,6 +285,15 @@ export function ClassesLive() {
           >
             <Layers className="w-4 h-4" />
             Batches
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/superadmin/classes/live-recurring")}
+            className="gap-2"
+            style={{ borderColor: "#610981", color: "#610981" }}
+          >
+            <RefreshCw className="w-4 h-4" />
+            Recurring Live Class
           </Button>
           <Button
             onClick={openCreate}
@@ -703,6 +720,12 @@ function LiveClassCard({
             >
               {diffCfg.label}
             </span>
+            {cls.recurringId && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium bg-blue-50 text-blue-700 border-blue-200">
+                <RefreshCw className="w-2.5 h-2.5" />
+                {cls.dayOfWeek ? DAY_FULL[cls.dayOfWeek] ?? cls.dayOfWeek : "Recurring"}
+              </span>
+            )}
             {cls.recording && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium bg-[#610981]/10 text-[#610981] border-[#610981]/20">
                 <VideoIcon className="w-3 h-3" />

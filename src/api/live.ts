@@ -5,6 +5,8 @@ import {
   type Role,
   type LiveClass,
   type ClassDifficulty,
+  type RecurringLiveClass,
+  type DayOfWeek,
 } from "./types";
 
 export type LiveClassListParams = {
@@ -84,6 +86,65 @@ export type LiveClassRecordingPresign = {
   storePath: string;
   expiresIn: number;
 };
+
+// ─── RECURRING LIVE CLASSES ───────────────────────────────────────────────────
+
+export type RecurringLiveClassCreateBody = {
+  title: string;
+  yogaType: string;
+  difficulty: ClassDifficulty;
+  duration: number;
+  daysOfWeek: DayOfWeek[];
+  timeOfDay: string;
+  startDate: string;
+  description?: string;
+  link?: string;
+  tutorId?: string;
+  batchId?: string;
+  endDate?: string;
+};
+
+export type RecurringLiveClassUpdateBody = Partial<RecurringLiveClassCreateBody> & {
+  isActive?: boolean;
+};
+
+export function listRecurringLiveClasses(role: Role) {
+  return unwrap<RecurringLiveClass[]>(
+    authedRequest<ApiSuccess<RecurringLiveClass[]>>(role, {
+      method: "GET",
+      url: "/api/live/recurring",
+    }),
+  );
+}
+
+export function createRecurringLiveClass(role: Role, body: RecurringLiveClassCreateBody) {
+  return unwrap<RecurringLiveClass>(
+    authedRequest<ApiSuccess<RecurringLiveClass>>(role, {
+      method: "POST",
+      url: "/api/live/recurring",
+      data: body,
+    }),
+  );
+}
+
+export function updateRecurringLiveClass(role: Role, id: string, body: RecurringLiveClassUpdateBody) {
+  return unwrap<RecurringLiveClass>(
+    authedRequest<ApiSuccess<RecurringLiveClass>>(role, {
+      method: "PATCH",
+      url: `/api/live/recurring/${id}`,
+      data: body,
+    }),
+  );
+}
+
+export function deleteRecurringLiveClass(role: Role, id: string) {
+  return unwrap<null>(
+    authedRequest<ApiSuccess<null>>(role, {
+      method: "DELETE",
+      url: `/api/live/recurring/${id}`,
+    }),
+  );
+}
 
 export function requestLiveClassRecordingPresign(
   role: Role,
