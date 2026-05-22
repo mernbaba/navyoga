@@ -1,8 +1,58 @@
-﻿import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { Users, UserCog, Phone, Bell, Ticket, UserPlus, GraduationCap, CalendarDays, Video, Image, TrendingUp, Activity } from "lucide-react";
+﻿import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Users, UserCog, Phone, Bell, Ticket, UserPlus, GraduationCap, CalendarDays, Video, Image, TrendingUp, Activity, Clock, LogIn, LogOut } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
+import { toast } from "sonner";
+import { getMyOperationsAttendance, operationsCheckIn, operationsCheckOut } from "../../api/attendance";
+import type { MyOperationsAttendance } from "../../api/types";
 
 export function OperationsDashboard() {
+  const [attendance, setAttendance] = useState<MyOperationsAttendance>(null);
+  const [isAttendanceLoading, setIsAttendanceLoading] = useState(true);
+  const [isClocking, setIsClocking] = useState(false);
+
+  useEffect(() => {
+    setIsAttendanceLoading(true);
+    getMyOperationsAttendance("OPERATIONS")
+      .then(setAttendance)
+      .catch(() => setAttendance(null))
+      .finally(() => setIsAttendanceLoading(false));
+  }, []);
+
+  const fmtTime = (ts: string | null) =>
+    ts ? new Date(ts).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "";
+
+  const handleCheckIn = async () => {
+    if (isClocking) return;
+    setIsClocking(true);
+    try {
+      await operationsCheckIn("OPERATIONS");
+      setAttendance(await getMyOperationsAttendance("OPERATIONS"));
+      toast.success("Checked in successfully");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Check-in failed.");
+    } finally {
+      setIsClocking(false);
+    }
+  };
+
+  const handleCheckOut = async () => {
+    if (isClocking) return;
+    setIsClocking(true);
+    try {
+      await operationsCheckOut("OPERATIONS");
+      setAttendance(await getMyOperationsAttendance("OPERATIONS"));
+      toast.success("Checked out successfully");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Check-out failed.");
+    } finally {
+      setIsClocking(false);
+    }
+  };
+
+  const dotColor = attendance?.checkOut ? "#10b981" : attendance?.checkIn ? "#f59e0b" : "#94a3b8";
+  const borderColor = attendance?.checkOut ? "#10b98140" : attendance?.checkIn ? "#f59e0b40" : "#e2e8f0";
   const metrics = [
     { title: 'Total Employees', value: '156', change: '+8', icon: Users, color: '#ff691d' },
     { title: 'Active Tutors', value: '42', change: '+5', icon: GraduationCap, color: '#610981' },
@@ -88,9 +138,44 @@ export function OperationsDashboard() {
     <div className="p-6 lg:p-8">
       <div className="space-y-6">
  
-        <div>
-          <h1 className="text-3xl font-semibold" style={{ color: '#ff691d' }}>Operations Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Manage business operations and team activities</p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-3xl font-semibold" style={{ color: '#ff691d' }}>Operations Dashboard</h1>
+            <p className="text-muted-foreground mt-1">Manage business operations and team activities</p>
+          </div>
+
+          {/* Compact attendance widget */}
+          <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl border-2 bg-white shadow-sm shrink-0" style={{ borderColor }}>
+            <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-1">Attendance</p>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: dotColor }} />
+                <span className="text-xs font-semibold leading-none">
+                  {isAttendanceLoading
+                    ? "Loading..."
+                    : attendance?.checkOut
+                    ? `In ${fmtTime(attendance.checkIn)} · Out ${fmtTime(attendance.checkOut)}`
+                    : attendance?.checkIn
+                    ? `In at ${fmtTime(attendance.checkIn)}`
+                    : "Not checked in"}
+                </span>
+              </div>
+            </div>
+            {!isAttendanceLoading && (
+              attendance?.checkOut ? (
+                <span className="text-xs font-medium text-green-600 ml-1">✓ Done</span>
+              ) : attendance?.checkIn ? (
+                <Button size="sm" disabled={isClocking} onClick={handleCheckOut} className="h-7 px-3 text-xs ml-1" style={{ backgroundColor: "#610981" }}>
+                  <LogOut className="w-3 h-3 mr-1" />{isClocking ? "..." : "Check Out"}
+                </Button>
+              ) : (
+                <Button size="sm" disabled={isClocking} onClick={handleCheckIn} className="h-7 px-3 text-xs ml-1" style={{ backgroundColor: "#610981" }}>
+                  <LogIn className="w-3 h-3 mr-1" />{isClocking ? "..." : "Check In"}
+                </Button>
+              )
+            )}
+          </div>
         </div>
  
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">

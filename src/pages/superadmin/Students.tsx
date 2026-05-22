@@ -138,7 +138,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold">Sādhakas</h1>
+          <h1 className="text-3xl font-semibold" style={{ color: '#ff691d' }}>Sādhakas</h1>
           <p className="text-muted-foreground mt-1">Manage your yoga center Sādhakas</p>
         </div>
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>

@@ -1,8 +1,12 @@
-﻿import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+﻿import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import { Phone, Users, TrendingUp, CheckCircle, Clock, PhoneCall, Target, Award } from "lucide-react";
+import { Phone, Users, CheckCircle, Clock, PhoneCall, Target, LogIn, LogOut } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { toast } from "sonner";
+import { getMyFrontlineAttendance, frontlineCheckIn, frontlineCheckOut } from "../../api/attendance";
+import type { MyFrontlineAttendance } from "../../api/types";
 
 const callData = [
   { day: 'Mon', calls: 45, connected: 32 },
@@ -14,6 +18,51 @@ const callData = [
 ];
 
 export function FrontlineDashboard() {
+  const [attendance, setAttendance] = useState<MyFrontlineAttendance>(null);
+  const [isAttendanceLoading, setIsAttendanceLoading] = useState(true);
+  const [isClocking, setIsClocking] = useState(false);
+
+  useEffect(() => {
+    setIsAttendanceLoading(true);
+    getMyFrontlineAttendance("FRONTLINE")
+      .then(setAttendance)
+      .catch(() => setAttendance(null))
+      .finally(() => setIsAttendanceLoading(false));
+  }, []);
+
+  const fmtTime = (ts: string | null) =>
+    ts ? new Date(ts).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "";
+
+  const handleCheckIn = async () => {
+    if (isClocking) return;
+    setIsClocking(true);
+    try {
+      await frontlineCheckIn("FRONTLINE");
+      const updated = await getMyFrontlineAttendance("FRONTLINE");
+      setAttendance(updated);
+      toast.success("Checked in successfully");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Check-in failed.");
+    } finally {
+      setIsClocking(false);
+    }
+  };
+
+  const handleCheckOut = async () => {
+    if (isClocking) return;
+    setIsClocking(true);
+    try {
+      await frontlineCheckOut("FRONTLINE");
+      const updated = await getMyFrontlineAttendance("FRONTLINE");
+      setAttendance(updated);
+      toast.success("Checked out successfully");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Check-out failed.");
+    } finally {
+      setIsClocking(false);
+    }
+  };
+
   const stats = [
     { name: "Today's Calls", value: 32, target: 50, icon: Phone, color: '#ff691d' },
     { name: "Connected", value: 24, percentage: 75, icon: PhoneCall, color: '#10b981' },
@@ -49,17 +98,66 @@ export function FrontlineDashboard() {
                 <h1 className="text-4xl font-bold mb-2">Welcome, Sarah! 📞</h1>
                 <p className="text-white/80 text-lg">Let's make today count with great conversations!</p>
               </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 border-2 border-white/30">
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Target className="w-5 h-5" />
-                    <p className="text-sm font-medium">Daily Target</p>
+              <div className="flex flex-row gap-3 items-center">
+                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5 border-2 border-white/30">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <Target className="w-5 h-5" />
+                      <p className="text-sm font-medium">Daily Target</p>
+                    </div>
+                    <p className="text-3xl font-bold mb-1">32/50</p>
+                    <p className="text-sm text-white/80">Calls Made</p>
+                    <div className="mt-3 w-full bg-white/20 rounded-full h-2">
+                      <div className="bg-white h-2 rounded-full" style={{ width: '64%' }} />
+                    </div>
                   </div>
-                  <p className="text-3xl font-bold mb-1">32/50</p>
-                  <p className="text-sm text-white/80">Calls Made</p>
-                  <div className="mt-3 w-full bg-white/20 rounded-full h-2">
-                    <div className="bg-white h-2 rounded-full" style={{ width: '64%' }} />
+                </div>
+
+                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 border-2 border-white/30 flex flex-col gap-2 shrink-0">
+                  <p className="text-[10px] font-semibold text-white/60 uppercase tracking-wider">Attendance</p>
+                  <div className="flex items-center gap-1.5">
+                    {isAttendanceLoading ? (
+                      <span className="text-xs text-white/60">...</span>
+                    ) : attendance?.checkOut ? (
+                      <>
+                        <div className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
+                        <span className="text-xs font-medium whitespace-nowrap">
+                          {fmtTime(attendance.checkIn)} → {fmtTime(attendance.checkOut)}
+                        </span>
+                      </>
+                    ) : attendance?.checkIn ? (
+                      <>
+                        <div className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                        <span className="text-xs font-medium whitespace-nowrap">In at {fmtTime(attendance.checkIn)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-2 h-2 rounded-full bg-white/40 shrink-0" />
+                        <span className="text-xs text-white/70 whitespace-nowrap">Not checked in</span>
+                      </>
+                    )}
                   </div>
+                  {!isAttendanceLoading && (
+                    attendance?.checkOut ? (
+                      <span className="text-xs text-green-300 font-semibold">✓ Done for today</span>
+                    ) : attendance?.checkIn ? (
+                      <button
+                        onClick={handleCheckOut}
+                        disabled={isClocking}
+                        className="flex items-center justify-center gap-1 text-xs bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded-lg border border-white/30 font-medium transition-colors disabled:opacity-50"
+                      >
+                        <LogOut className="w-3 h-3" />{isClocking ? "..." : "Check Out"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleCheckIn}
+                        disabled={isClocking}
+                        className="flex items-center justify-center gap-1 text-xs bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded-lg border border-white/30 font-medium transition-colors disabled:opacity-50"
+                      >
+                        <LogIn className="w-3 h-3" />{isClocking ? "..." : "Check In"}
+                      </button>
+                    )
+                  )}
                 </div>
               </div>
             </div>

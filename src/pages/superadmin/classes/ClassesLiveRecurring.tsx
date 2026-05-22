@@ -321,7 +321,7 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: "#610981" }}>
+          <h1 className="text-2xl font-bold" style={{ color: "#ff691d" }}>
             Recurring Live Classes
           </h1>
           <p className="text-muted-foreground text-sm mt-1">

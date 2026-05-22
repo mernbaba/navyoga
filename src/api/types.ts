@@ -799,3 +799,44 @@ export type BusinessSettings = {
   createdAt: string;
   updatedAt: string;
 };
+
+// ─── TUTOR PANEL ──────────────────────────────────────────────────────────────
+
+export type TutorDashboardStats = {
+  totalClasses: number;
+  completedClasses: number;
+  classesThisMonth: number;
+  totalStudents: number;
+  teachingHoursThisMonth: number;
+  avgAttendanceRate: number;
+  upcomingToday: { id: string; title: string; scheduledAt: string | null; duration: number }[];
+  classBreakdown: { name: string; count: number }[];
+};
+
+export type TutorStudentItem = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  avatar: string | null;
+  joinDate: string;
+  membershipType: string;
+  enrolledClasses: string[];
+  status: string;
+};
+
+export type MyOperationsAttendance = {
+  id: string;
+  date: string;
+  checkIn: string | null;
+  checkOut: string | null;
+  status: "PRESENT" | "ABSENT";
+} | null;
+
+export type MyFrontlineAttendance = {
+  id: string;
+  date: string;
+  checkIn: string | null;
+  checkOut: string | null;
+  status: "PRESENT" | "ABSENT";
+} | null;

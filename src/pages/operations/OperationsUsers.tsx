@@ -1,5 +1,9 @@
 import { Students } from "../superadmin/Students";
 
 export function OperationsUsers() {
-  return <Students role="OPERATIONS" />;
+  return (
+    <div className="p-6 lg:p-8">
+      <Students role="OPERATIONS" />
+    </div>
+  );
 }

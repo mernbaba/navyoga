@@ -35,14 +35,18 @@ export function FrontlineLayout() {
   return (
     <div className="flex h-screen bg-gray-50">
       <div className="w-64 bg-white border-r flex flex-col shadow-lg">
-        <div className="p-6 border-b">
+        <div className="p-5 border-b">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-linear-to-br from-[#610981] to-[#8b0fa8] rounded-xl">
-              <Phone className="w-6 h-6 text-white" />
+            <div className="relative w-10 h-10 rounded-xl bg-linear-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-lg shadow-[#ffac96]/40 shrink-0">
+              <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="NavYoga" className="w-10 h-10 object-contain" />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse" />
             </div>
             <div>
-              <h1 className="text-xl font-bold" style={{ color: '#ff691d' }}>NavYoga</h1>
-              <p className="text-xs text-muted-foreground">Frontline Panel</p>
+              <h2 className="text-base font-semibold leading-tight" style={{ color: '#ff691d' }}>NavYoga Academy</h2>
+              <p className="text-xs flex items-center gap-1 mt-0.5" style={{ color: '#ffac96' }}>
+                <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                Frontline Panel
+              </p>
             </div>
           </div>
         </div>
@@ -84,7 +88,7 @@ export function FrontlineLayout() {
           </Button>
         </div>
       </div>
-      <main className="flex-1">
+      <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>
 

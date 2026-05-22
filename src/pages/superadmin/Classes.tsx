@@ -107,7 +107,7 @@ export function Classes() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold">Classes</h1>
+          <h1 className="text-3xl font-semibold" style={{ color: '#ff691d' }}>Classes</h1>
           <p className="text-muted-foreground mt-1">Manage yoga class schedules and enrollment</p>
         </div>
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -276,7 +276,7 @@ export function Classes() {
                       </div>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      <div className="space-y-1 min-w-[120px]">
+                      <div className="space-y-1 min-w-30">
                         <div className="flex items-center gap-2 text-sm">
                           <UsersIcon className="w-4 h-4 text-muted-foreground" />
                           {cls.enrolled}/{cls.capacity}

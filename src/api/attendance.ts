@@ -4,6 +4,8 @@ import {
   type ApiSuccess,
   type AttendanceStatus,
   type FrontlineAttendance,
+  type MyFrontlineAttendance,
+  type MyOperationsAttendance,
   type OperationsAttendance,
   type PaginatedAttendance,
   type Role,
@@ -83,6 +85,15 @@ export function frontlineCheckOut(role: Role) {
   );
 }
 
+export function getMyFrontlineAttendance(role: Role) {
+  return unwrap<MyFrontlineAttendance>(
+    authedRequest<ApiSuccess<MyFrontlineAttendance>>(role, {
+      method: "GET",
+      url: "/api/attendance/frontline/me",
+    }),
+  );
+}
+
 export function operationsCheckIn(role: Role) {
   return unwrap<OperationsAttendance>(
     authedRequest<ApiSuccess<OperationsAttendance>>(role, {
@@ -97,6 +108,15 @@ export function operationsCheckOut(role: Role) {
     authedRequest<ApiSuccess<OperationsAttendance>>(role, {
       method: "POST",
       url: "/api/attendance/operations/checkout",
+    }),
+  );
+}
+
+export function getMyOperationsAttendance(role: Role) {
+  return unwrap<MyOperationsAttendance>(
+    authedRequest<ApiSuccess<MyOperationsAttendance>>(role, {
+      method: "GET",
+      url: "/api/attendance/operations/me",
     }),
   );
 }

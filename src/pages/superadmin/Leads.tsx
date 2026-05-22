@@ -24,7 +24,7 @@ function statusVariant(status: LeadStatus): "default" | "secondary" | "outline" 
   return "outline";
 }
 
-type LeadsRole = Extract<Role, "SUPERADMIN" | "FRONTLINE">;
+type LeadsRole = Extract<Role, "SUPERADMIN" | "FRONTLINE" | "OPERATIONS">;
 
 export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -154,7 +154,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold">Leads</h1>
+          <h1 className="text-3xl font-semibold" style={{ color: '#ff691d' }}>Leads</h1>
           <p className="text-muted-foreground mt-1">Manage potential students and inquiries</p>
         </div>
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
