@@ -30,6 +30,7 @@ import {
 } from "./ui/alert-dialog";
 import { performLogout, useRoleSession } from "../lib/session";
 import { TermsModal } from "./student/TermsModal";
+import { PhoneVerificationModal } from "./student/PhoneVerificationModal";
 
 const navigation = [
   { name: 'Dashboard', href: '/user/dashboard', icon: LayoutDashboard },
@@ -175,6 +176,7 @@ export function UserLayout() {
       </main>
 
       <TermsModal user={user} setUser={setUser} />
+      <PhoneVerificationModal user={user} setUser={setUser} />
 
       <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
         <AlertDialogContent>

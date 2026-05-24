@@ -79,14 +79,17 @@ export function UserProfile() {
   const handleSavePersonal = (event: React.FormEvent) => {
     event.preventDefault();
     if (isSavingPersonal) return;
-    if (!/^\d{10}$/.test(phone)) {
-      toast.error("Phone number must be exactly 10 digits.");
+    if (!/^\d{8,15}$/.test(phone)) {
+      toast.error("Phone must be 8-15 digits including country code (no '+').");
       return;
     }
+    const phoneChanged = profile?.phone !== phone;
     void savePartial(
       { name, email, phone, city: city || null, country: country || null, gender: gender || null },
       setIsSavingPersonal,
-      "Profile updated successfully.",
+      phoneChanged
+        ? "Profile updated. Verify your new phone number to keep full access."
+        : "Profile updated successfully.",
     );
   };
 
@@ -169,16 +172,22 @@ export function UserProfile() {
                       id="phone"
                       type="tel"
                       inputMode="numeric"
-                      pattern="\d{10}"
-                      maxLength={10}
+                      pattern="\d{8,15}"
+                      maxLength={15}
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 15))}
                       className="pl-9"
                       disabled={isLoading}
                       required
-                      title="Enter a 10-digit phone number"
+                      title="Enter country code + number (digits only, no '+')"
+                      placeholder="919999999999"
                     />
                   </div>
+                  {profile?.phoneVerified === false ? (
+                    <p className="text-xs text-amber-600">
+                      Phone not verified yet — verification will be requested on your next page load.
+                    </p>
+                  ) : null}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="gender">Gender</Label>

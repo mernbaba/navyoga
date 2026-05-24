@@ -127,6 +127,16 @@ export function acceptStudentTerms() {
   );
 }
 
+export function verifyStudentPhone(accessToken: string) {
+  return unwrap<StudentUser>(
+    authedRequest<ApiSuccess<StudentUser>>("STUDENT", {
+      method: "POST",
+      url: "/api/auth/student/verify-phone",
+      data: { accessToken },
+    }),
+  );
+}
+
 export function registerOperations(body: OperationsRegisterBody) {
   return unwrap<OperationsUser>(
     authedRequest<ApiSuccess<OperationsUser>>("SUPERADMIN", {

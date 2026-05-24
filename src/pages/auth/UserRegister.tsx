@@ -14,6 +14,7 @@ export function UserRegister() {
   const [searchParams] = useSearchParams();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [countryCode, setCountryCode] = useState("91");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [referredByCode, setReferredByCode] = useState("");
@@ -32,12 +33,23 @@ export function UserRegister() {
       toast.error("Password must be at least 8 characters.");
       return;
     }
+    const cc = countryCode.replace(/\D/g, "");
+    const localDigits = phone.replace(/\D/g, "");
+    if (!cc || !localDigits) {
+      toast.error("Enter your country code and phone number.");
+      return;
+    }
+    const canonicalPhone = `${cc}${localDigits}`;
+    if (canonicalPhone.length < 8 || canonicalPhone.length > 15) {
+      toast.error("Phone number must be 8-15 digits including country code.");
+      return;
+    }
     setIsSubmitting(true);
     try {
       const { user, token } = await registerStudent({
         name: name.trim(),
         email: email.trim(),
-        phone: phone.trim(),
+        phone: canonicalPhone,
         password,
         referredByCode: referredByCode.trim() || undefined,
       });
@@ -104,19 +116,44 @@ export function UserRegister() {
 
           <div className="space-y-2">
             <Label htmlFor="phone">Phone</Label>
-            <div className="relative">
-              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                required
-                minLength={7}
-                maxLength={15}
-                placeholder="9999999999"
-                className="h-14 pl-12 pr-4 border-gray-200 rounded-xl text-base"
-              />
+            <div className="flex gap-2">
+              <div className="relative w-24 shrink-0">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base font-medium">
+                  +
+                </span>
+                <Input
+                  id="countryCode"
+                  inputMode="numeric"
+                  value={countryCode}
+                  onChange={(event) =>
+                    setCountryCode(event.target.value.replace(/\D/g, "").slice(0, 4))
+                  }
+                  required
+                  placeholder="91"
+                  aria-label="Country code"
+                  className="h-14 pl-7 pr-2 border-gray-200 rounded-xl text-base"
+                />
+              </div>
+              <div className="relative flex-1">
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  id="phone"
+                  inputMode="numeric"
+                  value={phone}
+                  onChange={(event) =>
+                    setPhone(event.target.value.replace(/\D/g, ""))
+                  }
+                  required
+                  minLength={6}
+                  maxLength={14}
+                  placeholder="9999999999"
+                  className="h-14 pl-12 pr-4 border-gray-200 rounded-xl text-base"
+                />
+              </div>
             </div>
+            <p className="text-xs text-gray-400">
+              We'll send a one-time SMS to verify this number.
+            </p>
           </div>
 
           <div className="space-y-2">
