@@ -53,6 +53,10 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery]);
+
+  useEffect(() => {
     const handle = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
     return () => clearTimeout(handle);
   }, [searchQuery]);
@@ -64,7 +68,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
       q: debouncedQuery || undefined,
       status: statusFilter === "ALL" ? undefined : statusFilter,
       page,
-      limit: 20,
+      limit: 15,
     })
       .then((res) => {
         if (cancelled) return;
@@ -171,19 +175,19 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
               </DialogHeader>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="name">Full Name</Label>
+                  <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
                   <Input id="name" value={addForm.name} onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} required maxLength={100} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} required />
+                  <Input id="email" type="email" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">Phone <span className="text-red-500">*</span></Label>
                   <Input id="phone" value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })} required maxLength={15} />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="source">Source</Label>
+                  <Label htmlFor="source">Source <span className="text-red-500">*</span></Label>
                   <Select value={addForm.source} onValueChange={(v) => setAddForm({ ...addForm, source: v as LeadSource })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -193,7 +197,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="interest">Interest</Label>
-                  <Input id="interest" value={addForm.interest} onChange={(e) => setAddForm({ ...addForm, interest: e.target.value })} placeholder="e.g., Hatha Yoga - beginner" required />
+                  <Input id="interest" value={addForm.interest} onChange={(e) => setAddForm({ ...addForm, interest: e.target.value })} placeholder="e.g., Hatha Yoga - beginner" />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="location">Location</Label>
@@ -319,12 +323,12 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
             </Table>
           </div>
 
-          {total > 20 && (
+          {total > 15 && (
             <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">Page {page} of {Math.ceil(total / 20)} • {total} total</p>
+              <p className="text-sm text-muted-foreground">Page {page} of {Math.ceil(total / 15)} • {total} total</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-                <Button variant="outline" size="sm" disabled={page >= Math.ceil(total / 20)} onClick={() => setPage((p) => p + 1)}>Next</Button>
+                <Button variant="outline" size="sm" disabled={page >= Math.ceil(total / 15)} onClick={() => setPage((p) => p + 1)}>Next</Button>
               </div>
             </div>
           )}
