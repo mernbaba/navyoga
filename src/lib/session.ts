@@ -21,8 +21,17 @@ export function getCachedUser<R extends Role>(role: R): RoleUser[R] | null {
   }
 }
 
+const USER_UPDATED_EVENT = "role-user-updated";
+
+type RoleUserUpdatedDetail = { role: Role; user: RoleUser[Role] };
+
 export function setCachedUser<R extends Role>(role: R, user: RoleUser[R]) {
   localStorage.setItem(ROLE_USER_KEYS[role], JSON.stringify(user));
+  window.dispatchEvent(
+    new CustomEvent<RoleUserUpdatedDetail>(USER_UPDATED_EVENT, {
+      detail: { role, user },
+    }),
+  );
 }
 
 export function useRoleSession<R extends Role>(role: R) {
@@ -57,6 +66,16 @@ export function useRoleSession<R extends Role>(role: R) {
       cancelled = true;
     };
   }, [role, navigate]);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<RoleUserUpdatedDetail>).detail;
+      if (!detail || detail.role !== role) return;
+      setUser(detail.user as RoleUser[R]);
+    };
+    window.addEventListener(USER_UPDATED_EVENT, handler);
+    return () => window.removeEventListener(USER_UPDATED_EVENT, handler);
+  }, [role]);
 
   return { user, setUser, isLoading };
 }

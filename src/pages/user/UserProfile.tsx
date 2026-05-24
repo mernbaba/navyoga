@@ -88,7 +88,7 @@ export function UserProfile() {
       { name, email, phone, city: city || null, country: country || null, gender: gender || null },
       setIsSavingPersonal,
       phoneChanged
-        ? "Profile updated. Verify your new phone number to keep full access."
+        ? "Profile updated. Please verify your new phone number to continue."
         : "Profile updated successfully.",
     );
   };
@@ -185,7 +185,7 @@ export function UserProfile() {
                   </div>
                   {profile?.phoneVerified === false ? (
                     <p className="text-xs text-amber-600">
-                      Phone not verified yet — verification will be requested on your next page load.
+                      Phone not verified — a verification prompt will appear shortly.
                     </p>
                   ) : null}
                 </div>
