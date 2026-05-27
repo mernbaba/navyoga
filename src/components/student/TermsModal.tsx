@@ -51,10 +51,33 @@ export function TermsModal({ user, setUser }: TermsModalProps) {
 
             <p id="terms-description" className="text-sm text-muted-foreground leading-relaxed">
               Before you continue, please review and accept our{" "}
-              <span className="font-medium text-[#610981]">Terms and Conditions</span>{" "}
-              and{" "}
-              <span className="font-medium text-[#610981]">Privacy Policy</span>.
-              By clicking <strong>Accept</strong>, you agree to our policies governing
+              <a
+                href="https://www.navyogawellness.com/terms-and-conditions"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-[#610981] underline hover:text-[#8b0fa8]"
+              >
+                Terms and Conditions
+              </a>
+              ,{" "}
+              <a
+                href="https://www.navyogawellness.com/privacy-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-[#610981] underline hover:text-[#8b0fa8]"
+              >
+                Privacy Policy
+              </a>
+              {" "}and{" "}
+              <a
+                href="https://www.navyogawellness.com/refund-cancellation-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-[#610981] underline hover:text-[#8b0fa8]"
+              >
+                Refund &amp; Cancellation Policy
+              </a>
+              . By clicking <strong>Accept</strong>, you agree to our policies governing
               your use of the NavYoga platform.
             </p>
 
