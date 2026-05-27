@@ -81,19 +81,21 @@ export const ControlBar = () => {
           </span>
         </button>
 
-        <button
-          onClick={() => toggleScreenShare()}
-          className={`flex h-14 w-14 flex-col items-center justify-center rounded-xl transition-all duration-150 active:scale-95 ${
-            isScreenSharing
-              ? "bg-[var(--primary)]/20 text-[var(--primary)] hover:bg-[var(--primary)]/30"
-              : "text-white hover:bg-zinc-800"
-          }`}
-        >
-          <Monitor className="h-5 w-5" />
-          <span className="mt-1 text-[10px] font-semibold">
-            {isScreenSharing ? "Sharing" : "Share"}
-          </span>
-        </button>
+        {isHost && (
+          <button
+            onClick={() => toggleScreenShare()}
+            className={`flex h-14 w-14 flex-col items-center justify-center rounded-xl transition-all duration-150 active:scale-95 ${
+              isScreenSharing
+                ? "bg-[var(--primary)]/20 text-[var(--primary)] hover:bg-[var(--primary)]/30"
+                : "text-white hover:bg-zinc-800"
+            }`}
+          >
+            <Monitor className="h-5 w-5" />
+            <span className="mt-1 text-[10px] font-semibold">
+              {isScreenSharing ? "Sharing" : "Share"}
+            </span>
+          </button>
+        )}
       </div>
 
       <div className="flex w-[25%] items-center justify-end gap-2 md:gap-3">
