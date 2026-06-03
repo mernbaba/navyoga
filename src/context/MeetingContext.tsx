@@ -91,7 +91,13 @@ export const MeetingProvider = ({
   const peersRef = useRef<Record<string, RemotePeer>>({});
   const audioCtxRef = useRef<Record<string, AudioContext>>({});
   const teardownStartedRef = useRef(false);
+  const isScreenSharingRef = useRef(false);
+  const videoBusyRef = useRef(false);
   const onLeaveRef = useRef(onLeave);
+
+  useEffect(() => {
+    isScreenSharingRef.current = isScreenSharing;
+  }, [isScreenSharing]);
 
   useEffect(() => {
     onLeaveRef.current = onLeave;
@@ -132,11 +138,97 @@ export const MeetingProvider = ({
     if (track) track.enabled = !muted;
   }, []);
 
-  const updateLocalVideoState = useCallback((off: boolean) => {
-    setIsVideoOff(off);
-    const track = localStreamRef.current?.getVideoTracks()[0];
-    if (track) track.enabled = !off;
-  }, []);
+  const replaceVideoTrackOnPeers = useCallback(
+    (track: MediaStreamTrack | null) => {
+      Object.values(peersRef.current).forEach((entry) => {
+        try {
+          const pc = (entry.peer as unknown as { _pc?: RTCPeerConnection })._pc;
+          const sender = pc
+            ?.getSenders()
+            .find((s) => s.track?.kind === "video");
+          sender?.replaceTrack(track);
+        } catch {
+          // ignore
+        }
+      });
+    },
+    [],
+  );
+
+  // Turning the camera OFF must release the device (track.stop()), not just
+  // disable it — otherwise the OS keeps the camera "in use" and the LED stays
+  // on. Turning it back ON re-acquires a fresh track via getUserMedia.
+  // Returns the resulting isVideoOff value (may differ from `off` if
+  // getUserMedia fails when turning on).
+  const updateLocalVideoState = useCallback(
+    async (off: boolean): Promise<boolean> => {
+      if (videoBusyRef.current) return off;
+      videoBusyRef.current = true;
+      try {
+        const stream = localStreamRef.current;
+        if (!stream) {
+          setIsVideoOff(off);
+          return off;
+        }
+
+        if (off) {
+          const track = stream.getVideoTracks()[0];
+          if (track) {
+            track.stop();
+            stream.removeTrack(track);
+          }
+          // Don't yank the camera track out of peers while screen sharing —
+          // the video sender is carrying the screen track in that case.
+          if (!isScreenSharingRef.current) {
+            replaceVideoTrackOnPeers(null);
+          }
+          setIsVideoOff(true);
+          // New MediaStream reference so consumers (VideoTile) re-render and
+          // drop the now-stopped track from the <video> element.
+          const next = new MediaStream(stream.getTracks());
+          localStreamRef.current = next;
+          setLocalStream(next);
+          return true;
+        }
+
+        // Camera ON — acquire a fresh video track and graft it into the stream.
+        let camStream: MediaStream;
+        try {
+          camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        } catch {
+          toast.error("Couldn't access the camera");
+          setIsVideoOff(true);
+          return true;
+        }
+        const newTrack = camStream.getVideoTracks()[0];
+        if (!newTrack) {
+          camStream.getTracks().forEach((t) => t.stop());
+          setIsVideoOff(true);
+          return true;
+        }
+
+        const current = localStreamRef.current ?? stream;
+        // Drop any stale video track before adding the new one.
+        current.getVideoTracks().forEach((t) => {
+          t.stop();
+          current.removeTrack(t);
+        });
+        current.addTrack(newTrack);
+
+        if (!isScreenSharingRef.current) {
+          replaceVideoTrackOnPeers(newTrack);
+        }
+        setIsVideoOff(false);
+        const next = new MediaStream(current.getTracks());
+        localStreamRef.current = next;
+        setLocalStream(next);
+        return false;
+      } finally {
+        videoBusyRef.current = false;
+      }
+    },
+    [replaceVideoTrackOnPeers],
+  );
 
   const destroyPeer = useCallback((socketId: string) => {
     const existing = peersRef.current[socketId];
@@ -307,10 +399,12 @@ export const MeetingProvider = ({
     socketRef.current?.emit("toggle-mute", { is_muted: next });
   }, [isMuted, updateLocalAudioState]);
 
-  const toggleVideo = useCallback(() => {
-    const next = !isVideoOff;
-    updateLocalVideoState(next);
-    socketRef.current?.emit("toggle-video", { is_video_off: next });
+  const toggleVideo = useCallback(async () => {
+    if (videoBusyRef.current) return;
+    const requested = !isVideoOff;
+    const actual = await updateLocalVideoState(requested);
+    // Emit the state we actually ended up in (getUserMedia may have failed).
+    socketRef.current?.emit("toggle-video", { is_video_off: actual });
   }, [isVideoOff, updateLocalVideoState]);
 
   const toggleScreenShare = useCallback(async () => {
@@ -324,21 +418,10 @@ export const MeetingProvider = ({
         screenStreamRef.current = null;
       }
       setIsScreenSharing(false);
-      const cam = localStreamRef.current?.getVideoTracks()[0];
-      if (cam) {
-        Object.values(peersRef.current).forEach((entry) => {
-          try {
-            const pc = (entry.peer as unknown as { _pc?: RTCPeerConnection })
-              ._pc;
-            const sender = pc
-              ?.getSenders()
-              .find((s) => s.track?.kind === "video");
-            sender?.replaceTrack(cam);
-          } catch {
-            // ignore
-          }
-        });
-      }
+      // Restore the camera track to peers — or null it out if the camera is
+      // currently off (no live video track), so peers stop seeing the screen.
+      const cam = localStreamRef.current?.getVideoTracks()[0] ?? null;
+      replaceVideoTrackOnPeers(cam);
       sock.emit("screen-share-stop");
       return;
     }
@@ -354,17 +437,7 @@ export const MeetingProvider = ({
         display.getTracks().forEach((t) => t.stop());
         return;
       }
-      Object.values(peersRef.current).forEach((entry) => {
-        try {
-          const pc = (entry.peer as unknown as { _pc?: RTCPeerConnection })._pc;
-          const sender = pc
-            ?.getSenders()
-            .find((s) => s.track?.kind === "video");
-          sender?.replaceTrack(screenTrack);
-        } catch {
-          // ignore
-        }
-      });
+      replaceVideoTrackOnPeers(screenTrack);
       setIsScreenSharing(true);
       sock.emit("screen-share-start");
       screenTrack.onended = () => {
@@ -373,7 +446,7 @@ export const MeetingProvider = ({
     } catch {
       toast.error("Screen share canceled");
     }
-  }, [isScreenSharing]);
+  }, [isScreenSharing, replaceVideoTrackOnPeers]);
 
   const sendMessage = useCallback((text: string) => {
     const trimmed = text.trim();
@@ -414,6 +487,21 @@ export const MeetingProvider = ({
         stream?.getTracks().forEach((t) => t.stop());
         return;
       }
+
+      // Start with mic and camera OFF by default. The mic is kept but muted
+      // via track.enabled = false. For the camera we stop() the video track to
+      // release the device (OS shows the camera as free, LED off), but keep the
+      // (now-ended) track on the stream so that when peers are created a video
+      // transceiver/sender still exists — that lets replaceTrack swap in a live
+      // camera track later, when the user turns the camera on.
+      const audioTrack = stream.getAudioTracks()[0];
+      if (audioTrack) audioTrack.enabled = false;
+      setIsMuted(true);
+
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) videoTrack.stop();
+      setIsVideoOff(true);
+
       localStreamRef.current = stream;
       setLocalStream(stream);
       setupActiveSpeaker("local", stream);
