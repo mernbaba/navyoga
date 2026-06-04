@@ -34,7 +34,11 @@ export function OperationsLayout() {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  useRoleSession("OPERATIONS");
+  const { user } = useRoleSession("OPERATIONS");
+  const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : "";
+  const opInitials = user
+    ? `${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase()
+    : "OP";
 
   const requestLogout = () => {
     setSidebarOpen(false);
@@ -132,11 +136,11 @@ export function OperationsLayout() {
           <div className="p-4 border-t">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 mb-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold" style={{ backgroundColor: '#610981' }}>
-                OP
+                {opInitials}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">Operations User</p>
-                <p className="text-xs text-muted-foreground truncate">operations@navyoga.com</p>
+                <p className="font-medium text-sm truncate">{fullName || "—"}</p>
+                <p className="text-xs text-muted-foreground truncate">{user?.email ?? ""}</p>
               </div>
             </div>
             <Button

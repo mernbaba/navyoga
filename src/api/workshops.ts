@@ -112,6 +112,27 @@ export function requestWorkshopThumbnailPresign(
   );
 }
 
+export type WorkshopSessionVideoPresign = {
+  url: string;
+  storePath: string;
+  expiresIn: number;
+};
+
+export function requestWorkshopSessionVideoPresign(
+  role: Role,
+  workshopId: string,
+  sessionId: string,
+  body: { filename: string; contentType: string },
+) {
+  return unwrap<WorkshopSessionVideoPresign>(
+    authedRequest<ApiSuccess<WorkshopSessionVideoPresign>>(role, {
+      method: "POST",
+      url: `${BASE}/${workshopId}/sessions/${sessionId}/video-presign`,
+      data: body,
+    }),
+  );
+}
+
 // ─── ADMIN: Sessions ─────────────────────────────────────────────────────────
 
 export type CreateSessionInput = {

@@ -39,7 +39,7 @@ export function TutorLayout() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
-  useRoleSession("TUTOR");
+  const { user } = useRoleSession("TUTOR");
 
   const requestLogout = () => {
     setOpen(false);
@@ -131,11 +131,13 @@ export function TutorLayout() {
           </div>
           
           <div className="ml-auto flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2">
-              <Badge variant="outline" className="border-[#610981] text-[#610981]">
-                Priya Sharma
-              </Badge>
-            </div>
+            {user?.name && (
+              <div className="hidden md:flex items-center gap-2">
+                <Badge variant="outline" className="border-[#610981] text-[#610981]">
+                  {user.name}
+                </Badge>
+              </div>
+            )}
             <Button
               variant="ghost"
               size="sm"

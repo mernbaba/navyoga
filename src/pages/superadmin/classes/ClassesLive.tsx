@@ -58,6 +58,7 @@ import {
 } from "@/api/live";
 import { listTutors } from "@/api/tutors";
 import { extractRelativePath } from "@/lib/media";
+import { toDatetimeLocalValue } from "@/lib/datetime";
 import { listBatches } from "@/api/batches";
 import type { LiveClass, ClassDifficulty, Tutor, Batch } from "@/api/types";
 import { BatchesDialog } from "./BatchesDialog";
@@ -172,9 +173,7 @@ export function ClassesLive() {
       description: cls.description ?? "",
       tutorId: cls.tutor?.id ?? "",
       batchId: cls.batch?.id ?? "",
-      scheduledAt: cls.scheduledAt
-        ? new Date(cls.scheduledAt).toISOString().slice(0, 16)
-        : "",
+      scheduledAt: toDatetimeLocalValue(cls.scheduledAt),
       link: cls.link ?? "",
       recording: cls.recording ?? "",
     });

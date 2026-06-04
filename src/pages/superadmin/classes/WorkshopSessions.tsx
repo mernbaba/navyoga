@@ -42,6 +42,8 @@ import {
   Save,
   Copy,
   CheckCheck,
+  Upload,
+  Video as VideoIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { extractRelativePath } from "../../../lib/media";
@@ -50,6 +52,7 @@ import {
   addWorkshopSession,
   updateWorkshopSession,
   deleteWorkshopSession,
+  requestWorkshopSessionVideoPresign,
   type CreateSessionInput,
 } from "../../../api/workshops";
 import type {
@@ -119,6 +122,8 @@ export function WorkshopSessions() {
   const [form, setForm] = useState<SessionFormFields>(emptySessionForm("LIVE"));
   const [saving, setSaving] = useState(false);
   const [videoCopied, setVideoCopied] = useState(false);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPasteMode, setVideoPasteMode] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -147,6 +152,8 @@ export function WorkshopSessions() {
       ...emptySessionForm(workshop.mode),
       sortOrder: String(sessions.length + 1),
     });
+    setVideoFile(null);
+    setVideoPasteMode(false);
     setEditor({ kind: "create" });
   }
 
@@ -160,6 +167,8 @@ export function WorkshopSessions() {
       link: s.link ?? "",
       video: s.video ?? "",
     });
+    setVideoFile(null);
+    setVideoPasteMode(false);
     setEditor({ kind: "edit", sessionId: s.id });
   }
 
@@ -175,13 +184,13 @@ export function WorkshopSessions() {
     if (!Number.isFinite(sortOrder) || sortOrder < 0) return;
 
     const hasLink = !!form.link.trim();
-    const hasVideo = !!form.video.trim();
+    const hasVideo = !!form.video.trim() || !!videoFile;
     if (form.mode === "LIVE" && !hasLink) {
       toast.error("Join link is required for live sessions");
       return;
     }
     if (form.mode === "RECORDED" && !hasVideo) {
-      toast.error("Recording URL is required for recorded sessions");
+      toast.error("A recording (upload or URL) is required for recorded sessions");
       return;
     }
 
@@ -199,19 +208,37 @@ export function WorkshopSessions() {
         if (Number.isFinite(n) && n > 0) body.duration = n;
       }
       if (form.link.trim()) body.link = form.link.trim();
-      if (form.video.trim()) body.video = form.video.trim();
+      // When a file is selected we upload it after the session exists and patch
+      // the resulting storePath in — so don't send the (empty) URL field here.
+      if (!videoFile && form.video.trim()) body.video = form.video.trim();
 
-      if (editor.kind === "create") {
-        const created = await addWorkshopSession("SUPERADMIN", id, body);
-        setSessions((prev) => [...prev, created].sort((a, b) => a.sortOrder - b.sortOrder));
-        toast.success("Session added");
-      } else {
-        const updated = await updateWorkshopSession("SUPERADMIN", id, editor.sessionId, body);
-        setSessions((prev) =>
-          prev.map((s) => (s.id === updated.id ? updated : s)).sort((a, b) => a.sortOrder - b.sortOrder),
-        );
-        toast.success("Session updated");
+      let saved =
+        editor.kind === "create"
+          ? await addWorkshopSession("SUPERADMIN", id, body)
+          : await updateWorkshopSession("SUPERADMIN", id, editor.sessionId, body);
+
+      if (videoFile) {
+        const presign = await requestWorkshopSessionVideoPresign("SUPERADMIN", id, saved.id, {
+          filename: videoFile.name,
+          contentType: videoFile.type || "video/mp4",
+        });
+        const putRes = await fetch(presign.url, {
+          method: "PUT",
+          headers: { "Content-Type": videoFile.type || "video/mp4" },
+          body: videoFile,
+        });
+        if (!putRes.ok) throw new Error("Video upload failed");
+        saved = await updateWorkshopSession("SUPERADMIN", id, saved.id, {
+          video: presign.storePath,
+        });
       }
+
+      setSessions((prev) => {
+        const exists = prev.some((s) => s.id === saved.id);
+        const next = exists ? prev.map((s) => (s.id === saved.id ? saved : s)) : [...prev, saved];
+        return next.sort((a, b) => a.sortOrder - b.sortOrder);
+      });
+      toast.success(editor.kind === "create" ? "Session added" : "Session updated");
       setEditor({ kind: "closed" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save session.");
@@ -365,52 +392,146 @@ export function WorkshopSessions() {
               </div>
             </div>
 
-            {/* Row 4: Join Link · Recording URL */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="ses-link" className="text-xs font-medium">
-                  Join Link
-                  {form.mode === "LIVE" && <span className="text-red-500"> *</span>}
-                </Label>
-                <Input
-                  id="ses-link"
-                  value={form.link}
-                  onChange={(e) => setForm({ ...form, link: e.target.value })}
-                  placeholder={form.mode === "LIVE" ? "required · live join URL" : "optional · live join URL"}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="ses-video" className="text-xs font-medium">
-                  Recording URL
-                  {form.mode === "RECORDED" && <span className="text-red-500"> *</span>}
-                </Label>
-                <div className="flex gap-1.5">
-                  <Input
-                    id="ses-video"
-                    value={form.video}
-                    onChange={(e) => setForm({ ...form, video: e.target.value })}
-                    placeholder={form.mode === "RECORDED" ? "required · recording URL" : "optional · recording URL"}
-                  />
-                  {form.video.trim() && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      className="h-9 w-9 shrink-0"
-                      title="Copy path"
-                      onClick={() => {
-                        navigator.clipboard.writeText(extractRelativePath(form.video));
-                        setVideoCopied(true);
-                        setTimeout(() => setVideoCopied(false), 1500);
-                      }}
-                    >
-                      {videoCopied
-                        ? <CheckCheck className="w-3.5 h-3.5 text-green-600" />
-                        : <Copy className="w-3.5 h-3.5" />}
-                    </Button>
-                  )}
+            {/* Row 4: Join Link */}
+            <div className="space-y-1.5">
+              <Label htmlFor="ses-link" className="text-xs font-medium">
+                Join Link
+                {form.mode === "LIVE" && <span className="text-red-500"> *</span>}
+              </Label>
+              <Input
+                id="ses-link"
+                value={form.link}
+                onChange={(e) => setForm({ ...form, link: e.target.value })}
+                placeholder={form.mode === "LIVE" ? "required · live join URL" : "optional · live join URL"}
+              />
+            </div>
+
+            {/* Row 5: Recording (upload a video, or paste a path) */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">
+                Recording
+                {form.mode === "RECORDED" && <span className="text-red-500"> *</span>}
+                <span className="text-[10px] text-muted-foreground font-normal ml-1">
+                  · MP4, WEBM, MOV, or MKV
+                </span>
+              </Label>
+
+              {videoPasteMode ? (
+                <div className="space-y-1.5">
+                  <div className="flex gap-1.5">
+                    <Input
+                      id="ses-video"
+                      value={form.video}
+                      disabled={saving}
+                      onChange={(e) => setForm({ ...form, video: e.target.value })}
+                      placeholder="Paste a recording path or URL"
+                    />
+                    {form.video.trim() && (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="h-9 w-9 shrink-0"
+                        title="Copy path"
+                        onClick={() => {
+                          navigator.clipboard.writeText(extractRelativePath(form.video));
+                          setVideoCopied(true);
+                          setTimeout(() => setVideoCopied(false), 1500);
+                        }}
+                      >
+                        {videoCopied
+                          ? <CheckCheck className="w-3.5 h-3.5 text-green-600" />
+                          : <Copy className="w-3.5 h-3.5" />}
+                      </Button>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="text-xs text-[#610981] hover:underline"
+                    onClick={() => { setVideoPasteMode(false); setForm({ ...form, video: "" }); setVideoFile(null); }}
+                  >
+                    Upload a file instead
+                  </button>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition-colors overflow-hidden">
+                    <input
+                      id="ses-video-pick"
+                      type="file"
+                      accept=".mp4,.webm,.mov,.mkv,video/mp4,video/webm,video/quicktime,video/x-matroska"
+                      className="hidden"
+                      disabled={saving}
+                      onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
+                    />
+                    <label
+                      htmlFor="ses-video-pick"
+                      className="cursor-pointer flex flex-col items-center gap-1.5 w-full min-w-0"
+                    >
+                      {videoFile ? (
+                        <>
+                          <VideoIcon className="w-6 h-6 text-[#610981]" />
+                          <p className="text-sm font-medium w-full px-2 truncate text-center">{videoFile.name}</p>
+                          <p className="text-xs text-muted-foreground">Click to choose a different file</p>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-6 h-6 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">
+                            {form.video ? "Click to replace recording" : "Click to upload video from your device"}
+                          </p>
+                        </>
+                      )}
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-xs text-[#610981] hover:underline"
+                    onClick={() => setVideoPasteMode(true)}
+                  >
+                    Or paste a path instead
+                  </button>
+                </>
+              )}
+
+              {/* Saved recording path (existing upload) with copy */}
+              {form.video && !videoFile && (
+                <div className="flex items-center gap-2 p-2 rounded-md bg-muted/40 border text-xs font-mono">
+                  <span className="truncate flex-1 text-muted-foreground" title={extractRelativePath(form.video)}>
+                    {extractRelativePath(form.video)}
+                  </span>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 shrink-0"
+                    onClick={() => {
+                      navigator.clipboard.writeText(extractRelativePath(form.video));
+                      setVideoCopied(true);
+                      setTimeout(() => setVideoCopied(false), 1500);
+                    }}
+                  >
+                    {videoCopied
+                      ? <CheckCheck className="w-3.5 h-3.5 text-green-600" />
+                      : <Copy className="w-3.5 h-3.5" />}
+                  </Button>
+                </div>
+              )}
+
+              {(videoFile || form.video) && (
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    disabled={saving}
+                    onClick={() => { setVideoFile(null); setForm({ ...form, video: "" }); }}
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" /> Remove
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 

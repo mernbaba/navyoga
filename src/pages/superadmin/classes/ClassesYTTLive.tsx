@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select";
-import { Radio, Plus, Trash2, ChevronRight, GraduationCap, Pencil, Search, Clock, CalendarDays, Link2 } from "lucide-react";
+import { Radio, Plus, Trash2, ChevronRight, GraduationCap, Pencil, Search, Clock, CalendarDays, Link2, User } from "lucide-react";
 import { toast } from "sonner";
 import {
   listYTTLiveCourses,
@@ -31,6 +31,7 @@ import {
   updateYTTLiveClass,
   deleteYTTLiveClass,
 } from "../../../api/plans";
+import { listTutors } from "../../../api/tutors";
 import type {
   YTTCourse,
   ClassLevel,
@@ -38,6 +39,7 @@ import type {
   YTTLiveClass,
   YTTLiveClassBody,
   ClassDifficulty,
+  Tutor,
 } from "../../../api/types";
 
 type DerivedStatus = "LIVE" | "SCHEDULED" | "COMPLETED" | "UNSCHEDULED";
@@ -287,6 +289,7 @@ type ClassFormState = {
   link: string;
   scheduledAt: string;
   recording: string;
+  tutorId: string;
 };
 
 const EMPTY_CLASS: ClassFormState = {
@@ -298,11 +301,22 @@ const EMPTY_CLASS: ClassFormState = {
   link: "",
   scheduledAt: "",
   recording: "",
+  tutorId: "",
 };
+
+const NO_TUTOR = "__none__";
 
 function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFormDialogProps) {
   const [form, setForm] = useState<ClassFormState>(EMPTY_CLASS);
   const [saving, setSaving] = useState(false);
+  const [tutors, setTutors] = useState<Tutor[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    listTutors("SUPERADMIN", { limit: 100, status: "ACTIVE" })
+      .then((r) => setTutors(r.items))
+      .catch(() => {});
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -316,6 +330,7 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
         link: initial.link ?? "",
         scheduledAt: isoToLocalInput(initial.scheduledAt),
         recording: initial.recording ?? "",
+        tutorId: initial.tutor?.id ?? initial.tutorId ?? "",
       });
     } else {
       setForm(EMPTY_CLASS);
@@ -348,6 +363,7 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
         ...(form.link.trim() ? { link: form.link.trim() } : {}),
         ...(scheduledIso ? { scheduledAt: scheduledIso } : {}),
         ...(form.recording.trim() ? { recording: form.recording.trim() } : {}),
+        ...(form.tutorId ? { tutorId: form.tutorId } : {}),
       };
       // For PATCH, send nullable fields explicitly so they can be cleared.
       const patch: Partial<YTTLiveClassBody> = {
@@ -359,6 +375,7 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
         link: form.link.trim() ? form.link.trim() : null,
         scheduledAt: scheduledIso,
         recording: form.recording.trim() ? form.recording.trim() : null,
+        tutorId: form.tutorId || null,
       };
       const saved = initial
         ? await updateYTTLiveClass(courseId, initial.id, patch)
@@ -435,6 +452,32 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
               value={form.scheduledAt}
               onChange={(e) => set("scheduledAt", e.target.value)}
             />
+          </div>
+
+          <div className="space-y-1">
+            <Label>Tutor</Label>
+            <Select
+              value={form.tutorId || NO_TUTOR}
+              onValueChange={(v) => set("tutorId", v === NO_TUTOR ? "" : v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Assign a tutor" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_TUTOR}>No tutor</SelectItem>
+                {tutors.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    <span className="flex items-center gap-2">
+                      <span className="font-medium">{t.name}</span>
+                      <span className="text-xs text-muted-foreground">· {t.tutorId}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              The assigned tutor will see this session in their tutor panel.
+            </p>
           </div>
 
           <div className="space-y-1">
@@ -609,6 +652,9 @@ function CourseClasses({ courseId }: CourseClassesProps) {
                     <span className="capitalize">{cls.yogaType} · {cls.difficulty.toLowerCase()}</span>
                     <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{formatDuration(cls.duration)}</span>
                     <span className="inline-flex items-center gap-1"><CalendarDays className="w-3 h-3" />{formatScheduled(cls.scheduledAt)}</span>
+                    {cls.tutor && (
+                      <span className="inline-flex items-center gap-1"><User className="w-3 h-3" />{cls.tutor.name}</span>
+                    )}
                     {cls.link && (
                       <a
                         href={cls.link}

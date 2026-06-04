@@ -484,6 +484,10 @@ export type TutorAssignedClass = {
   recording: string | null;
   batch: { id: string; name: string } | null;
   state: TutorClassState;
+  // Distinguishes shared Live Classes from YTT Live course classes so the
+  // tutor panel can route actions correctly (YTT classes join via link only).
+  kind?: "LIVE_CLASS" | "YTT_LIVE";
+  courseId?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -605,6 +609,8 @@ export type YTTLiveClass = {
   duration: number;
   link: string | null;
   recording: string | null;
+  tutorId: string | null;
+  tutor: LiveClassTutor | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -620,6 +626,7 @@ export type YTTLiveClassBody = {
   startedAt?: string | null;
   endedAt?: string | null;
   recording?: string | null;
+  tutorId?: string | null;
 };
 
 export type YTTLiveCourseDetail = YTTCourse & {

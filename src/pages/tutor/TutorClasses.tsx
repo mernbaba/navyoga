@@ -106,6 +106,16 @@ export function TutorClasses() {
   }, [items]);
 
   const handleStartClass = (classItem: TutorAssignedClass) => {
+    // YTT Live classes have no in-app session — the tutor joins the external
+    // meeting via its link. Only shared Live Classes use the video session.
+    if (classItem.kind === "YTT_LIVE") {
+      if (!classItem.link) {
+        toast.error("No meeting link configured for this class.");
+        return;
+      }
+      window.open(classItem.link, "_blank", "noopener,noreferrer");
+      return;
+    }
     toast.success("Starting live session...");
     navigate(`/tutor/video-session?classId=${classItem.id}`);
   };
@@ -326,7 +336,7 @@ export function TutorClasses() {
                                   size="sm"
                                 >
                                   <Play className="w-4 h-4 mr-1" />
-                                  {isLive ? "Rejoin" : "Start"}
+                                  {cls.kind === "YTT_LIVE" ? "Join" : isLive ? "Rejoin" : "Start"}
                                 </Button>
                               </div>
                             </TableCell>
@@ -385,7 +395,11 @@ export function TutorClasses() {
                 className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
               >
                 <Play className="w-4 h-4 mr-1" />
-                {selectedClass?.state === "LIVE" ? "Rejoin Session" : "Start Session"}
+                {selectedClass?.kind === "YTT_LIVE"
+                  ? "Join Session"
+                  : selectedClass?.state === "LIVE"
+                    ? "Rejoin Session"
+                    : "Start Session"}
               </Button>
             </DialogFooter>
           </DialogContent>

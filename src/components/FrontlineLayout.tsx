@@ -25,7 +25,8 @@ const navigation = [
 export function FrontlineLayout() {
   const navigate = useNavigate();
   const [logoutOpen, setLogoutOpen] = useState(false);
-  useRoleSession("FRONTLINE");
+  const { user } = useRoleSession("FRONTLINE");
+  const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : "";
 
   const handleLogout = async () => {
     await performLogout("FRONTLINE");
@@ -75,8 +76,8 @@ export function FrontlineLayout() {
         </nav>
         <div className="p-4 border-t">
           <div className="mb-3 px-4 py-3 rounded-xl bg-linear-to-br from-[#ffac96]/10 to-[#ff691d]/5 border border-[#ffac96]/20">
-            <p className="text-sm font-semibold" style={{ color: '#ff691d' }}>Sarah Johnson</p>
-            <p className="text-xs text-muted-foreground">Lead Generation Specialist</p>
+            <p className="text-sm font-semibold" style={{ color: '#ff691d' }}>{fullName || "—"}</p>
+            <p className="text-xs text-muted-foreground">{user?.designation || "Frontline Agent"}</p>
           </div>
           <Button
             onClick={() => setLogoutOpen(true)}

@@ -55,6 +55,7 @@ import {
 } from "@/api/live";
 import { listTutors } from "@/api/tutors";
 import { listBatches } from "@/api/batches";
+import { toDatetimeLocalValue } from "@/lib/datetime";
 import type {
   LiveClass,
   ClassDifficulty,
@@ -974,7 +975,7 @@ function EditGeneratedClassDialog({
     yogaType: cls.yogaType,
     difficulty: cls.difficulty as ClassDifficulty,
     duration: String(cls.duration),
-    scheduledAt: cls.scheduledAt ? new Date(cls.scheduledAt).toISOString().slice(0, 16) : "",
+    scheduledAt: toDatetimeLocalValue(cls.scheduledAt),
     link: cls.link ?? "",
     tutorId: cls.tutor?.id ?? "",
     batchId: cls.batch?.id ?? "",

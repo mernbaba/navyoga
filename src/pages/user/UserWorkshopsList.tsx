@@ -633,7 +633,11 @@ function SessionRow({ session, enrolled }: { session: WorkshopSession; enrolled:
   const state = getSessionState(session);
   const ended = state === "ended";
   // After end, the live join link expires; only the recording (if any) is usable.
-  const mediaHref = !ended && session.link ? session.link : session.video || null;
+  // The join link is an external URL; the recording is a stored path/URL that
+  // must be resolved to its CDN location before use.
+  const mediaHref = !ended && session.link
+    ? session.link
+    : resolveMediaUrl(session.video) ?? null;
   const canSeeMedia = enrolled && mediaHref;
   return (
     <div className="flex items-center gap-3 p-3 rounded-lg border bg-white">
