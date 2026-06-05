@@ -32,6 +32,7 @@ import {
   deleteYTTLiveClass,
 } from "../../../api/plans";
 import { listTutors } from "../../../api/tutors";
+import { useClassesRole } from "./classesRole";
 import type {
   YTTCourse,
   ClassLevel,
@@ -134,6 +135,7 @@ const EMPTY_COURSE: YTTCourseBody = {
 };
 
 function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogProps) {
+  const role = useClassesRole();
   const [form, setForm] = useState<YTTCourseBody>(EMPTY_COURSE);
   const [saving, setSaving] = useState(false);
 
@@ -170,8 +172,8 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
         isActive: form.isActive,
       };
       const saved = initial
-        ? await updateYTTLiveCourse(initial.id, payload)
-        : await createYTTLiveCourse(payload);
+        ? await updateYTTLiveCourse(initial.id, payload, role)
+        : await createYTTLiveCourse(payload, role);
       toast.success(initial ? "Course updated" : "Course created");
       onSaved(saved);
     } catch (err) {
@@ -307,13 +309,14 @@ const EMPTY_CLASS: ClassFormState = {
 const NO_TUTOR = "__none__";
 
 function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFormDialogProps) {
+  const role = useClassesRole();
   const [form, setForm] = useState<ClassFormState>(EMPTY_CLASS);
   const [saving, setSaving] = useState(false);
   const [tutors, setTutors] = useState<Tutor[]>([]);
 
   useEffect(() => {
     if (!open) return;
-    listTutors("SUPERADMIN", { limit: 100, status: "ACTIVE" })
+    listTutors(role, { limit: 100, status: "ACTIVE" })
       .then((r) => setTutors(r.items))
       .catch(() => {});
   }, [open]);
@@ -378,8 +381,8 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
         tutorId: form.tutorId || null,
       };
       const saved = initial
-        ? await updateYTTLiveClass(courseId, initial.id, patch)
-        : await createYTTLiveClass(courseId, create);
+        ? await updateYTTLiveClass(courseId, initial.id, patch, role)
+        : await createYTTLiveClass(courseId, create, role);
       toast.success(initial ? "Class updated" : "Class created");
       onSaved(saved);
     } catch (err) {
@@ -529,6 +532,7 @@ interface CourseClassesProps {
 }
 
 function CourseClasses({ courseId }: CourseClassesProps) {
+  const role = useClassesRole();
   const [classes, setClasses] = useState<YTTLiveClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -546,7 +550,7 @@ function CourseClasses({ courseId }: CourseClassesProps) {
     setLoading(true);
     listYTTLiveClasses(courseId, {
       q: debouncedSearch || undefined,
-    })
+    }, role)
       .then((items) => { if (!cancelled) setClasses(items); })
       .catch((err: unknown) => {
         if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load classes");
@@ -570,7 +574,7 @@ function CourseClasses({ courseId }: CourseClassesProps) {
   async function handleDelete(cls: YTTLiveClass) {
     if (!confirm(`Delete class "${cls.title}"? This cannot be undone.`)) return;
     try {
-      await deleteYTTLiveClass(courseId, cls.id);
+      await deleteYTTLiveClass(courseId, cls.id, role);
       toast.success("Class deleted");
       setClasses((cs) => cs.filter((c) => c.id !== cls.id));
     } catch (err) {
@@ -804,6 +808,7 @@ function CourseCard({ course, onSelect, onEdit }: CourseCardProps) {
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 
 export function ClassesYTTLive() {
+  const role = useClassesRole();
   const [courses, setCourses] = useState<YTTCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<YTTCourse | null>(null);
@@ -812,7 +817,7 @@ export function ClassesYTTLive() {
 
   function load() {
     setLoading(true);
-    listYTTLiveCourses()
+    listYTTLiveCourses(role)
       .then(setCourses)
       .catch((err: unknown) => toast.error(err instanceof Error ? err.message : "Failed to load courses"))
       .finally(() => setLoading(false));

@@ -67,6 +67,7 @@ import type {
   ClassLevel,
 } from "../../../api/types";
 import { resolveMediaUrl } from "../../../lib/media";
+import { useClassesRole, useClassesBasePath } from "./classesRole";
 
 const LIMIT = 15;
 const ENROLLMENTS_LIMIT = 20;
@@ -214,6 +215,8 @@ type FormMode = "create" | "edit";
 
 export function ClassesWorkshops() {
   const navigate = useNavigate();
+  const role = useClassesRole();
+  const classesBase = useClassesBasePath();
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -264,7 +267,7 @@ export function ClassesWorkshops() {
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
-    listWorkshops("SUPERADMIN", {
+    listWorkshops(role, {
       page,
       limit: LIMIT,
       q: debouncedSearch || undefined,
@@ -292,7 +295,7 @@ export function ClassesWorkshops() {
     if (!enrollmentsWorkshop) return;
     let cancelled = false;
     setEnrollmentsLoading(true);
-    listWorkshopEnrollments("SUPERADMIN", enrollmentsWorkshop.id, {
+    listWorkshopEnrollments(role, enrollmentsWorkshop.id, {
       page: enrollmentsPage,
       limit: ENROLLMENTS_LIMIT,
       q: debouncedEnrollSearch || undefined,
@@ -350,7 +353,7 @@ export function ClassesWorkshops() {
   }
 
   async function uploadThumbnailFor(workshopId: string, file: File): Promise<string> {
-    const presign = await requestWorkshopThumbnailPresign("SUPERADMIN", workshopId, {
+    const presign = await requestWorkshopThumbnailPresign(role, workshopId, {
       filename: file.name,
       contentType: file.type || "image/jpeg",
     });
@@ -372,13 +375,13 @@ export function ClassesWorkshops() {
       if (formMode === "create") {
         // Create first to obtain the workshop ID, then upload thumbnail
         // (S3 key requires the ID).
-        const createdWorkshop = await createWorkshop("SUPERADMIN", {
+        const createdWorkshop = await createWorkshop(role, {
           ...basePayload,
           thumbnail: thumbnailFile ? undefined : basePayload.thumbnail,
         });
         if (thumbnailFile) {
           const thumbnail = await uploadThumbnailFor(createdWorkshop.id, thumbnailFile);
-          await updateWorkshop("SUPERADMIN", createdWorkshop.id, { thumbnail });
+          await updateWorkshop(role, createdWorkshop.id, { thumbnail });
         }
         toast.success("Workshop created");
       } else if (editingId) {
@@ -386,12 +389,12 @@ export function ClassesWorkshops() {
         if (thumbnailFile) {
           thumbnail = await uploadThumbnailFor(editingId, thumbnailFile);
         }
-        await updateWorkshop("SUPERADMIN", editingId, { ...basePayload, thumbnail });
+        await updateWorkshop(role, editingId, { ...basePayload, thumbnail });
         toast.success("Workshop updated");
       }
       setFormOpen(false);
       // refresh
-      const res = await listWorkshops("SUPERADMIN", {
+      const res = await listWorkshops(role, {
         page,
         limit: LIMIT,
         q: debouncedSearch || undefined,
@@ -411,7 +414,7 @@ export function ClassesWorkshops() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await deleteWorkshop("SUPERADMIN", deleteTarget.id);
+      await deleteWorkshop(role, deleteTarget.id);
       toast.success("Workshop deleted");
       setDeleteTarget(null);
       setWorkshops((prev) => prev.filter((w) => w.id !== deleteTarget.id));
@@ -434,7 +437,7 @@ export function ClassesWorkshops() {
     if (!enrollmentsWorkshop) return;
     if (!confirm("Remove this enrollment?")) return;
     try {
-      await removeWorkshopEnrollment("SUPERADMIN", enrollmentsWorkshop.id, enrollmentId);
+      await removeWorkshopEnrollment(role, enrollmentsWorkshop.id, enrollmentId);
       toast.success("Enrollment removed");
       setEnrollments((prev) => prev.filter((e) => e.id !== enrollmentId));
       setEnrollmentsTotal((t) => Math.max(0, t - 1));
@@ -444,7 +447,7 @@ export function ClassesWorkshops() {
   }
 
   function openSessions(w: Workshop) {
-    navigate(`/superadmin/classes/workshops/${w.id}`);
+    navigate(`${classesBase}/workshops/${w.id}`);
   }
 
   const totalCapacity = workshops.reduce((sum, w) => sum + (w.capacity ?? 0), 0);

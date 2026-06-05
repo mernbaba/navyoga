@@ -30,8 +30,11 @@ import {
   reorderModules,
 } from "../../../api/selfPaced";
 import type { SelfPacedModule } from "../../../api/types";
+import { useClassesRole, useClassesBasePath } from "./classesRole";
 
 export function SelfPacedModules() {
+  const role = useClassesRole();
+  const classesBase = useClassesBasePath();
   const [modules, setModules] = useState<SelfPacedModule[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -48,7 +51,7 @@ export function SelfPacedModules() {
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
-    listModules("SUPERADMIN")
+    listModules(role)
       .then((res) => {
         if (!cancelled) setModules(res);
       })
@@ -66,7 +69,7 @@ export function SelfPacedModules() {
     if (isAddingModule) return;
     setIsAddingModule(true);
     try {
-      await createModule("SUPERADMIN", addModuleTitle.trim());
+      await createModule(role, addModuleTitle.trim());
       toast.success("Module created");
       setIsAddModuleOpen(false);
       setAddModuleTitle("");
@@ -88,7 +91,7 @@ export function SelfPacedModules() {
     if (!editingModule || isUpdatingModule) return;
     setIsUpdatingModule(true);
     try {
-      await updateModule("SUPERADMIN", editingModule.id, { title: editModuleTitle.trim() });
+      await updateModule(role, editingModule.id, { title: editModuleTitle.trim() });
       toast.success("Module updated");
       setEditingModule(null);
       refetchModules();
@@ -102,7 +105,7 @@ export function SelfPacedModules() {
   const handleDeleteModule = async (mod: SelfPacedModule) => {
     if (!confirm(`Delete module "${mod.title}"? All its classes will also be deleted.`)) return;
     try {
-      await deleteModule("SUPERADMIN", mod.id);
+      await deleteModule(role, mod.id);
       toast.success("Module deleted");
       refetchModules();
     } catch (err) {
@@ -121,7 +124,7 @@ export function SelfPacedModules() {
     setIsReordering(true);
     try {
       await reorderModules(
-        "SUPERADMIN",
+        role,
         reordered.map((m, i) => ({ id: m.id, sortOrder: i + 1 })),
       );
     } catch (err) {
@@ -137,7 +140,7 @@ export function SelfPacedModules() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Link to="/superadmin/classes/self-paced">
+          <Link to={`${classesBase}/self-paced`}>
             <Button variant="ghost" size="icon">
               <ArrowLeft className="w-4 h-4" />
             </Button>

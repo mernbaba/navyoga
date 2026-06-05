@@ -13,7 +13,6 @@ import { Employees } from "./pages/superadmin/Employees";
 import { Tutors } from "./pages/superadmin/Tutors";
 import { ClassesLive } from "./pages/superadmin/classes/ClassesLive";
 import { ClassesLiveRecurring } from "./pages/superadmin/classes/ClassesLiveRecurring";
-import { OperationsClassesRecurring } from "./pages/operations/OperationsClassesRecurring";
 import { ClassesSelfPaced } from "./pages/superadmin/classes/ClassesSelfPaced";
 import { SelfPacedModules } from "./pages/superadmin/classes/SelfPacedModules";
 import { ClassesYTTLive } from "./pages/superadmin/classes/ClassesYTTLive";
@@ -56,9 +55,7 @@ import { OperationsNotifications } from "./pages/operations/OperationsNotificati
 import { OperationsCoupons } from "./pages/operations/OperationsCoupons";
 import { OperationsLeads } from "./pages/operations/OperationsLeads";
 import { OperationsUsers } from "./pages/operations/OperationsUsers";
-import { OperationsClasses } from "./pages/operations/OperationsClasses";
-import { OperationsRecordedClasses } from "./pages/operations/OperationsRecordedClasses";
-import { OperationsEvents } from "./pages/operations/OperationsEvents";
+import { OperationsClassesShell } from "./pages/operations/OperationsClassesShell";
 import { OperationsSettings } from "./pages/operations/OperationsSettings";
 import { UserDashboard } from "./pages/user/UserDashboard";
 import { UserClasses } from "./pages/user/UserClasses";
@@ -218,10 +215,26 @@ export const router = createBrowserRouter([
       { path: "coupons", Component: OperationsCoupons },
       { path: "leads", Component: OperationsLeads },
       { path: "users", Component: OperationsUsers },
-      { path: "classes", Component: OperationsClasses },
-      { path: "classes/live-recurring", Component: OperationsClassesRecurring },
-      { path: "recorded-classes", Component: OperationsRecordedClasses },
-      { path: "events", Component: OperationsEvents },
+      {
+        path: "classes",
+        children: [
+          { index: true, element: <Navigate to="/operations/classes/live" replace /> },
+          { path: "live", element: <OperationsClassesShell><ClassesLive /></OperationsClassesShell> },
+          { path: "live-recurring", element: <OperationsClassesShell><ClassesLiveRecurring role="OPERATIONS" /></OperationsClassesShell> },
+          {
+            path: "self-paced",
+            children: [
+              { index: true, element: <OperationsClassesShell><ClassesSelfPaced /></OperationsClassesShell> },
+              { path: "modules", element: <OperationsClassesShell><SelfPacedModules /></OperationsClassesShell> },
+            ],
+          },
+          { path: "ytt-live", element: <OperationsClassesShell><ClassesYTTLive /></OperationsClassesShell> },
+          { path: "ytt-recorded", element: <OperationsClassesShell><ClassesYTTRecorded /></OperationsClassesShell> },
+          { path: "events", element: <OperationsClassesShell><ClassesEvents /></OperationsClassesShell> },
+          { path: "workshops", element: <OperationsClassesShell><ClassesWorkshops /></OperationsClassesShell> },
+          { path: "workshops/:id", element: <OperationsClassesShell><WorkshopSessions /></OperationsClassesShell> },
+        ],
+      },
       { path: "settings", Component: OperationsSettings },
     ],
   },

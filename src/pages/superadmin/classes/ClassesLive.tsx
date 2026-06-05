@@ -62,6 +62,7 @@ import { toDatetimeLocalValue } from "@/lib/datetime";
 import { listBatches } from "@/api/batches";
 import type { LiveClass, ClassDifficulty, Tutor, Batch } from "@/api/types";
 import { BatchesDialog } from "./BatchesDialog";
+import { useClassesRole, useClassesBasePath } from "./classesRole";
 
 const DIFFICULTY_CONFIG: Record<ClassDifficulty, { label: string; color: string }> = {
   EASY: { label: "Beginner", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
@@ -112,6 +113,8 @@ const DAY_FULL: Record<string, string> = {
 
 export function ClassesLive() {
   const navigate = useNavigate();
+  const role = useClassesRole();
+  const classesBase = useClassesBasePath();
   const [classes, setClasses] = useState<LiveClass[]>([]);
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -133,7 +136,7 @@ export function ClassesLive() {
 
   const load = useCallback(() => {
     setLoading(true);
-    listLiveClasses("SUPERADMIN")
+    listLiveClasses(role)
       .then(setClasses)
       .catch((e) => toast.error(e instanceof Error ? e.message : "Failed to load classes"))
       .finally(() => setLoading(false));
@@ -141,10 +144,10 @@ export function ClassesLive() {
 
   useEffect(() => {
     load();
-    listTutors("SUPERADMIN", { limit: 100, status: "ACTIVE" })
+    listTutors(role, { limit: 100, status: "ACTIVE" })
       .then((r) => setTutors(r.items))
       .catch(() => {});
-    listBatches("SUPERADMIN", { limit: 100 })
+    listBatches(role, { limit: 100 })
       .then((r) => setBatches(r.items))
       .catch(() => {});
   }, [load]);
@@ -214,16 +217,16 @@ export function ClassesLive() {
 
       let saved: LiveClass;
       if (editing) {
-        saved = await updateLiveClass("SUPERADMIN", editing.id, payload);
+        saved = await updateLiveClass(role, editing.id, payload);
       } else {
-        saved = await createLiveClass("SUPERADMIN", {
+        saved = await createLiveClass(role, {
           ...payload,
           recording: payload.recording ?? undefined,
         });
       }
 
       if (recordingFile) {
-        const presign = await requestLiveClassRecordingPresign("SUPERADMIN", saved.id, {
+        const presign = await requestLiveClassRecordingPresign(role, saved.id, {
           filename: recordingFile.name,
           contentType: recordingFile.type || "video/mp4",
         });
@@ -233,7 +236,7 @@ export function ClassesLive() {
           body: recordingFile,
         });
         if (!putRes.ok) throw new Error("Recording upload failed");
-        saved = await updateLiveClass("SUPERADMIN", saved.id, { recording: presign.storePath });
+        saved = await updateLiveClass(role, saved.id, { recording: presign.storePath });
       }
 
       setClasses((prev) => {
@@ -253,7 +256,7 @@ export function ClassesLive() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await deleteLiveClass("SUPERADMIN", deleteTarget.id);
+      await deleteLiveClass(role, deleteTarget.id);
       setClasses((prev) => prev.filter((c) => c.id !== deleteTarget.id));
       toast.success("Class deleted");
       setDeleteTarget(null);
@@ -287,7 +290,7 @@ export function ClassesLive() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => navigate("/superadmin/classes/live-recurring")}
+            onClick={() => navigate(`${classesBase}/live-recurring`)}
             className="gap-2"
             style={{ borderColor: "#610981", color: "#610981" }}
           >
@@ -682,7 +685,7 @@ export function ClassesLive() {
         onOpenChange={(open) => {
           setBatchesDialogOpen(open);
           if (!open) {
-            listBatches("SUPERADMIN", { limit: 100 })
+            listBatches(role, { limit: 100 })
               .then((r) => setBatches(r.items))
               .catch(() => {});
           }

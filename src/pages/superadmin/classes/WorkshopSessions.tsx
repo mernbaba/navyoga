@@ -60,6 +60,7 @@ import type {
   WorkshopSession,
   WorkshopMode,
 } from "../../../api/types";
+import { useClassesRole, useClassesBasePath } from "./classesRole";
 
 type SessionMode = "LIVE" | "RECORDED";
 const MODES: SessionMode[] = ["LIVE", "RECORDED"];
@@ -113,6 +114,8 @@ type EditorMode = { kind: "closed" } | { kind: "create" } | { kind: "edit"; sess
 export function WorkshopSessions() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const role = useClassesRole();
+  const classesBase = useClassesBasePath();
 
   const [workshop, setWorkshop] = useState<WorkshopWithSessions | null>(null);
   const [sessions, setSessions] = useState<WorkshopSession[]>([]);
@@ -129,7 +132,7 @@ export function WorkshopSessions() {
     if (!id) return;
     let cancelled = false;
     setLoading(true);
-    getWorkshop("SUPERADMIN", id)
+    getWorkshop(role, id)
       .then((res) => {
         if (cancelled) return;
         setWorkshop(res);
@@ -214,11 +217,11 @@ export function WorkshopSessions() {
 
       let saved =
         editor.kind === "create"
-          ? await addWorkshopSession("SUPERADMIN", id, body)
-          : await updateWorkshopSession("SUPERADMIN", id, editor.sessionId, body);
+          ? await addWorkshopSession(role, id, body)
+          : await updateWorkshopSession(role, id, editor.sessionId, body);
 
       if (videoFile) {
-        const presign = await requestWorkshopSessionVideoPresign("SUPERADMIN", id, saved.id, {
+        const presign = await requestWorkshopSessionVideoPresign(role, id, saved.id, {
           filename: videoFile.name,
           contentType: videoFile.type || "video/mp4",
         });
@@ -228,7 +231,7 @@ export function WorkshopSessions() {
           body: videoFile,
         });
         if (!putRes.ok) throw new Error("Video upload failed");
-        saved = await updateWorkshopSession("SUPERADMIN", id, saved.id, {
+        saved = await updateWorkshopSession(role, id, saved.id, {
           video: presign.storePath,
         });
       }
@@ -251,7 +254,7 @@ export function WorkshopSessions() {
     if (!id) return;
     if (!confirm(`Delete session "${s.title}"?`)) return;
     try {
-      await deleteWorkshopSession("SUPERADMIN", id, s.id);
+      await deleteWorkshopSession(role, id, s.id);
       setSessions((prev) => prev.filter((x) => x.id !== s.id));
       if (editor.kind === "edit" && editor.sessionId === s.id) setEditor({ kind: "closed" });
       toast.success("Session deleted");
@@ -271,7 +274,7 @@ export function WorkshopSessions() {
   if (!workshop) {
     return (
       <div className="p-6 lg:p-8 space-y-4">
-        <Link to="/superadmin/classes/workshops">
+        <Link to={`${classesBase}/workshops`}>
           <Button variant="ghost" size="sm" className="gap-1">
             <ArrowLeft className="w-4 h-4" /> Back to Workshops
           </Button>
@@ -291,7 +294,7 @@ export function WorkshopSessions() {
           variant="ghost"
           size="icon"
           className="shrink-0 mt-0.5"
-          onClick={() => navigate("/superadmin/classes/workshops")}
+          onClick={() => navigate(`${classesBase}/workshops`)}
           title="Back to workshops"
         >
           <ArrowLeft className="w-4 h-4" />

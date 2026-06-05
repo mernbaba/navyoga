@@ -1,20 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router';
-import { 
-  LayoutDashboard, 
-  Users, 
-  GraduationCap, 
-  Phone, 
-  Bell, 
-  Ticket, 
-  UserPlus, 
+import {
+  LayoutDashboard,
+  Users,
+  GraduationCap,
+  Phone,
+  Bell,
+  Ticket,
+  UserPlus,
   CalendarDays,
-  Video,
-  Sparkles,
-  Settings, 
-  Menu, 
+  Settings,
+  Menu,
   X,
-  LogOut
+  LogOut,
+  ChevronDown,
+  ChevronRight,
+  type LucideIcon
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -29,16 +30,36 @@ import {
 } from './ui/alert-dialog';
 import { performLogout, useRoleSession } from '../lib/session';
 
+type OpsNavItem = { name: string; href: string; icon: LucideIcon; expandable?: boolean };
+
+const classesSubNav = [
+  { name: 'Live', href: '/operations/classes/live' },
+  { name: 'Self Paced', href: '/operations/classes/self-paced' },
+  { name: 'YTT Live', href: '/operations/classes/ytt-live' },
+  { name: 'YTT Recorded', href: '/operations/classes/ytt-recorded' },
+  { name: 'Events', href: '/operations/classes/events' },
+  { name: 'Workshops', href: '/operations/classes/workshops' },
+];
+
 export function OperationsLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const [classesOpen, setClassesOpen] = useState(
+    location.pathname.startsWith('/operations/classes')
+  );
   const { user } = useRoleSession("OPERATIONS");
   const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : "";
   const opInitials = user
     ? `${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase()
     : "OP";
+
+  useEffect(() => {
+    if (location.pathname.startsWith('/operations/classes')) {
+      setClassesOpen(true);
+    }
+  }, [location.pathname]);
 
   const requestLogout = () => {
     setSidebarOpen(false);
@@ -50,7 +71,7 @@ export function OperationsLayout() {
     navigate("/login/operations");
   };
 
-  const navigation = [
+  const navigation: OpsNavItem[] = [
     { name: 'Dashboard', href: '/operations/dashboard', icon: LayoutDashboard },
     { name: 'Employees', href: '/operations/employees', icon: Users },
     { name: 'Tutors', href: '/operations/tutors', icon: GraduationCap },
@@ -59,9 +80,7 @@ export function OperationsLayout() {
     { name: 'Coupon Codes', href: '/operations/coupons', icon: Ticket },
     { name: 'Leads', href: '/operations/leads', icon: UserPlus },
     { name: 'Users', href: '/operations/users', icon: Users },
-    { name: 'Classes', href: '/operations/classes', icon: CalendarDays },
-    { name: 'Recorded Classes', href: '/operations/recorded-classes', icon: Video },
-    { name: 'Events', href: '/operations/events', icon: Sparkles },
+    { name: 'Classes', href: '/operations/classes', icon: CalendarDays, expandable: true },
     { name: 'Settings', href: '/operations/settings', icon: Settings },
   ];
 
@@ -113,6 +132,51 @@ export function OperationsLayout() {
               {navigation.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
+
+                if (item.expandable) {
+                  return (
+                    <div key={item.name}>
+                      <button
+                        onClick={() => setClassesOpen((o) => !o)}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                          active
+                            ? 'text-white shadow-md'
+                            : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                        style={active ? { backgroundColor: '#610981' } : {}}
+                      >
+                        <Icon className="w-5 h-5" />
+                        <span className="font-medium flex-1 text-left">{item.name}</span>
+                        {classesOpen
+                          ? <ChevronDown className="w-4 h-4" />
+                          : <ChevronRight className="w-4 h-4" />}
+                      </button>
+                      {classesOpen && (
+                        <div className="mt-1 ml-4 pl-3 border-l-2 border-[#610981]/15 space-y-1">
+                          {classesSubNav.map((child) => {
+                            const childActive = location.pathname === child.href;
+                            return (
+                              <Link
+                                key={child.name}
+                                to={child.href}
+                                onClick={() => setSidebarOpen(false)}
+                                className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all ${
+                                  childActive
+                                    ? 'bg-[#610981]/12 text-[#610981] font-medium'
+                                    : 'text-gray-600 hover:bg-gray-100'
+                                }`}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${childActive ? 'bg-[#610981]' : 'bg-gray-300'}`} />
+                                {child.name}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
                 return (
                   <Link
                     key={item.name}

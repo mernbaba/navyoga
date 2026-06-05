@@ -52,6 +52,7 @@ import {
 import type { ClassCreateBody } from "../../../api/selfPaced";
 import { extractRelativePath, resolveMediaUrl } from "../../../lib/media";
 import type { SelfPacedModule, SelfPacedClass } from "../../../api/types";
+import { useClassesRole } from "./classesRole";
 
 const BRAND = "#610981";
 
@@ -60,6 +61,7 @@ type ModuleWithClasses = SelfPacedModule & { classes: SelfPacedClass[] };
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 
 export function ClassesSelfPaced() {
+  const role = useClassesRole();
   const [modules, setModules] = useState<ModuleWithClasses[]>([]);
   const [loading, setLoading] = useState(true);
   const [isReordering, setIsReordering] = useState(false);
@@ -72,10 +74,10 @@ export function ClassesSelfPaced() {
   async function loadAll() {
     setLoading(true);
     try {
-      const mods = await listModules("SUPERADMIN");
+      const mods = await listModules(role);
       // listModules only bundles isActive: true classes, so re-fetch the full list per module.
       const classesPerModule = await Promise.all(
-        mods.map((m) => listClasses("SUPERADMIN", m.id)),
+        mods.map((m) => listClasses(role, m.id)),
       );
       setModules(mods.map((m, i) => ({ ...m, classes: classesPerModule[i] })));
     } catch (err) {
@@ -94,7 +96,7 @@ export function ClassesSelfPaced() {
   async function handleDeleteModule(mod: ModuleWithClasses) {
     if (!confirm(`Delete module "${mod.title}" and all its classes?`)) return;
     try {
-      await deleteModule("SUPERADMIN", mod.id);
+      await deleteModule(role, mod.id);
       toast.success("Module deleted");
       setModules((prev) => prev.filter((m) => m.id !== mod.id));
     } catch (err) {
@@ -114,7 +116,7 @@ export function ClassesSelfPaced() {
     setIsReordering(true);
     try {
       await reorderModules(
-        "SUPERADMIN",
+        role,
         reordered.map((m, i) => ({ id: m.id, sortOrder: i + 1 })),
       );
     } catch (err) {
@@ -130,7 +132,7 @@ export function ClassesSelfPaced() {
   async function handleDeleteClass(mod: ModuleWithClasses, cls: SelfPacedClass) {
     if (!confirm(`Delete class "${cls.title}"?`)) return;
     try {
-      await deleteClass("SUPERADMIN", mod.id, cls.id);
+      await deleteClass(role, mod.id, cls.id);
       toast.success("Class deleted");
       setModules((prev) =>
         prev.map((m) =>
@@ -154,7 +156,7 @@ export function ClassesSelfPaced() {
     setIsReordering(true);
     try {
       await reorderClasses(
-        "SUPERADMIN",
+        role,
         mod.id,
         reordered.map((c, i) => ({ id: c.id, sortOrder: i + 1 })),
       );
@@ -468,6 +470,7 @@ function AddModuleDialog({
   onClose: () => void;
   onCreated: (mod: SelfPacedModule) => void;
 }) {
+  const role = useClassesRole();
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -481,7 +484,7 @@ function AddModuleDialog({
     if (!trimmed) return;
     setSaving(true);
     try {
-      const mod = await createModule("SUPERADMIN", trimmed);
+      const mod = await createModule(role, trimmed);
       toast.success("Module created");
       onCreated(mod);
       reset();
@@ -535,6 +538,7 @@ function RenameModuleDialog({
   onClose: () => void;
   onUpdated: (mod: SelfPacedModule) => void;
 }) {
+  const role = useClassesRole();
   const [title, setTitle] = useState(mod.title);
   const [saving, setSaving] = useState(false);
 
@@ -548,7 +552,7 @@ function RenameModuleDialog({
     if (!trimmed || trimmed === mod.title) return;
     setSaving(true);
     try {
-      const updated = await updateModule("SUPERADMIN", mod.id, { title: trimmed });
+      const updated = await updateModule(role, mod.id, { title: trimmed });
       toast.success("Module renamed");
       onUpdated(updated);
     } catch (err) {
@@ -796,6 +800,7 @@ function AddClassDialog({
   onClose: () => void;
   onCreated: (cls: SelfPacedClass) => void;
 }) {
+  const role = useClassesRole();
   const [step, setStep] = useState<1 | 2>(1);
   const [form, setForm] = useState<ClassFormFields>(EMPTY_CLASS_FORM);
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -872,24 +877,24 @@ function AddClassDialog({
     setSaving(true);
     let createdId: string | null = null;
     try {
-      const cls = await createClass("SUPERADMIN", mod.id, buildClassBody(form));
+      const cls = await createClass(role, mod.id, buildClassBody(form));
       createdId = cls.id;
 
       let updated: SelfPacedClass;
 
       if (videoFile) {
         const videoPresign = await requestPresignedUrl(
-          "SUPERADMIN", mod.id, cls.id, videoFile.name, videoFile.type, "video",
+          role, mod.id, cls.id, videoFile.name, videoFile.type, "video",
         );
         await fetch(videoPresign.url, {
           method: "PUT",
           headers: { "Content-Type": videoFile.type },
           body: videoFile,
         });
-        updated = await updateClass("SUPERADMIN", mod.id, cls.id, { video: videoPresign.storePath });
+        updated = await updateClass(role, mod.id, cls.id, { video: videoPresign.storePath });
       } else {
         // Reuse an existing path directly — no upload needed.
-        updated = await updateClass("SUPERADMIN", mod.id, cls.id, { video: pastedVideoPath.trim() });
+        updated = await updateClass(role, mod.id, cls.id, { video: pastedVideoPath.trim() });
       }
 
       // Prefer user-uploaded thumbnail file; fall back to the frame captured from the video.
@@ -899,14 +904,14 @@ function AddClassDialog({
         const thumbType = thumbnailFile?.type || "image/jpeg";
         try {
           const thumbPresign = await requestPresignedUrl(
-            "SUPERADMIN", mod.id, cls.id, thumbName, thumbType, "thumbnail",
+            role, mod.id, cls.id, thumbName, thumbType, "thumbnail",
           );
           await fetch(thumbPresign.url, {
             method: "PUT",
             headers: { "Content-Type": thumbType },
             body: thumbBlob,
           });
-          updated = await updateClass("SUPERADMIN", mod.id, cls.id, { thumbnail: thumbPresign.storePath });
+          updated = await updateClass(role, mod.id, cls.id, { thumbnail: thumbPresign.storePath });
         } catch (thumbErr) {
           toast.error(
             thumbErr instanceof Error
@@ -921,7 +926,7 @@ function AddClassDialog({
       reset();
     } catch (err) {
       if (createdId) {
-        try { await deleteClass("SUPERADMIN", mod.id, createdId); } catch { /* swallow */ }
+        try { await deleteClass(role, mod.id, createdId); } catch { /* swallow */ }
       }
       toast.error(err instanceof Error ? err.message : "Failed to add class");
       setSaving(false);
@@ -1169,6 +1174,7 @@ function EditClassDialog({
   onClose: () => void;
   onUpdated: (cls: SelfPacedClass) => void;
 }) {
+  const role = useClassesRole();
   const [form, setForm] = useState<ClassFormFields>({
     title: cls.title,
     video: cls.video,
@@ -1261,36 +1267,36 @@ function EditClassDialog({
     setUploading(true);
     try {
       if (cls.video) {
-        await deleteClassMedia("SUPERADMIN", mod.id, cls.id);
+        await deleteClassMedia(role, mod.id, cls.id);
       }
       const videoPresign = await requestPresignedUrl(
-        "SUPERADMIN", mod.id, cls.id, videoFile.name, videoFile.type, "video",
+        role, mod.id, cls.id, videoFile.name, videoFile.type, "video",
       );
       await fetch(videoPresign.url, {
         method: "PUT",
         headers: { "Content-Type": videoFile.type },
         body: videoFile,
       });
-      let updated = await updateClass("SUPERADMIN", mod.id, cls.id, { video: videoPresign.storePath });
+      let updated = await updateClass(role, mod.id, cls.id, { video: videoPresign.storePath });
 
       // Auto-upload captured thumbnail if user hasn't supplied a custom URL
       if (autoThumb && !form.thumbnail.trim()) {
         try {
           const thumbPresign = await requestPresignedUrl(
-            "SUPERADMIN", mod.id, cls.id, "thumbnail.jpg", "image/jpeg", "thumbnail",
+            role, mod.id, cls.id, "thumbnail.jpg", "image/jpeg", "thumbnail",
           );
           await fetch(thumbPresign.url, {
             method: "PUT",
             headers: { "Content-Type": "image/jpeg" },
             body: autoThumb,
           });
-          updated = await updateClass("SUPERADMIN", mod.id, cls.id, { thumbnail: thumbPresign.storePath });
+          updated = await updateClass(role, mod.id, cls.id, { thumbnail: thumbPresign.storePath });
         } catch { /* non-fatal */ }
       }
 
       // Persist auto-detected duration if it changed
       if (detectedDurationMin && detectedDurationMin !== updated.duration) {
-        updated = await updateClass("SUPERADMIN", mod.id, cls.id, { duration: detectedDurationMin });
+        updated = await updateClass(role, mod.id, cls.id, { duration: detectedDurationMin });
       }
 
       toast.success("Video uploaded");
@@ -1308,7 +1314,7 @@ function EditClassDialog({
   async function handleDeleteMedia() {
     if (!confirm("Remove the video from this class?")) return;
     try {
-      const updated = await deleteClassMedia("SUPERADMIN", mod.id, cls.id);
+      const updated = await deleteClassMedia(role, mod.id, cls.id);
       onUpdated(updated);
       toast.success("Video removed");
     } catch (err) {
@@ -1321,7 +1327,7 @@ function EditClassDialog({
     if (!path) return;
     setApplyingPath(true);
     try {
-      const updated = await updateClass("SUPERADMIN", mod.id, cls.id, { video: path });
+      const updated = await updateClass(role, mod.id, cls.id, { video: path });
       toast.success("Video path applied");
       onUpdated(updated);
       setPastePathMode(false);
@@ -1337,20 +1343,20 @@ function EditClassDialog({
     if (!isClassFormValid(form)) return;
     setSaving(true);
     try {
-      let updated = await updateClass("SUPERADMIN", mod.id, cls.id, buildClassBody(form));
+      let updated = await updateClass(role, mod.id, cls.id, buildClassBody(form));
 
       if (thumbnailFile) {
         const thumbName = thumbnailFile.name || "thumbnail.jpg";
         const thumbType = thumbnailFile.type || "image/jpeg";
         const thumbPresign = await requestPresignedUrl(
-          "SUPERADMIN", mod.id, cls.id, thumbName, thumbType, "thumbnail",
+          role, mod.id, cls.id, thumbName, thumbType, "thumbnail",
         );
         await fetch(thumbPresign.url, {
           method: "PUT",
           headers: { "Content-Type": thumbType },
           body: thumbnailFile,
         });
-        updated = await updateClass("SUPERADMIN", mod.id, cls.id, { thumbnail: thumbPresign.storePath });
+        updated = await updateClass(role, mod.id, cls.id, { thumbnail: thumbPresign.storePath });
       }
 
       toast.success("Class updated");

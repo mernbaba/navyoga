@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
-import { Users, GraduationCap, UserPlus, TrendingUp, IndianRupee, Sparkles, TrendingDown, BarChart3, Gift, ArrowRight, CalendarDays, BadgeCheck } from "lucide-react";
+import { Users, GraduationCap, UserPlus, TrendingUp, IndianRupee, TrendingDown, BarChart3, Gift, ArrowRight, CalendarDays, BadgeCheck } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Badge } from "../../components/ui/badge";
 import { Link } from "react-router";
@@ -99,9 +99,6 @@ export function Dashboard() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-              <Sparkles className="w-6 h-6" />
-            </div>
             <Badge variant="secondary" className="bg-white/20 text-white border-0">
               Super Admin
             </Badge>

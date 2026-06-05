@@ -70,6 +70,7 @@ import type {
   ClassLevel,
 } from "../../../api/types";
 import { resolveMediaUrl, extractRelativePath } from "../../../lib/media";
+import { useClassesRole } from "./classesRole";
 
 const BRAND = "#610981";
 
@@ -174,6 +175,7 @@ const EMPTY_COURSE: CourseFormState = {
 
 function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogProps) {
   const isEdit = !!initial;
+  const role = useClassesRole();
   const [form, setForm] = useState<CourseFormState>(EMPTY_COURSE);
   const [saving, setSaving] = useState(false);
 
@@ -212,8 +214,8 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
         ...(form.thumbnail?.trim() ? { thumbnail: form.thumbnail.trim() } : {}),
       };
       const saved = isEdit && initial
-        ? await updateYTTRecordedCourse(initial.id, body)
-        : await createYTTRecordedCourse(body);
+        ? await updateYTTRecordedCourse(initial.id, body, role)
+        : await createYTTRecordedCourse(body, role);
       toast.success(isEdit ? "Course updated" : "Course created");
       onSaved(saved, isEdit ? "edit" : "create");
     } catch (err) {
@@ -319,6 +321,7 @@ interface EditModuleDialogProps {
 }
 
 function EditModuleDialog({ open, courseId, mod, onClose, onUpdated }: EditModuleDialogProps) {
+  const role = useClassesRole();
   const [title, setTitle] = useState(mod.title);
   const [saving, setSaving] = useState(false);
 
@@ -334,7 +337,7 @@ function EditModuleDialog({ open, courseId, mod, onClose, onUpdated }: EditModul
     }
     setSaving(true);
     try {
-      const updated = await updateYTTRecordedModule(courseId, mod.id, { title: title.trim() });
+      const updated = await updateYTTRecordedModule(courseId, mod.id, { title: title.trim() }, role);
       toast.success("Module renamed");
       onUpdated(updated);
     } catch (err) {
@@ -379,6 +382,7 @@ interface AddModuleDialogProps {
 }
 
 function AddModuleDialog({ open, courseId, onClose, onCreated }: AddModuleDialogProps) {
+  const role = useClassesRole();
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -391,7 +395,7 @@ function AddModuleDialog({ open, courseId, onClose, onCreated }: AddModuleDialog
     if (!title.trim()) return;
     setSaving(true);
     try {
-      const mod = await createYTTRecordedModule(courseId, { title: title.trim() });
+      const mod = await createYTTRecordedModule(courseId, { title: title.trim() }, role);
       toast.success("Module created");
       onCreated(mod);
       reset();
@@ -443,6 +447,7 @@ interface AddClassDialogProps {
 }
 
 function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreated }: AddClassDialogProps) {
+  const role = useClassesRole();
   const [step, setStep] = useState<1 | 2>(1);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -531,7 +536,7 @@ function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreat
         title: title.trim(),
         duration: Number(duration),
         ...(description.trim() ? { description: description.trim() } : {}),
-      });
+      }, role);
       createdId = created.id;
 
       if (videoFile) {
@@ -540,13 +545,13 @@ function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreat
           kind: "video",
           filename: videoFile.name,
           contentType: videoFile.type,
-        });
+        }, role);
         await fetch(videoPresign.url, {
           method: "PUT",
           headers: { "Content-Type": videoFile.type },
           body: videoFile,
         });
-        await updateYTTRecordedClass(courseId, moduleId, created.id, { video: videoPresign.storePath });
+        await updateYTTRecordedClass(courseId, moduleId, created.id, { video: videoPresign.storePath }, role);
 
         // 3. Upload thumbnail — prefer user-picked file, fall back to auto-captured frame.
         const thumbBlob: Blob | null = thumbnailFile ?? autoThumb;
@@ -558,13 +563,13 @@ function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreat
               kind: "thumbnail",
               filename: thumbName,
               contentType: thumbType,
-            });
+            }, role);
             await fetch(thumbPresign.url, {
               method: "PUT",
               headers: { "Content-Type": thumbType },
               body: thumbBlob,
             });
-            await updateYTTRecordedClass(courseId, moduleId, created.id, { thumbnail: thumbPresign.storePath });
+            await updateYTTRecordedClass(courseId, moduleId, created.id, { thumbnail: thumbPresign.storePath }, role);
           } catch (thumbErr) {
             toast.error(
               thumbErr instanceof Error
@@ -575,7 +580,7 @@ function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreat
         }
       } else {
         // 2b. Reuse an existing path directly — no upload needed.
-        await updateYTTRecordedClass(courseId, moduleId, created.id, { video: pastedVideoPath.trim() });
+        await updateYTTRecordedClass(courseId, moduleId, created.id, { video: pastedVideoPath.trim() }, role);
       }
 
       toast.success("Class added");
@@ -584,7 +589,7 @@ function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreat
     } catch (err) {
       // Roll back the placeholder class so we don't leave orphaned rows.
       if (createdId) {
-        try { await deleteYTTRecordedClass(courseId, moduleId, createdId); } catch { /* swallow */ }
+        try { await deleteYTTRecordedClass(courseId, moduleId, createdId, role); } catch { /* swallow */ }
       }
       toast.error(err instanceof Error ? err.message : "Failed to add class");
       setSaving(false);
@@ -858,6 +863,7 @@ interface EditClassDialogProps {
 }
 
 function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, onUpdated }: EditClassDialogProps) {
+  const role = useClassesRole();
   const [step, setStep] = useState<1 | 2>(1);
   const [title, setTitle] = useState(cls.title);
   const [duration, setDuration] = useState(String(cls.duration));
@@ -924,43 +930,43 @@ function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, o
     try {
       // Replace the existing video if there was one.
       if (cls.video) {
-        try { await deleteYTTRecordedClassMedia(courseId, moduleId, cls.id, "video"); } catch { /* swallow */ }
+        try { await deleteYTTRecordedClassMedia(courseId, moduleId, cls.id, "video", role); } catch { /* swallow */ }
       }
       const videoPresign = await requestYTTRecordedClassPresign(courseId, moduleId, cls.id, {
         kind: "video",
         filename: videoFile.name,
         contentType: videoFile.type,
-      });
+      }, role);
       await fetch(videoPresign.url, {
         method: "PUT",
         headers: { "Content-Type": videoFile.type },
         body: videoFile,
       });
-      let updated = await updateYTTRecordedClass(courseId, moduleId, cls.id, { video: videoPresign.storePath });
+      let updated = await updateYTTRecordedClass(courseId, moduleId, cls.id, { video: videoPresign.storePath }, role);
 
       // Auto-upload captured thumbnail (best-effort, replaces any existing thumbnail).
       if (autoThumb) {
         try {
           if (cls.thumbnail) {
-            try { await deleteYTTRecordedClassMedia(courseId, moduleId, cls.id, "thumbnail"); } catch { /* swallow */ }
+            try { await deleteYTTRecordedClassMedia(courseId, moduleId, cls.id, "thumbnail", role); } catch { /* swallow */ }
           }
           const thumbPresign = await requestYTTRecordedClassPresign(courseId, moduleId, cls.id, {
             kind: "thumbnail",
             filename: "thumbnail.jpg",
             contentType: "image/jpeg",
-          });
+          }, role);
           await fetch(thumbPresign.url, {
             method: "PUT",
             headers: { "Content-Type": "image/jpeg" },
             body: autoThumb,
           });
-          updated = await updateYTTRecordedClass(courseId, moduleId, cls.id, { thumbnail: thumbPresign.storePath });
+          updated = await updateYTTRecordedClass(courseId, moduleId, cls.id, { thumbnail: thumbPresign.storePath }, role);
         } catch { /* non-fatal */ }
       }
 
       // Persist auto-detected duration if it differs from current.
       if (detectedDurationMin && detectedDurationMin !== updated.duration) {
-        updated = await updateYTTRecordedClass(courseId, moduleId, cls.id, { duration: detectedDurationMin });
+        updated = await updateYTTRecordedClass(courseId, moduleId, cls.id, { duration: detectedDurationMin }, role);
         setDuration(String(detectedDurationMin));
       }
 
@@ -979,7 +985,7 @@ function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, o
   async function handleDeleteMedia() {
     if (!confirm("Remove the video from this class?")) return;
     try {
-      await deleteYTTRecordedClassMedia(courseId, moduleId, cls.id, "video");
+      await deleteYTTRecordedClassMedia(courseId, moduleId, cls.id, "video", role);
       // BE returns null; reflect the cleared video locally.
       onUpdated({ ...cls, video: "" });
       toast.success("Video removed");
@@ -993,7 +999,7 @@ function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, o
     if (!path) return;
     setApplyingPath(true);
     try {
-      const updated = await updateYTTRecordedClass(courseId, moduleId, cls.id, { video: path });
+      const updated = await updateYTTRecordedClass(courseId, moduleId, cls.id, { video: path }, role);
       toast.success("Video path applied");
       onUpdated(updated);
       setPastePathMode(false);
@@ -1014,7 +1020,7 @@ function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, o
         title: title.trim(),
         duration: Number(duration),
         description: trimmedDesc.length > 0 ? trimmedDesc : undefined,
-      });
+      }, role);
       toast.success("Class updated");
       onUpdated(updated);
     } catch (err) {
@@ -1357,6 +1363,7 @@ interface CourseDetailProps {
 }
 
 function CourseDetail({ course, onBack }: CourseDetailProps) {
+  const role = useClassesRole();
   const [detail, setDetail] = useState<YTTCourseDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [addModuleOpen, setAddModuleOpen] = useState(false);
@@ -1369,7 +1376,7 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
 
   async function loadDetail() {
     try {
-      const d = await getYTTRecordedCourse(course.id);
+      const d = await getYTTRecordedCourse(course.id, role);
       setDetail(d);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load course");
@@ -1384,7 +1391,7 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
     if (!confirm(`Delete module "${mod.title}" and all its classes?`)) return;
     setDeletingModuleId(mod.id);
     try {
-      await deleteYTTRecordedModule(course.id, mod.id);
+      await deleteYTTRecordedModule(course.id, mod.id, role);
       toast.success("Module deleted");
       setDetail((d) => d ? { ...d, modules: d.modules.filter((m) => m.id !== mod.id) } : d);
     } catch (err) {
@@ -1398,7 +1405,7 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
     if (!confirm(`Delete class "${classTitle}"?`)) return;
     setDeletingClassId(classId);
     try {
-      await deleteYTTRecordedClass(course.id, mod.id, classId);
+      await deleteYTTRecordedClass(course.id, mod.id, classId, role);
       toast.success("Class deleted");
       setDetail((d) => {
         if (!d) return d;
@@ -1430,6 +1437,7 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
       await reorderYTTRecordedModules(
         course.id,
         reordered.map((m, i) => ({ id: m.id, sortOrder: i + 1 })),
+        role,
       );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to reorder modules");
@@ -1462,6 +1470,7 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
         course.id,
         mod.id,
         reorderedClasses.map((c, i) => ({ id: c.id, sortOrder: i + 1 })),
+        role,
       );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to reorder classes");
@@ -1811,6 +1820,7 @@ function CourseCard({ course, onSelect, onEdit, onDelete }: CourseCardProps) {
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 
 export function ClassesYTTRecorded() {
+  const role = useClassesRole();
   const [courses, setCourses] = useState<YTTCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<YTTCourse | null>(null);
@@ -1820,7 +1830,7 @@ export function ClassesYTTRecorded() {
   const [deletingCourse, setDeletingCourse] = useState(false);
 
   useEffect(() => {
-    listYTTRecordedCourses()
+    listYTTRecordedCourses(role)
       .then(setCourses)
       .catch((err: unknown) => toast.error(err instanceof Error ? err.message : "Failed to load courses"))
       .finally(() => setLoading(false));
@@ -1840,7 +1850,7 @@ export function ClassesYTTRecorded() {
     if (!deleteCourseTarget) return;
     setDeletingCourse(true);
     try {
-      await deleteYTTRecordedCourse(deleteCourseTarget.id);
+      await deleteYTTRecordedCourse(deleteCourseTarget.id, role);
       toast.success("Course deleted");
       setCourses((prev) => prev.filter((c) => c.id !== deleteCourseTarget.id));
       setDeleteCourseTarget(null);

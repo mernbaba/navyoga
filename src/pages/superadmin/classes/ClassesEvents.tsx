@@ -57,6 +57,7 @@ import {
 } from "../../../api/events";
 import type { AppEvent, EventEnrollmentRow } from "../../../api/types";
 import { resolveMediaUrl } from "../../../lib/media";
+import { useClassesRole } from "./classesRole";
 
 const LIMIT = 15;
 
@@ -112,6 +113,7 @@ function capacityLabel(occupancy: number, capacity: number) {
 type FormMode = "create" | "edit";
 
 export function ClassesEvents() {
+  const role = useClassesRole();
   const [events, setEvents] = useState<AppEvent[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -154,7 +156,7 @@ export function ClassesEvents() {
     if (!enrollmentsEvent) return;
     let cancelled = false;
     setEnrollmentsLoading(true);
-    listEventEnrollments("SUPERADMIN", enrollmentsEvent.id, {
+    listEventEnrollments(role, enrollmentsEvent.id, {
       q: enrollmentsDebouncedSearch || undefined,
       page: enrollmentsPage,
       limit: 20,
@@ -177,7 +179,7 @@ export function ClassesEvents() {
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
-    listEvents("SUPERADMIN", {
+    listEvents(role, {
       q: debouncedQuery || undefined,
       featured: filterFeatured !== "" ? filterFeatured === "true" : undefined,
       page,
@@ -261,7 +263,7 @@ export function ClassesEvents() {
   };
 
   const uploadThumbnailFor = async (eventId: string, file: File): Promise<string> => {
-    const presign = await requestEventThumbnailPresign("SUPERADMIN", eventId, {
+    const presign = await requestEventThumbnailPresign(role, eventId, {
       filename: file.name,
       contentType: file.type || "image/jpeg",
     });
@@ -287,13 +289,13 @@ export function ClassesEvents() {
 
       if (dialogMode === "create") {
         // Create first to obtain the event ID, then upload thumbnail (S3 key requires the ID).
-        const created = await createEvent("SUPERADMIN", {
+        const created = await createEvent(role, {
           ...basePayload,
           thumbnail: thumbnailFile ? undefined : basePayload.thumbnail,
         });
         if (thumbnailFile) {
           const thumbnail = await uploadThumbnailFor(created.id, thumbnailFile);
-          await updateEvent("SUPERADMIN", created.id, { thumbnail });
+          await updateEvent(role, created.id, { thumbnail });
         }
         toast.success("Event created");
       } else if (editingId) {
@@ -301,7 +303,7 @@ export function ClassesEvents() {
         if (thumbnailFile) {
           thumbnail = await uploadThumbnailFor(editingId, thumbnailFile);
         }
-        await updateEvent("SUPERADMIN", editingId, { ...basePayload, thumbnail });
+        await updateEvent(role, editingId, { ...basePayload, thumbnail });
         toast.success("Event updated");
       }
       setDialogOpen(false);
@@ -316,7 +318,7 @@ export function ClassesEvents() {
   const handleDelete = async (event: AppEvent) => {
     if (!confirm(`Delete event "${event.title}"? This cannot be undone.`)) return;
     try {
-      await deleteEvent("SUPERADMIN", event.id);
+      await deleteEvent(role, event.id);
       toast.success("Event deleted");
       refetch();
     } catch (err) {

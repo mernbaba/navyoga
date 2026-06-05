@@ -12,6 +12,7 @@ import { Plus, Search, Pencil, Trash2, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { listBatches, createBatch, renameBatch, deleteBatch } from "../../../api/batches";
 import type { Batch } from "../../../api/types";
+import { useClassesRole } from "./classesRole";
 
 interface BatchesDialogProps {
   open: boolean;
@@ -19,6 +20,7 @@ interface BatchesDialogProps {
 }
 
 export function BatchesDialog({ open, onOpenChange }: BatchesDialogProps) {
+  const role = useClassesRole();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -43,7 +45,7 @@ export function BatchesDialog({ open, onOpenChange }: BatchesDialogProps) {
     if (!open) return;
     let cancelled = false;
     setIsLoading(true);
-    listBatches("SUPERADMIN", {
+    listBatches(role, {
       q: debouncedQuery || undefined,
       page,
       limit: 10,
@@ -82,7 +84,7 @@ export function BatchesDialog({ open, onOpenChange }: BatchesDialogProps) {
     if (!name || isAdding) return;
     setIsAdding(true);
     try {
-      await createBatch("SUPERADMIN", name);
+      await createBatch(role, name);
       toast.success("Batch created");
       setAddName("");
       setPage(1);
@@ -113,7 +115,7 @@ export function BatchesDialog({ open, onOpenChange }: BatchesDialogProps) {
     }
     setIsUpdating(true);
     try {
-      await renameBatch("SUPERADMIN", batch.id, next);
+      await renameBatch(role, batch.id, next);
       toast.success("Batch renamed");
       cancelEdit();
       refetch();
@@ -127,7 +129,7 @@ export function BatchesDialog({ open, onOpenChange }: BatchesDialogProps) {
   async function handleDelete(batch: Batch) {
     if (!confirm(`Delete batch "${batch.name}"? Associated live classes will be unlinked.`)) return;
     try {
-      await deleteBatch("SUPERADMIN", batch.id);
+      await deleteBatch(role, batch.id);
       toast.success("Batch deleted");
       refetch();
     } catch (err) {

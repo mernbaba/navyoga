@@ -202,9 +202,9 @@ export function listYTTRecordedCourses(role: LoginRole = "SUPERADMIN") {
   );
 }
 
-export function createYTTRecordedCourse(body: YTTCourseBody) {
+export function createYTTRecordedCourse(body: YTTCourseBody, role: LoginRole = "SUPERADMIN") {
   return unwrap<YTTCourse>(
-    authedRequest<ApiSuccess<YTTCourse>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<YTTCourse>>(role, {
       method: "POST",
       url: "/api/ytt-recorded",
       data: body,
@@ -212,9 +212,9 @@ export function createYTTRecordedCourse(body: YTTCourseBody) {
   );
 }
 
-export function updateYTTRecordedCourse(courseId: string, body: Partial<YTTCourseBody>) {
+export function updateYTTRecordedCourse(courseId: string, body: Partial<YTTCourseBody>, role: LoginRole = "SUPERADMIN") {
   return unwrap<YTTCourse>(
-    authedRequest<ApiSuccess<YTTCourse>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<YTTCourse>>(role, {
       method: "PATCH",
       url: `/api/ytt-recorded/${courseId}`,
       data: body,
@@ -222,9 +222,9 @@ export function updateYTTRecordedCourse(courseId: string, body: Partial<YTTCours
   );
 }
 
-export function deleteYTTRecordedCourse(courseId: string) {
+export function deleteYTTRecordedCourse(courseId: string, role: LoginRole = "SUPERADMIN") {
   return unwrap<null>(
-    authedRequest<ApiSuccess<null>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<null>>(role, {
       method: "DELETE",
       url: `/api/ytt-recorded/${courseId}`,
     }),
@@ -280,9 +280,9 @@ export function deleteYTTRecordedPlan(courseId: string, planId: string) {
   );
 }
 
-export function getYTTRecordedCourse(courseId: string) {
+export function getYTTRecordedCourse(courseId: string, role: LoginRole = "SUPERADMIN") {
   return unwrap<YTTCourseDetail>(
-    authedRequest<ApiSuccess<YTTCourseDetail>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<YTTCourseDetail>>(role, {
       method: "GET",
       url: `/api/ytt-recorded/${courseId}`,
     }),
@@ -291,9 +291,9 @@ export function getYTTRecordedCourse(courseId: string) {
 
 export type YTTModuleBody = { title: string };
 
-export function createYTTRecordedModule(courseId: string, body: YTTModuleBody) {
+export function createYTTRecordedModule(courseId: string, body: YTTModuleBody, role: LoginRole = "SUPERADMIN") {
   return unwrap<YTTModule>(
-    authedRequest<ApiSuccess<YTTModule>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<YTTModule>>(role, {
       method: "POST",
       url: `/api/ytt-recorded/${courseId}/modules`,
       data: body,
@@ -305,9 +305,10 @@ export function updateYTTRecordedModule(
   courseId: string,
   moduleId: string,
   body: Partial<YTTModuleBody> & { sortOrder?: number },
+  role: LoginRole = "SUPERADMIN",
 ) {
   return unwrap<YTTModule>(
-    authedRequest<ApiSuccess<YTTModule>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<YTTModule>>(role, {
       method: "PATCH",
       url: `/api/ytt-recorded/${courseId}/modules/${moduleId}`,
       data: body,
@@ -315,9 +316,9 @@ export function updateYTTRecordedModule(
   );
 }
 
-export function deleteYTTRecordedModule(courseId: string, moduleId: string) {
+export function deleteYTTRecordedModule(courseId: string, moduleId: string, role: LoginRole = "SUPERADMIN") {
   return unwrap<null>(
-    authedRequest<ApiSuccess<null>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<null>>(role, {
       method: "DELETE",
       url: `/api/ytt-recorded/${courseId}/modules/${moduleId}`,
     }),
@@ -333,9 +334,9 @@ export type YTTClassBody = {
   isActive?: boolean;
 };
 
-export function createYTTRecordedClass(courseId: string, moduleId: string, body: YTTClassBody) {
+export function createYTTRecordedClass(courseId: string, moduleId: string, body: YTTClassBody, role: LoginRole = "SUPERADMIN") {
   return unwrap<YTTClass>(
-    authedRequest<ApiSuccess<YTTClass>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<YTTClass>>(role, {
       method: "POST",
       url: `/api/ytt-recorded/${courseId}/modules/${moduleId}/classes`,
       data: body,
@@ -348,9 +349,10 @@ export function updateYTTRecordedClass(
   moduleId: string,
   classId: string,
   body: Partial<YTTClassBody>,
+  role: LoginRole = "SUPERADMIN",
 ) {
   return unwrap<YTTClass>(
-    authedRequest<ApiSuccess<YTTClass>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<YTTClass>>(role, {
       method: "PATCH",
       url: `/api/ytt-recorded/${courseId}/modules/${moduleId}/classes/${classId}`,
       data: body,
@@ -358,9 +360,9 @@ export function updateYTTRecordedClass(
   );
 }
 
-export function deleteYTTRecordedClass(courseId: string, moduleId: string, classId: string) {
+export function deleteYTTRecordedClass(courseId: string, moduleId: string, classId: string, role: LoginRole = "SUPERADMIN") {
   return unwrap<null>(
-    authedRequest<ApiSuccess<null>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<null>>(role, {
       method: "DELETE",
       url: `/api/ytt-recorded/${courseId}/modules/${moduleId}/classes/${classId}`,
     }),
@@ -372,9 +374,10 @@ export function requestYTTRecordedClassPresign(
   moduleId: string,
   classId: string,
   body: { kind: "thumbnail" | "video"; filename?: string; contentType?: string },
+  role: LoginRole = "SUPERADMIN",
 ) {
   return unwrap<{ url: string; storePath: string; expiresIn: number }>(
-    authedRequest<ApiSuccess<{ url: string; storePath: string; expiresIn: number }>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<{ url: string; storePath: string; expiresIn: number }>>(role, {
       method: "POST",
       url: `/api/ytt-recorded/${courseId}/modules/${moduleId}/classes/${classId}/presign`,
       data: body,
@@ -387,9 +390,10 @@ export function deleteYTTRecordedClassMedia(
   moduleId: string,
   classId: string,
   kind: "thumbnail" | "video",
+  role: LoginRole = "SUPERADMIN",
 ) {
   return unwrap<null>(
-    authedRequest<ApiSuccess<null>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<null>>(role, {
       method: "DELETE",
       url: `/api/ytt-recorded/${courseId}/modules/${moduleId}/classes/${classId}/media`,
       params: { kind },
@@ -400,9 +404,10 @@ export function deleteYTTRecordedClassMedia(
 export function reorderYTTRecordedModules(
   courseId: string,
   items: { id: string; sortOrder: number }[],
+  role: LoginRole = "SUPERADMIN",
 ) {
   return unwrap<null>(
-    authedRequest<ApiSuccess<null>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<null>>(role, {
       method: "PATCH",
       url: `/api/ytt-recorded/${courseId}/modules/reorder`,
       data: { items },
@@ -414,9 +419,10 @@ export function reorderYTTRecordedClasses(
   courseId: string,
   moduleId: string,
   items: { id: string; sortOrder: number }[],
+  role: LoginRole = "SUPERADMIN",
 ) {
   return unwrap<null>(
-    authedRequest<ApiSuccess<null>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<null>>(role, {
       method: "PATCH",
       url: `/api/ytt-recorded/${courseId}/modules/${moduleId}/classes/reorder`,
       data: { items },
@@ -444,9 +450,9 @@ export function getYTTLiveCourse(courseId: string) {
   );
 }
 
-export function createYTTLiveCourse(body: YTTCourseBody) {
+export function createYTTLiveCourse(body: YTTCourseBody, role: LoginRole = "SUPERADMIN") {
   return unwrap<YTTCourse>(
-    authedRequest<ApiSuccess<YTTCourse>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<YTTCourse>>(role, {
       method: "POST",
       url: "/api/ytt-live",
       data: body,
@@ -454,9 +460,9 @@ export function createYTTLiveCourse(body: YTTCourseBody) {
   );
 }
 
-export function updateYTTLiveCourse(courseId: string, body: Partial<YTTCourseBody>) {
+export function updateYTTLiveCourse(courseId: string, body: Partial<YTTCourseBody>, role: LoginRole = "SUPERADMIN") {
   return unwrap<YTTCourse>(
-    authedRequest<ApiSuccess<YTTCourse>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<YTTCourse>>(role, {
       method: "PATCH",
       url: `/api/ytt-live/${courseId}`,
       data: body,
@@ -528,9 +534,9 @@ export type YTTLiveClassListParams = {
   q?: string;
 };
 
-export function listYTTLiveClasses(courseId: string, params: YTTLiveClassListParams = {}) {
+export function listYTTLiveClasses(courseId: string, params: YTTLiveClassListParams = {}, role: LoginRole = "SUPERADMIN") {
   return unwrap<YTTLiveClass[]>(
-    authedRequest<ApiSuccess<YTTLiveClass[]>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<YTTLiveClass[]>>(role, {
       method: "GET",
       url: `/api/ytt-live/${courseId}/classes`,
       params,
@@ -547,9 +553,9 @@ export function getYTTLiveClass(courseId: string, classId: string) {
   );
 }
 
-export function createYTTLiveClass(courseId: string, body: YTTLiveClassBody) {
+export function createYTTLiveClass(courseId: string, body: YTTLiveClassBody, role: LoginRole = "SUPERADMIN") {
   return unwrap<YTTLiveClass>(
-    authedRequest<ApiSuccess<YTTLiveClass>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<YTTLiveClass>>(role, {
       method: "POST",
       url: `/api/ytt-live/${courseId}/classes`,
       data: body,
@@ -557,9 +563,9 @@ export function createYTTLiveClass(courseId: string, body: YTTLiveClassBody) {
   );
 }
 
-export function updateYTTLiveClass(courseId: string, classId: string, body: Partial<YTTLiveClassBody>) {
+export function updateYTTLiveClass(courseId: string, classId: string, body: Partial<YTTLiveClassBody>, role: LoginRole = "SUPERADMIN") {
   return unwrap<YTTLiveClass>(
-    authedRequest<ApiSuccess<YTTLiveClass>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<YTTLiveClass>>(role, {
       method: "PATCH",
       url: `/api/ytt-live/${courseId}/classes/${classId}`,
       data: body,
@@ -567,9 +573,9 @@ export function updateYTTLiveClass(courseId: string, classId: string, body: Part
   );
 }
 
-export function deleteYTTLiveClass(courseId: string, classId: string) {
+export function deleteYTTLiveClass(courseId: string, classId: string, role: LoginRole = "SUPERADMIN") {
   return unwrap<null>(
-    authedRequest<ApiSuccess<null>>("SUPERADMIN", {
+    authedRequest<ApiSuccess<null>>(role, {
       method: "DELETE",
       url: `/api/ytt-live/${courseId}/classes/${classId}`,
     }),
