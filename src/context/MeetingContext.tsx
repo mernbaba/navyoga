@@ -639,6 +639,13 @@ export const MeetingProvider = ({
           return [...prev, msg];
         });
         const isMine = msg.senderId === selfRef.current?.userId;
+        console.log("[chat-badge]", {
+          isNew,
+          isMine,
+          senderId: msg.senderId,
+          selfUserId: selfRef.current?.userId,
+          activePanel: activePanelRef.current,
+        });
         if (isNew && !isMine && activePanelRef.current !== "chat") {
           setUnreadChat((n) => n + 1);
         }
