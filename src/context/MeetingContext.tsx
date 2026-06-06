@@ -99,6 +99,7 @@ export const MeetingProvider = ({
   const onLeaveRef = useRef(onLeave);
   const activePanelRef = useRef<ActivePanel>(null);
   const selfRef = useRef<MeetingParticipant | null>(null);
+  const seenMessageIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     activePanelRef.current = activePanel;
@@ -485,6 +486,13 @@ export const MeetingProvider = ({
 
   useEffect(() => {
     let cancelled = false;
+    // Re-arm teardown for this mount. teardownStartedRef is a one-shot guard;
+    // without resetting it here, a remount (e.g. React StrictMode in dev, which
+    // mounts → unmounts → remounts) would leave it stuck `true` from the first
+    // unmount, turning the next teardown into a permanent no-op and leaking the
+    // socket/streams. Also clear de-dupe state so a fresh session starts clean.
+    teardownStartedRef.current = false;
+    seenMessageIdsRef.current = new Set();
 
     const bootstrap = async () => {
       let stream: MediaStream | null = null;
@@ -632,21 +640,20 @@ export const MeetingProvider = ({
       });
 
       socket.on("message-received", (msg) => {
-        let isNew = false;
-        setChatMessages((prev) => {
-          if (prev.some((m) => m._id === msg._id)) return prev;
-          isNew = true;
-          return [...prev, msg];
-        });
+        // De-dupe by id via a ref-backed Set. The same message can be
+        // delivered more than once (e.g. a duplicate socket created during a
+        // dev StrictMode remount), so we must guard the unread-badge increment
+        // against double counting. A ref is used (not the chatMessages array)
+        // because it is immune to StrictMode's double-invoked state updaters.
+        if (seenMessageIdsRef.current.has(msg._id)) return;
+        seenMessageIdsRef.current.add(msg._id);
+
+        setChatMessages((prev) =>
+          prev.some((m) => m._id === msg._id) ? prev : [...prev, msg],
+        );
+
         const isMine = msg.senderId === selfRef.current?.userId;
-        console.log("[chat-badge]", {
-          isNew,
-          isMine,
-          senderId: msg.senderId,
-          selfUserId: selfRef.current?.userId,
-          activePanel: activePanelRef.current,
-        });
-        if (isNew && !isMine && activePanelRef.current !== "chat") {
+        if (!isMine && activePanelRef.current !== "chat") {
           setUnreadChat((n) => n + 1);
         }
       });
