@@ -10,6 +10,7 @@ import {
 } from "react";
 import Peer from "simple-peer";
 import { toast } from "sonner";
+import { registerAudioContext } from "@/lib/audioUnlock";
 import {
   connectMeetingSocket,
   type MeetingChatMessage,
@@ -38,6 +39,7 @@ export type MeetingContextValue = {
   isScreenSharing: boolean;
   peers: Record<string, RemotePeer>;
   chatMessages: MeetingChatMessage[];
+  unreadChat: number;
   activePanel: ActivePanel;
   activeSpeaker: string | null;
   connectionState: "connecting" | "joined" | "ended";
@@ -79,7 +81,8 @@ export const MeetingProvider = ({
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [peers, setPeers] = useState<Record<string, RemotePeer>>({});
   const [chatMessages, setChatMessages] = useState<MeetingChatMessage[]>([]);
-  const [activePanel, setActivePanel] = useState<ActivePanel>(null);
+  const [unreadChat, setUnreadChat] = useState(0);
+  const [activePanel, setActivePanelState] = useState<ActivePanel>(null);
   const [activeSpeaker, setActiveSpeaker] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<
     "connecting" | "joined" | "ended"
@@ -94,6 +97,21 @@ export const MeetingProvider = ({
   const isScreenSharingRef = useRef(false);
   const videoBusyRef = useRef(false);
   const onLeaveRef = useRef(onLeave);
+  const activePanelRef = useRef<ActivePanel>(null);
+  const selfRef = useRef<MeetingParticipant | null>(null);
+
+  useEffect(() => {
+    activePanelRef.current = activePanel;
+  }, [activePanel]);
+
+  useEffect(() => {
+    selfRef.current = self;
+  }, [self]);
+
+  const setActivePanel = useCallback((panel: ActivePanel) => {
+    if (panel === "chat") setUnreadChat(0);
+    setActivePanelState(panel);
+  }, []);
 
   useEffect(() => {
     isScreenSharingRef.current = isScreenSharing;
@@ -111,6 +129,9 @@ export const MeetingProvider = ({
           .webkitAudioContext;
       if (!Ctx) return;
       const ctx = new Ctx();
+      // Mobile starts AudioContexts suspended until a user gesture; register so
+      // it resumes on first interaction (otherwise the analyser never ticks).
+      registerAudioContext(ctx);
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 512;
@@ -611,10 +632,16 @@ export const MeetingProvider = ({
       });
 
       socket.on("message-received", (msg) => {
+        let isNew = false;
         setChatMessages((prev) => {
           if (prev.some((m) => m._id === msg._id)) return prev;
+          isNew = true;
           return [...prev, msg];
         });
+        const isMine = msg.senderId === selfRef.current?.userId;
+        if (isNew && !isMine && activePanelRef.current !== "chat") {
+          setUnreadChat((n) => n + 1);
+        }
       });
 
       socket.on("mute-request", () => {
@@ -660,6 +687,7 @@ export const MeetingProvider = ({
       isScreenSharing,
       peers,
       chatMessages,
+      unreadChat,
       activePanel,
       activeSpeaker,
       connectionState,
@@ -685,6 +713,7 @@ export const MeetingProvider = ({
       isScreenSharing,
       peers,
       chatMessages,
+      unreadChat,
       activePanel,
       activeSpeaker,
       connectionState,

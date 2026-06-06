@@ -20,6 +20,7 @@ export const ControlBar = () => {
     isVideoOff,
     isScreenSharing,
     activePanel,
+    unreadChat,
     setActivePanel,
     toggleMute,
     toggleVideo,
@@ -115,13 +116,18 @@ export const ControlBar = () => {
 
         <button
           onClick={() => togglePanel("chat")}
-          className={`rounded-lg p-2.5 transition hover:bg-zinc-800 ${
+          className={`relative rounded-lg p-2.5 transition hover:bg-zinc-800 ${
             activePanel === "chat"
               ? "bg-[var(--primary)]/15 text-[var(--primary)]"
               : "text-zinc-400 hover:text-white"
           }`}
         >
           <MessageSquare className="h-5 w-5" />
+          {unreadChat > 0 && activePanel !== "chat" && (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-extrabold leading-none text-white">
+              {unreadChat > 9 ? "9+" : unreadChat}
+            </span>
+          )}
         </button>
 
         <div className="relative ml-2">

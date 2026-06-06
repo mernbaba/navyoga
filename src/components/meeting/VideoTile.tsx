@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { MicOff } from "lucide-react";
+import { registerRemoteMedia } from "@/lib/audioUnlock";
 
 type Props = {
   stream: MediaStream | null;
@@ -35,11 +36,18 @@ export const VideoTile = ({
   // it is NOT coupled to whether the remote camera is on. (The <video> element
   // above is unmounted when the remote video is off, which would otherwise
   // silence the participant. Local audio is never played back to avoid echo.)
+  //
+  // The element is registered with audioUnlock so .play() is called explicitly
+  // and retried on the first user gesture — mobile browsers block autoplay of
+  // audio until the user interacts, which otherwise silences this device's
+  // outgoing audio on the remote phone (a phone never starts the playback).
   useEffect(() => {
     if (isLocal) return;
-    if (audioRef.current && stream) {
-      audioRef.current.srcObject = stream;
-    }
+    const el = audioRef.current;
+    if (!el || !stream) return;
+    el.srcObject = stream;
+    const unregister = registerRemoteMedia(el);
+    return unregister;
   }, [stream, isLocal]);
 
   const initials =

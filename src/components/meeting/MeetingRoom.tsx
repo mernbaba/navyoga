@@ -7,6 +7,7 @@ import { VideoGrid } from "@/components/meeting/VideoGrid";
 import { ControlBar } from "@/components/meeting/ControlBar";
 import { ParticipantList } from "@/components/meeting/ParticipantList";
 import { ChatPanel } from "@/components/meeting/ChatPanel";
+import { AudioUnlockOverlay } from "@/components/meeting/AudioUnlockOverlay";
 
 type Props = {
   classId: string;
@@ -28,7 +29,7 @@ const MeetingRoomShell = () => {
   }
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-zinc-950">
+    <div className="relative flex h-full w-full flex-col overflow-hidden bg-zinc-950">
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col overflow-hidden">
           <VideoGrid />
@@ -37,6 +38,7 @@ const MeetingRoomShell = () => {
         {activePanel === "chat" && <ChatPanel />}
       </div>
       <ControlBar />
+      <AudioUnlockOverlay />
     </div>
   );
 };
