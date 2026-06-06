@@ -19,12 +19,28 @@ export const VideoTile = ({
   isActiveSpeaker,
 }: Props) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Bind the stream to the <video> element whenever it (re)mounts. The element
+  // is conditionally rendered (only while video is on), so this must also run
+  // when isVideoOff flips — otherwise a freshly mounted element with the same
+  // stream reference never gets its srcObject set.
   useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
     }
-  }, [stream]);
+  }, [stream, isVideoOff]);
+
+  // Remote audio plays through a dedicated, always-mounted <audio> element so
+  // it is NOT coupled to whether the remote camera is on. (The <video> element
+  // above is unmounted when the remote video is off, which would otherwise
+  // silence the participant. Local audio is never played back to avoid echo.)
+  useEffect(() => {
+    if (isLocal) return;
+    if (audioRef.current && stream) {
+      audioRef.current.srcObject = stream;
+    }
+  }, [stream, isLocal]);
 
   const initials =
     name
@@ -42,12 +58,16 @@ export const VideoTile = ({
           : "border-zinc-800 hover:border-zinc-700"
       }`}
     >
+      {!isLocal && stream && (
+        <audio ref={audioRef} autoPlay playsInline className="hidden" />
+      )}
+
       {stream && !isVideoOff ? (
         <video
           ref={videoRef}
           autoPlay
           playsInline
-          muted={isLocal}
+          muted
           className={`h-full w-full object-cover ${isLocal ? "scale-x-[-1]" : ""}`}
         />
       ) : (
