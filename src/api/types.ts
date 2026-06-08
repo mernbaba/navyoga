@@ -436,7 +436,6 @@ export type LiveClass = {
   startedAt: string | null;
   endedAt: string | null;
   duration: number;
-  link: string | null;
   recording: string | null;
   tutor: LiveClassTutor | null;
   batch: { id: string; name: string } | null;
@@ -455,7 +454,6 @@ export type RecurringLiveClass = {
   yogaType: string;
   difficulty: ClassDifficulty;
   duration: number;
-  link: string | null;
   daysOfWeek: DayOfWeek[];
   timeOfDay: string;
   startDate: string;
@@ -480,7 +478,6 @@ export type TutorAssignedClass = {
   startedAt: string | null;
   endedAt: string | null;
   duration: number;
-  link: string | null;
   recording: string | null;
   batch: { id: string; name: string } | null;
   state: TutorClassState;
@@ -607,7 +604,6 @@ export type YTTLiveClass = {
   startedAt: string | null;
   endedAt: string | null;
   duration: number;
-  link: string | null;
   recording: string | null;
   tutorId: string | null;
   tutor: LiveClassTutor | null;
@@ -621,7 +617,6 @@ export type YTTLiveClassBody = {
   difficulty: ClassDifficulty;
   duration: number;
   description?: string | null;
-  link?: string | null;
   scheduledAt?: string | null;
   startedAt?: string | null;
   endedAt?: string | null;

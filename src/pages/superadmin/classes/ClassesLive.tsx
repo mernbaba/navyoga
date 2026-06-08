@@ -79,7 +79,6 @@ const BLANK_FORM = {
   tutorId: "",
   batchId: "",
   scheduledAt: "",
-  link: "",
   recording: "",
 };
 
@@ -177,7 +176,6 @@ export function ClassesLive() {
       tutorId: cls.tutor?.id ?? "",
       batchId: cls.batch?.id ?? "",
       scheduledAt: toDatetimeLocalValue(cls.scheduledAt),
-      link: cls.link ?? "",
       recording: cls.recording ?? "",
     });
     setRecordingFile(null);
@@ -196,7 +194,6 @@ export function ClassesLive() {
     if (!form.difficulty) return toast.error("Difficulty is required");
     if (!form.duration || isNaN(Number(form.duration))) return toast.error("Valid duration is required");
     if (!form.scheduledAt) return toast.error("Scheduled date/time is required");
-    if (!form.link.trim()) return toast.error("Join link is required");
     if (!form.tutorId) return toast.error("Tutor is required");
     if (!form.batchId) return toast.error("Batch is required");
 
@@ -211,7 +208,6 @@ export function ClassesLive() {
         tutorId: form.tutorId,
         batchId: form.batchId,
         scheduledAt: new Date(form.scheduledAt).toISOString(),
-        link: form.link.trim(),
         recording: recordingFile ? null : form.recording || null,
       };
 
@@ -446,18 +442,6 @@ export function ClassesLive() {
                 type="datetime-local"
                 value={form.scheduledAt}
                 onChange={(e) => setField("scheduledAt", e.target.value)}
-              />
-            </div>
-
-            {/* Join Link */}
-            <div className="space-y-1.5">
-              <Label>
-                Join Link <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                placeholder="https://meet.google.com/…"
-                value={form.link}
-                onChange={(e) => setField("link", e.target.value)}
               />
             </div>
 

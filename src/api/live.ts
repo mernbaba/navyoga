@@ -25,7 +25,6 @@ export type LiveClassCreateBody = {
   tutorId?: string;
   batchId?: string;
   scheduledAt?: string;
-  link?: string;
   recording?: string;
 };
 
@@ -38,7 +37,6 @@ export type LiveClassUpdateBody = {
   tutorId?: string | null;
   batchId?: string | null;
   scheduledAt?: string | null;
-  link?: string | null;
   recording?: string | null;
 };
 
@@ -98,7 +96,6 @@ export type RecurringLiveClassCreateBody = {
   timeOfDay: string;
   startDate: string;
   description?: string;
-  link?: string;
   tutorId?: string;
   batchId?: string;
   endDate?: string;

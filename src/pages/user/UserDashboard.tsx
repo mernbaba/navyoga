@@ -108,7 +108,6 @@ export function UserDashboard() {
           date,
           time,
           duration: `${c.duration} min`,
-          link: c.link,
           color: c.color,
         };
       }),
@@ -255,24 +254,13 @@ export function UserDashboard() {
                               {class_item.duration}
                             </Badge>
                           </div>
-                          {class_item.link ? (
-                            <a href={class_item.link} target="_blank" rel="noreferrer">
-                              <Button
-                                size="sm"
-                                className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white shadow-lg"
-                              >
-                                Join
-                              </Button>
-                            </a>
-                          ) : (
-                            <Button
-                              size="sm"
-                              disabled
-                              className="bg-linear-to-r from-[#610981] to-[#8b0fa8] text-white shadow-lg opacity-60"
-                            >
-                              Join
-                            </Button>
-                          )}
+                          <Button
+                            size="sm"
+                            disabled
+                            className="bg-linear-to-r from-[#610981] to-[#8b0fa8] text-white shadow-lg opacity-60"
+                          >
+                            Join
+                          </Button>
                         </div>
                       </motion.div>
                     ))

@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Badge } from "../../components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
-import { Search, Play, Clock, Calendar, ExternalLink, RefreshCw, AlertCircle } from "lucide-react";
+import { Search, Play, Clock, Calendar, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { listTutorClasses, type TutorClassesStatusFilter } from "../../api/classes";
 import type { TutorAssignedClass } from "../../api/types";
@@ -106,26 +106,8 @@ export function TutorClasses() {
   }, [items]);
 
   const handleStartClass = (classItem: TutorAssignedClass) => {
-    // YTT Live classes have no in-app session — the tutor joins the external
-    // meeting via its link. Only shared Live Classes use the video session.
-    if (classItem.kind === "YTT_LIVE") {
-      if (!classItem.link) {
-        toast.error("No meeting link configured for this class.");
-        return;
-      }
-      window.open(classItem.link, "_blank", "noopener,noreferrer");
-      return;
-    }
     toast.success("Starting live session...");
     navigate(`/tutor/video-session?classId=${classItem.id}`);
-  };
-
-  const handleJoinLink = (classItem: TutorAssignedClass) => {
-    if (!classItem.link) {
-      toast.error("No meeting link configured for this class.");
-      return;
-    }
-    window.open(classItem.link, "_blank", "noopener,noreferrer");
   };
 
   const handleViewDetails = (classItem: TutorAssignedClass) => {
@@ -320,16 +302,6 @@ export function TutorClasses() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
-                                {cls.link && (
-                                  <Button
-                                    onClick={() => handleJoinLink(cls)}
-                                    variant="outline"
-                                    size="sm"
-                                  >
-                                    <ExternalLink className="w-4 h-4 mr-1" />
-                                    Link
-                                  </Button>
-                                )}
                                 <Button
                                   onClick={() => handleStartClass(cls)}
                                   className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"

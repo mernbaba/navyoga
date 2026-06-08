@@ -10,10 +10,9 @@ import {
 
 const BASE = "/api/ytt-live";
 
-// Classes returned to non-enrolled students omit `link` / `recording`.
-// Mark them optional for safety when consuming the catalogue endpoint.
-export type YTTLiveStudentClass = Omit<YTTLiveClass, "link" | "recording"> & {
-  link?: string | null;
+// Classes returned to non-enrolled students omit `recording`.
+// Mark it optional for safety when consuming the catalogue endpoint.
+export type YTTLiveStudentClass = Omit<YTTLiveClass, "recording"> & {
   recording?: string | null;
 };
 

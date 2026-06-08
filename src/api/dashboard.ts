@@ -43,7 +43,6 @@ export type StudentDashboard = {
     instructor: string;
     scheduledAt: string | null;
     duration: number;
-    link: string | null;
     color: string;
   }>;
   achievements: Array<{

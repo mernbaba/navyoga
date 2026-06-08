@@ -509,7 +509,7 @@ function StatusBadge({ status }: { status: DerivedStatus }) {
 }
 
 type Action =
-  | { kind: "join"; href: string }
+  | { kind: "join"; classId: string }
   | { kind: "watch"; href: string }
   | { kind: "scheduled" }
   | { kind: "locked" }
@@ -517,11 +517,11 @@ type Action =
 
 function resolveAction(c: ClassWithCourse): Action {
   const status = deriveStatus(c);
-  if (status === "LIVE" && c.link) return { kind: "join", href: c.link };
+  if (status === "LIVE") return { kind: "join", classId: c.id };
   if (status === "SCHEDULED") {
-    if (c.link && c.scheduledAt) {
+    if (c.scheduledAt) {
       const ms = new Date(c.scheduledAt).getTime() - Date.now();
-      if (ms <= SCHEDULED_JOIN_WINDOW_MS) return { kind: "join", href: c.link };
+      if (ms <= SCHEDULED_JOIN_WINDOW_MS) return { kind: "join", classId: c.id };
     }
     return { kind: "scheduled" };
   }
@@ -535,12 +535,12 @@ function resolveAction(c: ClassWithCourse): Action {
 function ActionButton({ action }: { action: Action }) {
   if (action.kind === "join") {
     return (
-      <a href={action.href} target="_blank" rel="noopener noreferrer">
+      <Link to={`/user/class-session/${action.classId}`}>
         <Button className="w-full bg-linear-to-r from-[#ef4444] to-[#f97316] text-white shadow-lg">
           <Radio className="w-4 h-4 mr-2" />
           Join Live
         </Button>
-      </a>
+      </Link>
     );
   }
   if (action.kind === "watch") {

@@ -93,7 +93,6 @@ const BLANK_RECURRING_FORM = {
   difficulty: "" as ClassDifficulty | "",
   duration: "",
   description: "",
-  link: "",
   tutorId: "",
   batchId: "",
   daysOfWeek: [] as DayOfWeek[],
@@ -200,7 +199,6 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
       difficulty: t.difficulty,
       duration: String(t.duration),
       description: t.description ?? "",
-      link: t.link ?? "",
       tutorId: t.tutor?.id ?? "",
       batchId: t.batch?.id ?? "",
       daysOfWeek: [...t.daysOfWeek],
@@ -244,7 +242,6 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
         timeOfDay: form.timeOfDay,
         startDate: new Date(form.startDate).toISOString(),
         ...(form.description ? { description: form.description } : {}),
-        ...(form.link ? { link: form.link.trim() } : {}),
         ...(form.tutorId ? { tutorId: form.tutorId } : {}),
         ...(form.batchId ? { batchId: form.batchId } : {}),
         ...(form.endDate ? { endDate: new Date(form.endDate).toISOString() } : {}),
@@ -486,15 +483,6 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
                   onChange={(e) => setField("duration", e.target.value)}
                   className="h-9 rounded-xl bg-input-background/50"
                   min={1}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Join Link</Label>
-                <Input
-                  placeholder="https://meet.google.com/..."
-                  value={form.link}
-                  onChange={(e) => setField("link", e.target.value)}
-                  className="h-9 rounded-xl bg-input-background/50"
                 />
               </div>
             </div>
@@ -976,7 +964,6 @@ function EditGeneratedClassDialog({
     difficulty: cls.difficulty as ClassDifficulty,
     duration: String(cls.duration),
     scheduledAt: toDatetimeLocalValue(cls.scheduledAt),
-    link: cls.link ?? "",
     tutorId: cls.tutor?.id ?? "",
     batchId: cls.batch?.id ?? "",
     description: cls.description ?? "",
@@ -997,7 +984,6 @@ function EditGeneratedClassDialog({
         difficulty: form.difficulty,
         duration: Number(form.duration),
         scheduledAt: form.scheduledAt ? new Date(form.scheduledAt).toISOString() : null,
-        link: form.link.trim() || null,
         tutorId: form.tutorId || null,
         batchId: form.batchId || null,
         description: form.description || undefined,
@@ -1075,15 +1061,6 @@ function EditGeneratedClassDialog({
                 className="h-9 rounded-xl bg-input-background/50"
               />
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Join Link</Label>
-            <Input
-              value={form.link}
-              onChange={(e) => setField("link", e.target.value)}
-              className="h-9 rounded-xl bg-input-background/50"
-            />
           </div>
 
           <div className="space-y-1.5">

@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select";
-import { Radio, Plus, Trash2, ChevronRight, GraduationCap, Pencil, Search, Clock, CalendarDays, Link2, User } from "lucide-react";
+import { Radio, Plus, Trash2, ChevronRight, GraduationCap, Pencil, Search, Clock, CalendarDays, User } from "lucide-react";
 import { toast } from "sonner";
 import {
   listYTTLiveCourses,
@@ -288,7 +288,6 @@ type ClassFormState = {
   difficulty: ClassDifficulty;
   duration: string;
   description: string;
-  link: string;
   scheduledAt: string;
   recording: string;
   tutorId: string;
@@ -300,7 +299,6 @@ const EMPTY_CLASS: ClassFormState = {
   difficulty: "EASY",
   duration: "",
   description: "",
-  link: "",
   scheduledAt: "",
   recording: "",
   tutorId: "",
@@ -330,7 +328,6 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
         difficulty: initial.difficulty,
         duration: String(initial.duration ?? ""),
         description: initial.description ?? "",
-        link: initial.link ?? "",
         scheduledAt: isoToLocalInput(initial.scheduledAt),
         recording: initial.recording ?? "",
         tutorId: initial.tutor?.id ?? initial.tutorId ?? "",
@@ -363,7 +360,6 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
         difficulty: form.difficulty,
         duration,
         ...(form.description.trim() ? { description: form.description.trim() } : {}),
-        ...(form.link.trim() ? { link: form.link.trim() } : {}),
         ...(scheduledIso ? { scheduledAt: scheduledIso } : {}),
         ...(form.recording.trim() ? { recording: form.recording.trim() } : {}),
         ...(form.tutorId ? { tutorId: form.tutorId } : {}),
@@ -375,7 +371,6 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
         difficulty: create.difficulty,
         duration,
         description: form.description.trim() ? form.description.trim() : null,
-        link: form.link.trim() ? form.link.trim() : null,
         scheduledAt: scheduledIso,
         recording: form.recording.trim() ? form.recording.trim() : null,
         tutorId: form.tutorId || null,
@@ -481,16 +476,6 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
             <p className="text-xs text-muted-foreground">
               The assigned tutor will see this session in their tutor panel.
             </p>
-          </div>
-
-          <div className="space-y-1">
-            <Label htmlFor="cls-link">Live join URL</Label>
-            <Input
-              id="cls-link"
-              placeholder="https://meet.google.com/…"
-              value={form.link}
-              onChange={(e) => set("link", e.target.value)}
-            />
           </div>
 
           <div className="space-y-1">
@@ -658,16 +643,6 @@ function CourseClasses({ courseId }: CourseClassesProps) {
                     <span className="inline-flex items-center gap-1"><CalendarDays className="w-3 h-3" />{formatScheduled(cls.scheduledAt)}</span>
                     {cls.tutor && (
                       <span className="inline-flex items-center gap-1"><User className="w-3 h-3" />{cls.tutor.name}</span>
-                    )}
-                    {cls.link && (
-                      <a
-                        href={cls.link}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="inline-flex items-center gap-1 text-[#610981] hover:underline"
-                      >
-                        <Link2 className="w-3 h-3" />Join link
-                      </a>
                     )}
                   </div>
                 </div>
