@@ -24,6 +24,13 @@ const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
   minute: "2-digit",
 });
 
+function isJoinable(cls: TutorAssignedClass): boolean {
+  if (cls.state === "LIVE") return true;
+  if (!cls.scheduledAt) return false;
+  const minsUntil = (new Date(cls.scheduledAt).getTime() - Date.now()) / 60_000;
+  return minsUntil <= 10;
+}
+
 function formatSchedule(value: string | null): string {
   if (!value) return "—";
   const date = new Date(value);
@@ -306,6 +313,8 @@ export function TutorClasses() {
                                   onClick={() => handleStartClass(cls)}
                                   className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
                                   size="sm"
+                                  disabled={!isJoinable(cls)}
+                                  title={!isJoinable(cls) ? "Available 10 minutes before class" : undefined}
                                 >
                                   <Play className="w-4 h-4 mr-1" />
                                   {cls.kind === "YTT_LIVE" ? "Join" : isLive ? "Rejoin" : "Start"}
@@ -365,6 +374,8 @@ export function TutorClasses() {
               <Button
                 onClick={confirmStartSession}
                 className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
+                disabled={!selectedClass || !isJoinable(selectedClass)}
+                title={selectedClass && !isJoinable(selectedClass) ? "Available 10 minutes before class" : undefined}
               >
                 <Play className="w-4 h-4 mr-1" />
                 {selectedClass?.kind === "YTT_LIVE"
