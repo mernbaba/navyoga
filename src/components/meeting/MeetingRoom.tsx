@@ -17,7 +17,7 @@ type Props = {
 };
 
 const MeetingRoomShell = () => {
-  const { connectionState, activePanel } = useMeeting();
+  const { connectionState, activePanel, isRecording } = useMeeting();
 
   if (connectionState === "connecting") {
     return (
@@ -30,6 +30,14 @@ const MeetingRoomShell = () => {
 
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-zinc-950">
+      {isRecording && (
+        <div className="absolute left-4 top-4 z-30 flex items-center gap-1.5 rounded-md border border-red-500/25 bg-red-500/10 px-2.5 py-1 backdrop-blur">
+          <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
+          <span className="text-[10px] font-extrabold uppercase tracking-widest text-red-500">
+            Rec
+          </span>
+        </div>
+      )}
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col overflow-hidden">
           <VideoGrid />

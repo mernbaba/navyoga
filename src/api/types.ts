@@ -186,6 +186,29 @@ export type Lead = {
   updatedAt: string;
 };
 
+export type TaskCategory =
+  | "FOLLOW_UP"
+  | "CALLING"
+  | "ADMIN"
+  | "REPORTING"
+  | "COORDINATION"
+  | "TRAINING";
+export type TaskStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED";
+export type TaskPriority = "LOW" | "MEDIUM" | "HIGH";
+
+export type DailyTask = {
+  id: string;
+  title: string;
+  date: string;
+  dueDate: string | null;
+  category: TaskCategory;
+  status: TaskStatus;
+  priority: TaskPriority;
+  assignedToId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type DiscountType = "PERCENTAGE" | "FLAT";
 export type CouponStatus = "ACTIVE" | "EXPIRED" | "DISABLED";
 export type CouponApplicableType = "LIVE" | "SELF_PACED" | "YTT_LIVE" | "YTT_RECORDED" | "EVENT" | "WORKSHOP";

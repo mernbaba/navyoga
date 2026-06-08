@@ -19,12 +19,15 @@ export const ControlBar = () => {
     isMuted,
     isVideoOff,
     isScreenSharing,
+    isRecording,
+    isRecordingBusy,
     activePanel,
     unreadChat,
     setActivePanel,
     toggleMute,
     toggleVideo,
     toggleScreenShare,
+    toggleRecording,
     leaveMeeting,
     endMeetingForAll,
   } = useMeeting();
@@ -94,6 +97,30 @@ export const ControlBar = () => {
             <Monitor className="h-5 w-5" />
             <span className="mt-1 text-[10px] font-semibold">
               {isScreenSharing ? "Sharing" : "Share"}
+            </span>
+          </button>
+        )}
+
+        {isHost && (
+          <button
+            onClick={toggleRecording}
+            disabled={isRecordingBusy}
+            title={isRecording ? "Stop recording" : "Record this class"}
+            className={`flex h-14 w-14 flex-col items-center justify-center rounded-xl transition-all duration-150 active:scale-95 ${
+              isRecording
+                ? "bg-red-500/15 text-red-400 hover:bg-red-500/25"
+                : "text-white hover:bg-zinc-800"
+            } ${isRecordingBusy ? "pointer-events-none opacity-50" : ""}`}
+          >
+            {isRecording ? (
+              <span className="h-5 w-5 rounded-sm bg-red-500" />
+            ) : (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-current">
+                <span className="h-2 w-2 rounded-full bg-red-500" />
+              </span>
+            )}
+            <span className="mt-1 text-[10px] font-semibold">
+              {isRecordingBusy ? "Saving" : isRecording ? "Stop" : "Record"}
             </span>
           </button>
         )}

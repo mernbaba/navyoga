@@ -155,3 +155,28 @@ export function requestLiveClassRecordingPresign(
     }),
   );
 }
+
+// ─── TUTOR self-recording (scoped to the tutor's own class) ───────────────────
+
+export function requestTutorRecordingPresign(
+  id: string,
+  body: { filename: string; contentType: string },
+) {
+  return unwrap<LiveClassRecordingPresign>(
+    authedRequest<ApiSuccess<LiveClassRecordingPresign>>("TUTOR", {
+      method: "POST",
+      url: `/api/live/${id}/tutor-recording-presign`,
+      data: body,
+    }),
+  );
+}
+
+export function saveTutorRecording(id: string, storePath: string) {
+  return unwrap<LiveClass>(
+    authedRequest<ApiSuccess<LiveClass>>("TUTOR", {
+      method: "PATCH",
+      url: `/api/live/${id}/tutor-recording`,
+      data: { recording: storePath },
+    }),
+  );
+}

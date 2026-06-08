@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Badge } from "../../components/ui/badge";
 import { Plus, Search, Edit, Trash2, Mail, Phone, Calendar } from "lucide-react";
 import { toast } from "sonner";
-import { listLeads, createLead, updateLead, deleteLead } from "../../api/leads";
+import { listLeads, createLead, updateLead, deleteLead, getLeadStats, type LeadStats } from "../../api/leads";
 import type { Lead, LeadSource, LeadStatus, Role } from "../../api/types";
 
 const SOURCES: LeadSource[] = ["WEBSITE", "REFERRAL", "WALK_IN", "SOCIAL_MEDIA", "FACEBOOK", "INSTAGRAM", "GOOGLE_ADS"];
@@ -29,6 +29,7 @@ type LeadsRole = Extract<Role, "SUPERADMIN" | "FRONTLINE" | "OPERATIONS">;
 export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [total, setTotal] = useState(0);
+  const [stats, setStats] = useState<LeadStats | null>(null);
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -83,6 +84,20 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
       cancelled = true;
     };
   }, [debouncedQuery, statusFilter, page, refreshKey, role]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getLeadStats(role)
+      .then((res) => {
+        if (!cancelled) setStats(res);
+      })
+      .catch(() => {
+        /* stats are non-critical; leave previous values in place */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey, role]);
 
   const refetch = () => setRefreshKey((k) => k + 1);
 
@@ -220,19 +235,19 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader><CardTitle>Total Leads</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-semibold">{total}</div></CardContent>
+          <CardContent><div className="text-3xl font-semibold">{stats?.total ?? "—"}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>New (page)</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-semibold text-blue-500">{leads.filter((l) => l.status === "NEW").length}</div></CardContent>
+          <CardHeader><CardTitle>New</CardTitle></CardHeader>
+          <CardContent><div className="text-3xl font-semibold text-blue-500">{stats?.new ?? "—"}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Interested (page)</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-semibold text-yellow-500">{leads.filter((l) => l.status === "INTERESTED").length}</div></CardContent>
+          <CardHeader><CardTitle>Interested</CardTitle></CardHeader>
+          <CardContent><div className="text-3xl font-semibold text-yellow-500">{stats?.interested ?? "—"}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Converted (page)</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-semibold text-green-500">{leads.filter((l) => l.status === "CONVERTED").length}</div></CardContent>
+          <CardHeader><CardTitle>Converted</CardTitle></CardHeader>
+          <CardContent><div className="text-3xl font-semibold text-green-500">{stats?.converted ?? "—"}</div></CardContent>
         </Card>
       </div>
 
@@ -267,7 +282,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
+                  <TableHead>#</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Source</TableHead>
@@ -283,9 +298,9 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                 ) : leads.length === 0 ? (
                   <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No leads found.</TableCell></TableRow>
                 ) : (
-                  leads.map((lead) => (
+                  leads.map((lead, index) => (
                     <TableRow key={lead.id}>
-                      <TableCell className="font-medium">{lead.id}</TableCell>
+                      <TableCell className="font-medium">{(page - 1) * 15 + index + 1}</TableCell>
                       <TableCell>{lead.name}</TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
@@ -342,22 +357,25 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
               <DialogHeader>
                 <DialogTitle>Edit Lead</DialogTitle>
                 <DialogDescription>Update lead status and details</DialogDescription>
+                <p className="text-xs text-muted-foreground mt-1">
+                  LEAD ID: <span className="font-mono">{editing.id}</span>
+                </p>
               </DialogHeader>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-name">Full Name</Label>
+                  <Label htmlFor="edit-name">Full Name <span className="text-red-500">*</span></Label>
                   <Input id="edit-name" name="name" defaultValue={editing.name} required maxLength={100} />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-email">Email</Label>
+                  <Label htmlFor="edit-email">Email <span className="text-red-500">*</span></Label>
                   <Input id="edit-email" name="email" type="email" defaultValue={editing.email} required />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-phone">Phone</Label>
+                  <Label htmlFor="edit-phone">Phone <span className="text-red-500">*</span></Label>
                   <Input id="edit-phone" name="phone" defaultValue={editing.phone} required maxLength={15} />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-source">Source</Label>
+                  <Label htmlFor="edit-source">Source <span className="text-red-500">*</span></Label>
                   <Select name="source" defaultValue={editing.source}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -375,7 +393,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-interest">Interest</Label>
+                  <Label htmlFor="edit-interest">Interest <span className="text-red-500">*</span></Label>
                   <Input id="edit-interest" name="interest" defaultValue={editing.interest} required />
                 </div>
                 <div className="grid gap-2">

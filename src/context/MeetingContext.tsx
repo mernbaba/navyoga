@@ -12,6 +12,10 @@ import Peer from "simple-peer";
 import { toast } from "sonner";
 import { registerAudioContext } from "@/lib/audioUnlock";
 import {
+  requestTutorRecordingPresign,
+  saveTutorRecording,
+} from "@/api/live";
+import {
   connectMeetingSocket,
   type MeetingChatMessage,
   type MeetingClientSocket,
@@ -37,6 +41,8 @@ export type MeetingContextValue = {
   isMuted: boolean;
   isVideoOff: boolean;
   isScreenSharing: boolean;
+  isRecording: boolean;
+  isRecordingBusy: boolean;
   peers: Record<string, RemotePeer>;
   chatMessages: MeetingChatMessage[];
   unreadChat: number;
@@ -47,6 +53,7 @@ export type MeetingContextValue = {
   toggleMute: () => void;
   toggleVideo: () => void;
   toggleScreenShare: () => void;
+  toggleRecording: () => void;
   leaveMeeting: () => void;
   endMeetingForAll: () => void;
   sendMessage: (text: string) => void;
@@ -79,6 +86,8 @@ export const MeetingProvider = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isRecordingBusy, setIsRecordingBusy] = useState(false);
   const [peers, setPeers] = useState<Record<string, RemotePeer>>({});
   const [chatMessages, setChatMessages] = useState<MeetingChatMessage[]>([]);
   const [unreadChat, setUnreadChat] = useState(0);
@@ -97,6 +106,10 @@ export const MeetingProvider = ({
   const isScreenSharingRef = useRef(false);
   const videoBusyRef = useRef(false);
   const onLeaveRef = useRef(onLeave);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+  const recordingMimeRef = useRef<string>("video/webm");
   const activePanelRef = useRef<ActivePanel>(null);
   const selfRef = useRef<MeetingParticipant | null>(null);
   const seenMessageIdsRef = useRef<Set<string>>(new Set());
@@ -365,6 +378,19 @@ export const MeetingProvider = ({
     if (teardownStartedRef.current) return;
     teardownStartedRef.current = true;
 
+    // Stop any in-progress recording first, while its source tracks are still
+    // live, so MediaRecorder.onstop fires and the (partial) file uploads. The
+    // upload runs async after onstop; teardown does not await it.
+    if (recorderRef.current) {
+      try {
+        if (recorderRef.current.state !== "inactive") {
+          recorderRef.current.stop();
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     if (socketRef.current) {
       try {
         socketRef.current.emit("leave-room");
@@ -469,6 +495,161 @@ export const MeetingProvider = ({
       toast.error("Screen share canceled");
     }
   }, [isScreenSharing, replaceVideoTrackOnPeers]);
+
+  // Pick a container/codec the browser can actually produce. Order matters:
+  // mp4 first (broadest playback), then webm variants.
+  const pickRecordingMime = useCallback((): string => {
+    const candidates = [
+      "video/mp4",
+      "video/webm;codecs=vp9,opus",
+      "video/webm;codecs=vp8,opus",
+      "video/webm",
+    ];
+    for (const type of candidates) {
+      if (
+        typeof MediaRecorder !== "undefined" &&
+        MediaRecorder.isTypeSupported(type)
+      ) {
+        return type;
+      }
+    }
+    return "video/webm";
+  }, []);
+
+  // Build the stream MediaRecorder captures: the currently active video track
+  // (camera or, while sharing, the screen) plus the tutor's mic — regardless of
+  // its muted state, so the recording mirrors what the tutor is presenting.
+  const buildRecordingStream = useCallback((): MediaStream | null => {
+    const videoTrack =
+      (isScreenSharingRef.current
+        ? screenStreamRef.current?.getVideoTracks()[0]
+        : null) ?? localStreamRef.current?.getVideoTracks()[0] ?? null;
+    const audioTrack = localStreamRef.current?.getAudioTracks()[0] ?? null;
+
+    if (!videoTrack && !audioTrack) return null;
+
+    const tracks: MediaStreamTrack[] = [];
+    if (videoTrack) tracks.push(videoTrack);
+    if (audioTrack) tracks.push(audioTrack);
+    return new MediaStream(tracks);
+  }, []);
+
+  const uploadRecording = useCallback(
+    async (blob: Blob, mime: string) => {
+      const cid = classId;
+      const ext = mime.includes("mp4") ? "mp4" : "webm";
+      const contentType = mime.includes("mp4") ? "video/mp4" : "video/webm";
+      const filename = `recording.${ext}`;
+
+      const presign = await requestTutorRecordingPresign(cid, {
+        filename,
+        contentType,
+      });
+
+      const putRes = await fetch(presign.url, {
+        method: "PUT",
+        headers: { "Content-Type": contentType },
+        body: blob,
+      });
+      if (!putRes.ok) throw new Error("Recording upload failed");
+
+      await saveTutorRecording(cid, presign.storePath);
+    },
+    [classId],
+  );
+
+  const startRecording = useCallback(() => {
+    if (recorderRef.current) return;
+    if (typeof MediaRecorder === "undefined") {
+      toast.error("Recording is not supported in this browser");
+      return;
+    }
+
+    const stream = buildRecordingStream();
+    if (!stream) {
+      toast.error("Nothing to record — turn on your camera, screen, or mic");
+      return;
+    }
+
+    const mime = pickRecordingMime();
+    let recorder: MediaRecorder;
+    try {
+      recorder = new MediaRecorder(stream, { mimeType: mime });
+    } catch {
+      try {
+        recorder = new MediaRecorder(stream);
+      } catch {
+        toast.error("Couldn't start recording");
+        return;
+      }
+    }
+
+    recordedChunksRef.current = [];
+    recordingMimeRef.current = recorder.mimeType || mime;
+    recordingStreamRef.current = stream;
+
+    recorder.ondataavailable = (event) => {
+      if (event.data && event.data.size > 0) {
+        recordedChunksRef.current.push(event.data);
+      }
+    };
+
+    recorder.onstop = () => {
+      const mimeUsed = recordingMimeRef.current;
+      const blob = new Blob(recordedChunksRef.current, { type: mimeUsed });
+      recordedChunksRef.current = [];
+      recordingStreamRef.current = null;
+      recorderRef.current = null;
+      setIsRecording(false);
+
+      if (blob.size === 0) {
+        setIsRecordingBusy(false);
+        return;
+      }
+
+      setIsRecordingBusy(true);
+      toast.message("Uploading recording…");
+      uploadRecording(blob, mimeUsed)
+        .then(() => toast.success("Recording saved to this class"))
+        .catch((err) =>
+          toast.error(
+            err instanceof Error ? err.message : "Failed to save recording",
+          ),
+        )
+        .finally(() => setIsRecordingBusy(false));
+    };
+
+    // Flush a chunk every few seconds so a crash mid-session still yields a
+    // partial, playable file rather than losing everything.
+    recorder.start(4000);
+    recorderRef.current = recorder;
+    setIsRecording(true);
+    toast("Recording started", { icon: "🔴" });
+  }, [buildRecordingStream, pickRecordingMime, uploadRecording]);
+
+  const stopRecording = useCallback(() => {
+    const recorder = recorderRef.current;
+    if (!recorder) return;
+    try {
+      if (recorder.state !== "inactive") recorder.stop();
+    } catch {
+      // ignore — onstop handles cleanup
+    }
+  }, []);
+
+  const toggleRecording = useCallback(() => {
+    const isHost =
+      !!selfRef.current && selfRef.current.userId === hostUserId;
+    if (!isHost) {
+      toast.error("Only the tutor can record this class");
+      return;
+    }
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  }, [hostUserId, isRecording, startRecording, stopRecording]);
 
   const sendMessage = useCallback((text: string) => {
     const trimmed = text.trim();
@@ -699,6 +880,8 @@ export const MeetingProvider = ({
       isMuted,
       isVideoOff,
       isScreenSharing,
+      isRecording,
+      isRecordingBusy,
       peers,
       chatMessages,
       unreadChat,
@@ -708,6 +891,7 @@ export const MeetingProvider = ({
       toggleMute,
       toggleVideo,
       toggleScreenShare,
+      toggleRecording,
       leaveMeeting,
       endMeetingForAll,
       sendMessage,
@@ -725,6 +909,8 @@ export const MeetingProvider = ({
       isMuted,
       isVideoOff,
       isScreenSharing,
+      isRecording,
+      isRecordingBusy,
       peers,
       chatMessages,
       unreadChat,
@@ -734,6 +920,7 @@ export const MeetingProvider = ({
       toggleMute,
       toggleVideo,
       toggleScreenShare,
+      toggleRecording,
       leaveMeeting,
       endMeetingForAll,
       sendMessage,

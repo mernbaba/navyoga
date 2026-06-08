@@ -48,6 +48,31 @@ export function listLeads(role: Role, params: LeadListParams = {}) {
   );
 }
 
+export type LeadStatsParams = {
+  source?: LeadSource;
+  assignedToId?: string;
+};
+
+export type LeadStats = {
+  total: number;
+  byStatus: Record<LeadStatus, number>;
+  new: number;
+  contacted: number;
+  interested: number;
+  converted: number;
+  notInterested: number;
+};
+
+export function getLeadStats(role: Role, params: LeadStatsParams = {}) {
+  return unwrap<LeadStats>(
+    authedRequest<ApiSuccess<LeadStats>>(role, {
+      method: "GET",
+      url: "/api/leads/stats",
+      params,
+    }),
+  );
+}
+
 export function getLead(role: Role, id: string) {
   return unwrap<Lead>(
     authedRequest<ApiSuccess<Lead>>(role, {
