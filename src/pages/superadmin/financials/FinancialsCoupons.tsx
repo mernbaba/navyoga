@@ -201,11 +201,19 @@ export function FinancialsCoupons() {
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="code">Coupon Code</Label>
-                    <Input id="code" name="code" placeholder="WELCOME50" defaultValue={editingCoupon?.code} />
+                    <Label htmlFor="code">Coupon Code <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="code"
+                      name="code"
+                      placeholder="WELCOME50"
+                      defaultValue={editingCoupon?.code}
+                      onChange={(e) => { e.target.value = e.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase(); }}
+                      maxLength={20}
+                      required
+                    />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="status">Status</Label>
+                    <Label htmlFor="status">Status <span className="text-red-500">*</span></Label>
                     <Select name="status" defaultValue={editingCoupon?.status || "ACTIVE"}>
                       <SelectTrigger>
                         <SelectValue />
@@ -231,7 +239,7 @@ export function FinancialsCoupons() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="discountType">Discount Type</Label>
+                    <Label htmlFor="discountType">Discount Type <span className="text-red-500">*</span></Label>
                     <Select name="discountType" defaultValue={editingCoupon?.discountType || "PERCENTAGE"}>
                       <SelectTrigger>
                         <SelectValue />
@@ -243,7 +251,7 @@ export function FinancialsCoupons() {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="discountValue">Discount Value</Label>
+                    <Label htmlFor="discountValue">Discount Value <span className="text-red-500">*</span></Label>
                     <Input
                       id="discountValue"
                       name="discountValue"
@@ -252,13 +260,14 @@ export function FinancialsCoupons() {
                       step="0.01"
                       placeholder="50"
                       defaultValue={editingCoupon?.discountValue}
+                      required
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="minPurchase">Min Purchase Amount (₹)</Label>
+                    <Label htmlFor="minPurchase">Min Purchase Amount (₹) <span className="text-red-500">*</span></Label>
                     <Input
                       id="minPurchase"
                       name="minPurchase"
@@ -267,6 +276,7 @@ export function FinancialsCoupons() {
                       step="0.01"
                       placeholder="1000"
                       defaultValue={editingCoupon?.minPurchaseAmount}
+                      required
                     />
                   </div>
                   <div className="grid gap-2">
@@ -285,7 +295,7 @@ export function FinancialsCoupons() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="usageLimit">Usage Limit</Label>
+                    <Label htmlFor="usageLimit">Usage Limit <span className="text-red-500">*</span></Label>
                     <Input
                       id="usageLimit"
                       name="usageLimit"
@@ -293,10 +303,11 @@ export function FinancialsCoupons() {
                       min="1"
                       placeholder="100"
                       defaultValue={editingCoupon?.usageLimit}
+                      required
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="validFrom">Valid From</Label>
+                    <Label htmlFor="validFrom">Valid From <span className="text-red-500">*</span></Label>
                     <Input
                       id="validFrom"
                       name="validFrom"
@@ -305,17 +316,25 @@ export function FinancialsCoupons() {
                         editingCoupon?.validFrom?.slice(0, 10) ??
                         new Date().toISOString().slice(0, 10)
                       }
+                      required
                     />
                   </div>
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="expiryDate">Expiry Date</Label>
+                  <Label htmlFor="expiryDate">Expiry Date <span className="text-red-500">*</span></Label>
                   <Input
                     id="expiryDate"
                     name="expiryDate"
                     type="date"
-                    defaultValue={editingCoupon?.expiryDate?.slice(0, 10)}
+                    defaultValue={(() => {
+                      if (editingCoupon?.expiryDate) return editingCoupon.expiryDate.slice(0, 10);
+                      const d = new Date();
+                      const next = new Date(d.getFullYear(), d.getMonth() + 1, d.getDate());
+                      const pad = (n: number) => String(n).padStart(2, "0");
+                      return `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}`;
+                    })()}
+                    required
                   />
                 </div>
 

@@ -53,19 +53,25 @@ type CouponFormState = {
   applicableTo: CouponApplicableType[];
 };
 
-const emptyForm: CouponFormState = {
-  code: "",
-  description: "",
-  discountType: "PERCENTAGE",
-  discountValue: "",
-  maxDiscount: "",
-  minPurchaseAmount: "0",
-  usageLimit: "",
-  validFrom: "",
-  expiryDate: "",
-  status: "ACTIVE",
-  applicableTo: [],
-};
+function makeEmptyForm(): CouponFormState {
+  const today = new Date();
+  const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const expiryDate = `${nextMonth.getFullYear()}-${pad(nextMonth.getMonth() + 1)}-${pad(nextMonth.getDate())}`;
+  return {
+    code: "",
+    description: "",
+    discountType: "PERCENTAGE",
+    discountValue: "",
+    maxDiscount: "",
+    minPurchaseAmount: "0",
+    usageLimit: "",
+    validFrom: "",
+    expiryDate,
+    status: "ACTIVE",
+    applicableTo: [],
+  };
+}
 
 export function OperationsCoupons() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -79,10 +85,10 @@ export function OperationsCoupons() {
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
-  const [addForm, setAddForm] = useState<CouponFormState>(emptyForm);
+  const [addForm, setAddForm] = useState<CouponFormState>(makeEmptyForm());
 
   const [editing, setEditing] = useState<Coupon | null>(null);
-  const [editForm, setEditForm] = useState<CouponFormState>(emptyForm);
+  const [editForm, setEditForm] = useState<CouponFormState>(makeEmptyForm());
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
@@ -159,7 +165,7 @@ export function OperationsCoupons() {
       await createCoupon("OPERATIONS", buildCreateBody(addForm));
       toast.success("Coupon created successfully");
       setIsAddOpen(false);
-      setAddForm(emptyForm);
+      setAddForm(makeEmptyForm());
       refetch();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create coupon.");
@@ -269,7 +275,7 @@ export function OperationsCoupons() {
                     {COUPON_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Button onClick={() => { setAddForm(emptyForm); setIsAddOpen(true); }} className="gap-2" style={{ backgroundColor: "#610981" }}>
+                <Button onClick={() => { setAddForm(makeEmptyForm()); setIsAddOpen(true); }} className="gap-2" style={{ backgroundColor: "#610981" }}>
                   <Plus className="w-4 h-4" />Create Coupon
                 </Button>
               </div>
@@ -416,17 +422,18 @@ function CouponForm({
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="code" style={{ color: "#ffac96" }}>Coupon Code</Label>
+          <Label htmlFor="code" style={{ color: "#ffac96" }}>Coupon Code <span className="text-red-500">*</span></Label>
           <Input
             id="code"
             value={form.code}
-            onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+            onChange={(e) => setForm({ ...form, code: e.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase() })}
             className="mt-1 font-mono"
+            maxLength={20}
             required
           />
         </div>
         <div>
-          <Label htmlFor="discountType" style={{ color: "#ffac96" }}>Discount Type</Label>
+          <Label htmlFor="discountType" style={{ color: "#ffac96" }}>Discount Type <span className="text-red-500">*</span></Label>
           <Select value={form.discountType} onValueChange={(v) => setForm({ ...form, discountType: v as DiscountType })}>
             <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -435,7 +442,7 @@ function CouponForm({
           </Select>
         </div>
         <div>
-          <Label htmlFor="discountValue" style={{ color: "#ffac96" }}>Discount Value</Label>
+          <Label htmlFor="discountValue" style={{ color: "#ffac96" }}>Discount Value <span className="text-red-500">*</span></Label>
           <Input
             id="discountValue"
             type="number"
@@ -461,7 +468,7 @@ function CouponForm({
           />
         </div>
         <div>
-          <Label htmlFor="minPurchaseAmount" style={{ color: "#ffac96" }}>Min Purchase Amount (₹)</Label>
+          <Label htmlFor="minPurchaseAmount" style={{ color: "#ffac96" }}>Min Purchase Amount (₹) <span className="text-red-500">*</span></Label>
           <Input
             id="minPurchaseAmount"
             type="number"
@@ -474,7 +481,7 @@ function CouponForm({
           />
         </div>
         <div>
-          <Label htmlFor="usageLimit" style={{ color: "#ffac96" }}>Usage Limit</Label>
+          <Label htmlFor="usageLimit" style={{ color: "#ffac96" }}>Usage Limit <span className="text-red-500">*</span></Label>
           <Input
             id="usageLimit"
             type="number"
@@ -486,7 +493,7 @@ function CouponForm({
           />
         </div>
         <div>
-          <Label htmlFor="validFrom" style={{ color: "#ffac96" }}>Valid From</Label>
+          <Label htmlFor="validFrom" style={{ color: "#ffac96" }}>Valid From <span className="text-red-500">*</span></Label>
           <Input
             id="validFrom"
             type="date"
@@ -497,7 +504,7 @@ function CouponForm({
           />
         </div>
         <div>
-          <Label htmlFor="expiryDate" style={{ color: "#ffac96" }}>Valid Until</Label>
+          <Label htmlFor="expiryDate" style={{ color: "#ffac96" }}>Valid Until <span className="text-red-500">*</span></Label>
           <Input
             id="expiryDate"
             type="date"
@@ -508,7 +515,7 @@ function CouponForm({
           />
         </div>
         <div className="md:col-span-2">
-          <Label htmlFor="status" style={{ color: "#ffac96" }}>Status</Label>
+          <Label htmlFor="status" style={{ color: "#ffac96" }}>Status <span className="text-red-500">*</span></Label>
           <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as CouponStatus })}>
             <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
             <SelectContent>
