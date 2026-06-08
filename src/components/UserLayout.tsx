@@ -114,10 +114,10 @@ export function UserLayout() {
                 <div className="p-6 border-b border-border/50">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-linear-to-br from-[#610981] to-[#8b0fa8] rounded-xl shadow-lg">
-                      <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="NavYoga" className="w-7 h-7 object-contain" />
+                      <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="Navyoga" className="w-7 h-7 object-contain" />
                     </div>
                     <div>
-                      <h2 className="font-semibold text-lg" style={{ color: '#ff691d' }}>NavYoga</h2>
+                      <h2 className="font-semibold text-lg" style={{ color: '#ff691d' }}>Navyoga</h2>
                       <Badge variant="secondary" className="text-xs mt-1">Student Portal</Badge>
                     </div>
                   </div>
@@ -141,10 +141,10 @@ export function UserLayout() {
 
           <div className="flex items-center gap-3">
             <div className="bg-linear-to-br from-[#610981] to-[#8b0fa8] rounded-xl shadow-lg hidden sm:block overflow-hidden">
-              <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="NavYoga" className="w-10 h-10 object-contain" />
+              <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="Navyoga" className="w-10 h-10 object-contain" />
             </div>
             <div>
-              <h1 className="font-semibold text-lg" style={{ color: '#ff691d' }}>NavYoga Academy</h1>
+              <h1 className="font-semibold text-lg" style={{ color: '#ff691d' }}>Navyoga Wellness</h1>
               <Badge variant="secondary" className="text-xs hidden sm:inline-flex">Student Portal</Badge>
             </div>
           </div>

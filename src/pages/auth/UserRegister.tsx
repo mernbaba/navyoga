@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router";
-import { ArrowRight, Eye, EyeOff, Lock, Mail, Phone, Sparkles, User as UserIcon } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, Mail, Phone, User as UserIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
@@ -54,7 +54,7 @@ export function UserRegister() {
         referredByCode: referredByCode.trim() || undefined,
       });
       setRoleAuth("STUDENT", token, user);
-      toast.success("Welcome to NavYoga!");
+      toast.success("Welcome to Navyoga!");
       navigate("/user/dashboard");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to create account.";
@@ -71,12 +71,12 @@ export function UserRegister() {
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full max-w-md relative z-10">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6" style={{ backgroundColor: "#ff691d" }}>
-            <Sparkles className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6 bg-linear-to-br from-[#610981] to-[#8b0fa8] shadow-lg shadow-[#610981]/30 overflow-hidden">
+            <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="Navyoga" className="w-full h-full object-contain p-1.5" />
           </div>
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-gray-400 mb-3">Sign Up</p>
           <h1 className="text-4xl font-bold tracking-tight mb-2" style={{ color: "#610981" }}>
-            Join NavYoga
+            Join Navyoga
           </h1>
           <p className="text-gray-500">Create your sādhaka account</p>
         </div>
@@ -85,7 +85,7 @@ export function UserRegister() {
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
             <div className="relative">
-              <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none z-10" />
               <Input
                 id="name"
                 value={name}
@@ -101,7 +101,7 @@ export function UserRegister() {
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none z-10" />
               <Input
                 id="email"
                 type="email"
@@ -118,7 +118,7 @@ export function UserRegister() {
             <Label htmlFor="phone">Phone</Label>
             <div className="flex gap-2">
               <div className="relative w-24 shrink-0">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base font-medium">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base font-medium pointer-events-none z-10">
                   +
                 </span>
                 <Input
@@ -135,7 +135,7 @@ export function UserRegister() {
                 />
               </div>
               <div className="relative flex-1">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none z-10" />
                 <Input
                   id="phone"
                   inputMode="numeric"
@@ -159,7 +159,7 @@ export function UserRegister() {
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none z-10" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}

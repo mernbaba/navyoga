@@ -104,7 +104,7 @@ export function Dashboard() {
             </Badge>
           </div>
           <h1 className="text-4xl font-bold mb-2">Welcome Back! 👋</h1>
-          <p className="text-white/80 text-lg">Here's what's happening with NavYoga Academy today</p>
+          <p className="text-white/80 text-lg">Here's what's happening with Navyoga Wellness today</p>
         </div>
       </div>
 

@@ -53,7 +53,7 @@ export function NotFound() {
         >
           <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: "#ff691d" }} />
           <span className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[#610981]">
-            NavYoga · Off the path
+            Navyoga · Off the path
           </span>
         </motion.div>
 

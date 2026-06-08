@@ -254,7 +254,7 @@ export function UserWorkshopsList() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             currency: paymentData.currency as any,
             order_id: paymentData.orderId,
-            name: "NavYoga",
+            name: "Navyoga",
             description: workshop.title,
             handler: async (response) => {
               try {

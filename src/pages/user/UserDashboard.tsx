@@ -145,7 +145,7 @@ export function UserDashboard() {
           <Link to="/user/subscriptions">
             <ImageWithFallback
               src="https://images.unsplash.com/photo-1758599879927-f60878034fca?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b2dhJTIwd2VsbG5lc3MlMjBwcm9tb3Rpb24lMjBiYW5uZXJ8ZW58MXx8fHwxNzc0NTk0OTgzfDA&ixlib=rb-4.1.0&q=80&w=1080"
-              alt="NavYoga Academy Special Promotion"
+              alt="Navyoga Wellness Special Promotion"
               className="w-full h-48 md:h-64 lg:h-72 object-cover"
             />
             <div className="absolute inset-0 bg-linear-to-r from-black/60 via-black/40 to-transparent flex items-center">

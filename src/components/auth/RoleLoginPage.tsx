@@ -7,6 +7,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { loginWithRole, setRoleAuth } from "../../lib/auth";
+import { ForgotPasswordModal } from "./ForgotPasswordModal";
 
 export type LoginRole = "SUPERADMIN" | "TUTOR" | "OPERATIONS" | "FRONTLINE" | "STUDENT";
 
@@ -50,6 +51,7 @@ export function RoleLoginPage({ role }: { role: LoginRole }) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
   const config = loginPageConfig[role];
 
@@ -98,12 +100,12 @@ export function RoleLoginPage({ role }: { role: LoginRole }) {
           transition={{ delay: 0.2, duration: 0.5 }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6 bg-linear-to-br from-[#610981] to-[#8b0fa8] shadow-lg shadow-[#610981]/30">
-            <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="NavYoga" className="w-10 h-10 object-contain" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6 bg-linear-to-br from-[#610981] to-[#8b0fa8] shadow-lg shadow-[#610981]/30 overflow-hidden">
+            <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="Navyoga" className="w-full h-full object-contain p-1.5" />
           </div>
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-gray-400 mb-3">{config.roleLabel} Portal</p>
           <h1 className="text-4xl font-bold tracking-tight mb-2" style={{ color: "#610981" }}>
-            NavYoga Academy
+            Navyoga Wellness
           </h1>
           <p className="text-gray-500">{config.welcomeText}</p>
         </motion.div>
@@ -156,11 +158,18 @@ export function RoleLoginPage({ role }: { role: LoginRole }) {
             </div>
           </div>
 
-          <div className="flex items-center justify-end">
-            <a href="#" className="text-sm font-medium hover:underline transition-colors" style={{ color: "#ff691d" }}>
-              Forgot password?
-            </a>
-          </div>
+          {role === "STUDENT" && (
+            <div className="flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setForgotPasswordOpen(true)}
+                className="text-sm font-medium hover:underline transition-colors"
+                style={{ color: "#ff691d" }}
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
 
           <Button
             type="submit"
@@ -189,7 +198,7 @@ export function RoleLoginPage({ role }: { role: LoginRole }) {
           ) : (
             <p className="text-sm text-gray-600">
               Need help with access?{" "}
-              <a href="#" className="font-semibold hover:underline" style={{ color: "#610981" }}>
+              <a href="mailto:support@navyogaacademy.com" className="font-semibold hover:underline" style={{ color: "#610981" }}>
                 Contact support
               </a>
             </p>
@@ -202,9 +211,16 @@ export function RoleLoginPage({ role }: { role: LoginRole }) {
           transition={{ delay: 0.5, duration: 0.5 }}
           className="text-center mt-12 text-xs text-gray-400"
         >
-          © 2026 NavYoga Academy. All rights reserved.
+          © 2026 Navyoga Wellness. All rights reserved.
         </motion.div>
       </motion.div>
+
+      {role === "STUDENT" && (
+        <ForgotPasswordModal
+          open={forgotPasswordOpen}
+          onClose={() => setForgotPasswordOpen(false)}
+        />
+      )}
     </div>
   );
 }

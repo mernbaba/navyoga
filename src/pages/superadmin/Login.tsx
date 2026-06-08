@@ -101,7 +101,7 @@ export function Login() {
             <div className="space-y-4">
               <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border-2" style={{ borderColor: '#ff691d20', backgroundColor: '#ff691d10' }}>
                 <Sparkles className="w-5 h-5" style={{ color: '#ff691d' }} />
-                <span className="text-sm font-semibold" style={{ color: '#ff691d' }}>Welcome to NavYoga Academy</span>
+                <span className="text-sm font-semibold" style={{ color: '#ff691d' }}>Welcome to Navyoga Wellness</span>
               </div>
               
               <h1 className="text-5xl font-bold leading-tight" style={{ color: '#610981' }}>
@@ -233,7 +233,7 @@ export function Login() {
  
             <div className="lg:hidden mt-6 text-center">
               <p className="text-sm text-gray-600">
-                © 2026 NavYoga Academy. All rights reserved.
+                © 2026 Navyoga Wellness. All rights reserved.
               </p>
             </div>
           </div>

@@ -371,7 +371,7 @@ export function FinancialsCoupons() {
       <Card>
         <CardHeader>
           <CardTitle style={{ color: "#ff691d" }}>Discount Coupons</CardTitle>
-          <CardDescription>Manage promotional discount codes for NavYoga Academy</CardDescription>
+          <CardDescription>Manage promotional discount codes for Navyoga Wellness</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-4">

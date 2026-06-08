@@ -137,6 +137,18 @@ export function verifyStudentPhone(accessToken: string) {
   );
 }
 
+// Public (no auth): the verified MSG91 OTP access token proves ownership of the
+// phone, so the BE resets that student's password to newPassword.
+export function forgotPasswordStudent(phone: string, accessToken: string, newPassword: string) {
+  return unwrap<null>(
+    apiClient.post<ApiSuccess<null>>("/api/auth/student/forgot-password", {
+      phone,
+      accessToken,
+      newPassword,
+    }),
+  );
+}
+
 export function registerOperations(body: OperationsRegisterBody) {
   return unwrap<OperationsUser>(
     authedRequest<ApiSuccess<OperationsUser>>("SUPERADMIN", {

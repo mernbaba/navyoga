@@ -78,7 +78,7 @@ export function TermsModal({ user, setUser }: TermsModalProps) {
                 Refund &amp; Cancellation Policy
               </a>
               . By clicking <strong>Accept</strong>, you agree to our policies governing
-              your use of the NavYoga platform.
+              your use of the Navyoga platform.
             </p>
 
             <Button

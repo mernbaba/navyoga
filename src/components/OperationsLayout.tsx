@@ -108,11 +108,11 @@ export function OperationsLayout() {
           <div className="flex items-center justify-between p-5 border-b">
             <div className="flex items-center gap-3">
               <div className="relative w-10 h-10 rounded-xl bg-linear-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-lg shadow-[#ffac96]/40 shrink-0">
-                <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="NavYoga" className="w-10 h-10 object-contain" />
+                <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="Navyoga" className="w-10 h-10 object-contain" />
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse" />
               </div>
               <div>
-                <h2 className="text-base font-semibold leading-tight" style={{ color: '#ff691d' }}>NavYoga Academy</h2>
+                <h2 className="text-base font-semibold leading-tight" style={{ color: '#ff691d' }}>Navyoga Wellness</h2>
                 <p className="text-xs flex items-center gap-1 mt-0.5" style={{ color: '#ffac96' }}>
                   <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                   Operations Panel
@@ -230,9 +230,9 @@ export function OperationsLayout() {
           </button>
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-linear-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-sm shrink-0">
-              <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="NavYoga" className="w-7 h-7 object-contain" />
+              <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="Navyoga" className="w-7 h-7 object-contain" />
             </div>
-            <h1 className="text-base font-semibold" style={{ color: '#ff691d' }}>NavYoga Academy</h1>
+            <h1 className="text-base font-semibold" style={{ color: '#ff691d' }}>Navyoga Wellness</h1>
           </div>
           <div className="w-10" />
         </header>
