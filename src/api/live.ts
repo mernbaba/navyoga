@@ -21,7 +21,6 @@ export type LiveClassCreateBody = {
   difficulty: ClassDifficulty;
   duration: number;
   description?: string;
-  thumbnail?: string;
   tutorId?: string;
   batchId?: string;
   scheduledAt?: string;

@@ -3,6 +3,7 @@ import {
   unwrap,
   type ApiSuccess,
   type Coupon,
+  type CouponApplicableType,
   type CouponStatus,
   type DiscountType,
   type Paginated,
@@ -58,6 +59,8 @@ export type CouponCreateBody = {
   maxDiscount?: number | string | null;
   usageCount?: number;
   status?: CouponStatus;
+  // Empty array or omitted = applies to all plan types
+  applicableTo?: CouponApplicableType[];
 };
 
 export type CouponUpdateBody = {
@@ -72,6 +75,7 @@ export type CouponUpdateBody = {
   validFrom?: string;
   expiryDate?: string;
   status?: CouponStatus;
+  applicableTo?: CouponApplicableType[];
 };
 
 export function listCoupons(role: Role, params: CouponListParams = {}) {

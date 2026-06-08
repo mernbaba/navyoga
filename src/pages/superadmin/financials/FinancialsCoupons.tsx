@@ -52,7 +52,17 @@ import {
   updateCoupon,
   deleteCoupon,
 } from "../../../api/coupons";
-import type { Coupon, CouponStatus, DiscountType } from "../../../api/types";
+import type { Coupon, CouponApplicableType, CouponStatus, DiscountType } from "../../../api/types";
+import { Checkbox } from "../../../components/ui/checkbox";
+
+const APPLICABLE_TYPES: { value: CouponApplicableType; label: string }[] = [
+  { value: "LIVE", label: "Live Classes" },
+  { value: "SELF_PACED", label: "Self-Paced" },
+  { value: "YTT_LIVE", label: "YTT Live" },
+  { value: "YTT_RECORDED", label: "YTT Recorded" },
+  { value: "EVENT", label: "Events" },
+  { value: "WORKSHOP", label: "Workshops" },
+];
 
 function getStatusColor(status: string) {
   switch (status) {
@@ -76,6 +86,7 @@ export function FinancialsCoupons() {
   const [couponSearchQuery, setCouponSearchQuery] = useState("");
   const [isAddCouponOpen, setIsAddCouponOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+  const [applicableTo, setApplicableTo] = useState<CouponApplicableType[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,6 +129,7 @@ export function FinancialsCoupons() {
       validFrom: String(fd.get("validFrom") ?? ""),
       expiryDate: String(fd.get("expiryDate") ?? ""),
       status: fd.get("status") as CouponStatus,
+      applicableTo,
     };
 
     try {
@@ -166,7 +178,10 @@ export function FinancialsCoupons() {
           open={isAddCouponOpen}
           onOpenChange={(open) => {
             setIsAddCouponOpen(open);
-            if (!open) setEditingCoupon(null);
+            if (!open) {
+              setEditingCoupon(null);
+              setApplicableTo([]);
+            }
           }}
         >
           <DialogTrigger asChild>
@@ -303,6 +318,35 @@ export function FinancialsCoupons() {
                     defaultValue={editingCoupon?.expiryDate?.slice(0, 10)}
                   />
                 </div>
+
+                <div className="grid gap-2">
+                  <Label>Applicable Plan Types</Label>
+                  <p className="text-xs text-muted-foreground -mt-1">Leave all unchecked to apply to every plan type.</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
+                    {APPLICABLE_TYPES.map((t) => {
+                      const checked = applicableTo.includes(t.value);
+                      return (
+                        <label
+                          key={t.value}
+                          className="flex items-center gap-2 cursor-pointer select-none rounded-md border px-3 py-2 hover:bg-gray-50 transition-colors"
+                          style={{ borderColor: checked ? "#610981" : undefined }}
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(val) => {
+                              setApplicableTo(
+                                val
+                                  ? [...applicableTo, t.value]
+                                  : applicableTo.filter((v) => v !== t.value),
+                              );
+                            }}
+                          />
+                          <span className="text-sm">{t.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
               <DialogFooter>
                 <Button
@@ -397,13 +441,14 @@ export function FinancialsCoupons() {
                   <TableHead>Usage</TableHead>
                   <TableHead>Expiry Date</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Applicable To</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {couponsLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-10">
+                    <TableCell colSpan={9} className="text-center py-10">
                       <span className="inline-flex items-center gap-2 text-muted-foreground">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         Loading coupons…
@@ -483,6 +528,19 @@ export function FinancialsCoupons() {
                         </Badge>
                       </TableCell>
                       <TableCell>
+                        {!coupon.applicableTo || coupon.applicableTo.length === 0 ? (
+                          <span className="text-xs text-muted-foreground">All</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {coupon.applicableTo.map((t) => (
+                              <Badge key={t} variant="outline" className="text-xs px-1.5 py-0">
+                                {APPLICABLE_TYPES.find((a) => a.value === t)?.label ?? t}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <div className="flex items-center gap-1">
                           <Button
                             variant="ghost"
@@ -490,6 +548,7 @@ export function FinancialsCoupons() {
                             className="h-8 w-8"
                             onClick={() => {
                               setEditingCoupon(coupon);
+                              setApplicableTo(coupon.applicableTo ?? []);
                               setIsAddCouponOpen(true);
                             }}
                           >

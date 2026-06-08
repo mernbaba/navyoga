@@ -8,13 +8,23 @@ import { Badge } from "../../components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Ticket, Plus, Search, Edit, Trash2, TrendingUp } from "lucide-react";
+import { Checkbox } from "../../components/ui/checkbox";
 import { toast } from "sonner";
 import { listCoupons, createCoupon, updateCoupon, deleteCoupon } from "../../api/coupons";
-import type { Coupon, CouponStatus, DiscountType } from "../../api/types";
+import type { Coupon, CouponApplicableType, CouponStatus, DiscountType } from "../../api/types";
 
 const DISCOUNT_TYPES: { value: DiscountType; label: string }[] = [
   { value: "PERCENTAGE", label: "Percentage" },
   { value: "FLAT", label: "Flat Amount" },
+];
+
+const APPLICABLE_TYPES: { value: CouponApplicableType; label: string }[] = [
+  { value: "LIVE", label: "Live Classes" },
+  { value: "SELF_PACED", label: "Self-Paced" },
+  { value: "YTT_LIVE", label: "YTT Live" },
+  { value: "YTT_RECORDED", label: "YTT Recorded" },
+  { value: "EVENT", label: "Events" },
+  { value: "WORKSHOP", label: "Workshops" },
 ];
 
 const COUPON_STATUSES: { value: CouponStatus; label: string }[] = [
@@ -40,6 +50,7 @@ type CouponFormState = {
   validFrom: string;
   expiryDate: string;
   status: CouponStatus;
+  applicableTo: CouponApplicableType[];
 };
 
 const emptyForm: CouponFormState = {
@@ -53,6 +64,7 @@ const emptyForm: CouponFormState = {
   validFrom: "",
   expiryDate: "",
   status: "ACTIVE",
+  applicableTo: [],
 };
 
 export function OperationsCoupons() {
@@ -114,6 +126,7 @@ export function OperationsCoupons() {
     validFrom: form.validFrom ? new Date(form.validFrom).toISOString() : "",
     expiryDate: form.expiryDate ? new Date(form.expiryDate).toISOString() : "",
     status: form.status,
+    applicableTo: form.applicableTo,
   });
 
   const buildUpdateBody = (form: CouponFormState) => ({
@@ -127,6 +140,7 @@ export function OperationsCoupons() {
     validFrom: form.validFrom ? new Date(form.validFrom).toISOString() : undefined,
     expiryDate: form.expiryDate ? new Date(form.expiryDate).toISOString() : undefined,
     status: form.status,
+    applicableTo: form.applicableTo,
   });
 
   const handleAdd = async (event: React.FormEvent) => {
@@ -167,6 +181,7 @@ export function OperationsCoupons() {
       validFrom: coupon.validFrom ? coupon.validFrom.slice(0, 10) : "",
       expiryDate: coupon.expiryDate ? coupon.expiryDate.slice(0, 10) : "",
       status: coupon.status,
+      applicableTo: coupon.applicableTo ?? [],
     });
   };
 
@@ -270,14 +285,15 @@ export function OperationsCoupons() {
                     <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Valid Period</th>
                     <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Usage</th>
                     <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Status</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Applicable To</th>
                     <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading && coupons.length === 0 ? (
-                    <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Loading...</td></tr>
+                    <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</td></tr>
                   ) : coupons.length === 0 ? (
-                    <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No coupons found.</td></tr>
+                    <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No coupons found.</td></tr>
                   ) : (
                     coupons.map((coupon) => (
                       <tr key={coupon.id} className="border-b hover:bg-gray-50">
@@ -301,6 +317,19 @@ export function OperationsCoupons() {
                         </td>
                         <td className="py-3 px-4">
                           <Badge variant={statusBadgeVariant(coupon.status)}>{coupon.status}</Badge>
+                        </td>
+                        <td className="py-3 px-4">
+                          {coupon.applicableTo.length === 0 ? (
+                            <span className="text-xs text-muted-foreground">All</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {coupon.applicableTo.map((t) => (
+                                <Badge key={t} variant="outline" className="text-xs px-1.5 py-0">
+                                  {APPLICABLE_TYPES.find((a) => a.value === t)?.label ?? t}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
@@ -496,6 +525,36 @@ function CouponForm({
             className="mt-1"
             rows={2}
           />
+        </div>
+        <div className="md:col-span-2">
+          <Label style={{ color: "#ffac96" }}>Applicable Plan Types</Label>
+          <p className="text-xs text-muted-foreground mt-0.5 mb-2">Leave all unchecked to apply to every plan type.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
+            {APPLICABLE_TYPES.map((t) => {
+              const checked = form.applicableTo.includes(t.value);
+              return (
+                <label
+                  key={t.value}
+                  className="flex items-center gap-2 cursor-pointer select-none rounded-md border px-3 py-2 hover:bg-gray-50 transition-colors"
+                  style={{ borderColor: checked ? "#610981" : undefined }}
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={(val) => {
+                      setForm({
+                        ...form,
+                        applicableTo: val
+                          ? [...form.applicableTo, t.value]
+                          : form.applicableTo.filter((v) => v !== t.value),
+                      });
+                    }}
+                    style={{ accentColor: "#610981" }}
+                  />
+                  <span className="text-sm">{t.label}</span>
+                </label>
+              );
+            })}
+          </div>
         </div>
       </div>
       <div className="flex justify-end gap-3 pt-4">

@@ -188,6 +188,7 @@ export type Lead = {
 
 export type DiscountType = "PERCENTAGE" | "FLAT";
 export type CouponStatus = "ACTIVE" | "EXPIRED" | "DISABLED";
+export type CouponApplicableType = "LIVE" | "SELF_PACED" | "YTT_LIVE" | "YTT_RECORDED" | "EVENT" | "WORKSHOP";
 
 export type Coupon = {
   id: string;
@@ -202,6 +203,8 @@ export type Coupon = {
   validFrom: string;
   expiryDate: string;
   status: CouponStatus;
+  // Empty array = applies to all plan types
+  applicableTo: CouponApplicableType[];
   createdAt: string;
   updatedAt: string;
 };
@@ -429,7 +432,6 @@ export type LiveClass = {
   id: string;
   title: string;
   description: string | null;
-  thumbnail: string | null;
   yogaType: string;
   difficulty: ClassDifficulty;
   scheduledAt: string | null;
@@ -471,7 +473,6 @@ export type TutorAssignedClass = {
   id: string;
   title: string;
   description: string | null;
-  thumbnail: string | null;
   yogaType: string;
   difficulty: ClassDifficulty;
   scheduledAt: string | null;
