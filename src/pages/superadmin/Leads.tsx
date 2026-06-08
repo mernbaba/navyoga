@@ -338,13 +338,18 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
             </Table>
           </div>
 
-          {total > 15 && (
+          {total > 0 && (
             <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">Page {page} of {Math.ceil(total / 15)} • {total} total</p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-                <Button variant="outline" size="sm" disabled={page >= Math.ceil(total / 15)} onClick={() => setPage((p) => p + 1)}>Next</Button>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Showing {(page - 1) * 15 + 1}–{Math.min(page * 15, total)} of {total}
+              </p>
+              {total > 15 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Page {page} of {Math.ceil(total / 15)}</span>
+                  <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+                  <Button variant="outline" size="sm" disabled={page >= Math.ceil(total / 15)} onClick={() => setPage((p) => p + 1)}>Next</Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
