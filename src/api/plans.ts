@@ -479,6 +479,26 @@ export function deleteYTTLiveCourse(courseId: string) {
   );
 }
 
+export type YTTLiveThumbnailPresign = {
+  url: string;
+  storePath: string;
+  expiresIn: number;
+};
+
+export function requestYTTLiveThumbnailPresign(
+  courseId: string,
+  body: { filename: string; contentType: string },
+  role: LoginRole = "SUPERADMIN",
+) {
+  return unwrap<YTTLiveThumbnailPresign>(
+    authedRequest<ApiSuccess<YTTLiveThumbnailPresign>>(role, {
+      method: "POST",
+      url: `/api/ytt-live/${courseId}/thumbnail-presign`,
+      data: body,
+    }),
+  );
+}
+
 export function listYTTLivePlans(courseId: string, role: LoginRole = "SUPERADMIN") {
   return unwrap<YTTPlan[]>(
     authedRequest<ApiSuccess<YTTPlan[]>>(role, {

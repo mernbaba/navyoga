@@ -20,17 +20,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select";
-import { Radio, Plus, Trash2, ChevronRight, GraduationCap, Pencil, Search, Clock, CalendarDays, User } from "lucide-react";
+import { Radio, Plus, Trash2, ChevronRight, GraduationCap, Pencil, Search, Clock, CalendarDays, User, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   listYTTLiveCourses,
   createYTTLiveCourse,
   updateYTTLiveCourse,
+  requestYTTLiveThumbnailPresign,
   listYTTLiveClasses,
   createYTTLiveClass,
   updateYTTLiveClass,
   deleteYTTLiveClass,
 } from "../../../api/plans";
+import { resolveMediaUrl } from "../../../lib/media";
 import { listTutors } from "../../../api/tutors";
 import { useClassesRole } from "./classesRole";
 import type {
@@ -138,6 +140,8 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
   const role = useClassesRole();
   const [form, setForm] = useState<YTTCourseBody>(EMPTY_COURSE);
   const [saving, setSaving] = useState(false);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailFileUrl, setThumbnailFileUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -149,11 +153,45 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
         level: initial.level as ClassLevel,
         isActive: initial.isActive,
       } : EMPTY_COURSE);
+      setThumbnailFile(null);
     }
   }, [open, initial]);
 
+  // Manage object URL lifetime for the picked thumbnail preview.
+  useEffect(() => {
+    if (!thumbnailFile) { setThumbnailFileUrl(null); return; }
+    const url = URL.createObjectURL(thumbnailFile);
+    setThumbnailFileUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [thumbnailFile]);
+
   function set<K extends keyof YTTCourseBody>(key: K, value: YTTCourseBody[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function handleThumbnailChosen(file: File | null) {
+    if (!file) { setThumbnailFile(null); return; }
+    const okType = /^image\/(jpeg|png)$/i.test(file.type);
+    const okExt = /\.(jpe?g|png)$/i.test(file.name);
+    if (!okType && !okExt) {
+      toast.error("Thumbnail must be a .jpg or .png image");
+      return;
+    }
+    setThumbnailFile(file);
+  }
+
+  async function uploadThumbnailFor(courseId: string, file: File): Promise<string> {
+    const presign = await requestYTTLiveThumbnailPresign(courseId, {
+      filename: file.name,
+      contentType: file.type || "image/jpeg",
+    }, role);
+    const putRes = await fetch(presign.url, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || "image/jpeg" },
+      body: file,
+    });
+    if (!putRes.ok) throw new Error("Thumbnail upload failed");
+    return presign.storePath;
   }
 
   async function handleSave() {
@@ -171,9 +209,22 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
         level: form.level,
         isActive: form.isActive,
       };
-      const saved = initial
-        ? await updateYTTLiveCourse(initial.id, payload, role)
-        : await createYTTLiveCourse(payload, role);
+
+      let saved: YTTCourse;
+      if (initial) {
+        // For an existing course, upload (key needs the ID) then update with the path.
+        if (thumbnailFile) {
+          payload.thumbnail = await uploadThumbnailFor(initial.id, thumbnailFile);
+        }
+        saved = await updateYTTLiveCourse(initial.id, payload, role);
+      } else {
+        // Create first to obtain the ID, then upload and patch the thumbnail.
+        saved = await createYTTLiveCourse(payload, role);
+        if (thumbnailFile) {
+          const thumbnail = await uploadThumbnailFor(saved.id, thumbnailFile);
+          saved = await updateYTTLiveCourse(saved.id, { thumbnail }, role);
+        }
+      }
       toast.success(initial ? "Course updated" : "Course created");
       onSaved(saved);
     } catch (err) {
@@ -237,13 +288,59 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="course-thumb">Thumbnail URL</Label>
-            <Input
-              id="course-thumb"
-              placeholder="https://…"
-              value={form.thumbnail ?? ""}
-              onChange={(e) => set("thumbnail", e.target.value)}
+            <Label>
+              Thumbnail{" "}
+              <span className="text-xs text-muted-foreground font-normal">· .jpg or .png</span>
+            </Label>
+
+            {(() => {
+              const preview = thumbnailFileUrl ?? resolveMediaUrl(form.thumbnail?.trim() || undefined);
+              return preview ? (
+                <div className="relative w-full aspect-video overflow-hidden rounded-lg border bg-muted">
+                  <img src={preview} alt="Thumbnail preview" className="w-full h-full object-cover" />
+                </div>
+              ) : null;
+            })()}
+
+            <input
+              id="course-thumb-file"
+              type="file"
+              accept="image/jpeg,image/png"
+              className="hidden"
+              onChange={(e) => handleThumbnailChosen(e.target.files?.[0] ?? null)}
             />
+            <label
+              htmlFor="course-thumb-file"
+              className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border/70 px-4 py-5 cursor-pointer hover:border-[#610981]/50 transition-colors text-center"
+            >
+              {thumbnailFile ? (
+                <>
+                  <p className="text-sm font-medium truncate max-w-full px-2">{thumbnailFile.name}</p>
+                  <p className="text-xs text-muted-foreground">Click to choose a different image</p>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-6 h-6 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">
+                    {form.thumbnail?.trim() ? "Click to replace thumbnail" : "Click to upload thumbnail (JPG or PNG)"}
+                  </p>
+                </>
+              )}
+            </label>
+
+            {(thumbnailFile || form.thumbnail?.trim()) && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-xs text-destructive hover:underline"
+                onClick={() => {
+                  setThumbnailFile(null);
+                  set("thumbnail", "");
+                }}
+              >
+                <X className="w-3 h-3" />
+                Remove thumbnail
+              </button>
+            )}
           </div>
 
           <div className="flex items-center justify-between pt-1">
