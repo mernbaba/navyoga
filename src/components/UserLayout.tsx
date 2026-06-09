@@ -113,8 +113,8 @@ export function UserLayout() {
               <div className="flex flex-col h-full">
                 <div className="p-6 border-b border-border/50">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-linear-to-br from-[#610981] to-[#8b0fa8] rounded-xl shadow-lg">
-                      <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="Navyoga" className="w-7 h-7 object-contain" />
+                    <div className="w-10 h-10 flex items-center justify-center overflow-hidden bg-linear-to-br from-[#610981] to-[#8b0fa8] rounded-xl shadow-lg">
+                      <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="Navyoga" className="w-full h-full object-contain" />
                     </div>
                     <div>
                       <h2 className="font-semibold text-lg" style={{ color: '#ff691d' }}>Navyoga</h2>

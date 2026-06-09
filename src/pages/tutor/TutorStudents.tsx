@@ -56,7 +56,7 @@ export function TutorStudents() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        {/* <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader>
               <CardTitle>Total Students</CardTitle>
@@ -65,7 +65,7 @@ export function TutorStudents() {
               <div className="text-3xl font-semibold">{isLoading ? "—" : total}</div>
             </CardContent>
           </Card>
-        </div>
+        </div> */}
 
         <Card>
           <CardHeader>

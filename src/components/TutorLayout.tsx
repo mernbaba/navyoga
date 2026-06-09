@@ -98,7 +98,7 @@ export function TutorLayout() {
               <div className="p-6 border-b border-border/50">
                 <div className="flex items-center gap-3">
                   <div className="relative w-10 h-10 rounded-xl bg-linear-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-lg shadow-[#ffac96]/40">
-                    <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="Navyoga" className="w-6 h-6 object-contain" />
+                    <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="Navyoga" className="w-full h-full object-contain" />
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold" style={{ color: '#ff691d' }}>
@@ -116,7 +116,7 @@ export function TutorLayout() {
           
           <div className="flex items-center gap-3">
             <div className="relative w-10 h-10 rounded-xl bg-linear-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-lg shadow-[#ffac96]/40">
-              <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="Navyoga" className="w-6 h-6 object-contain" />
+              <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="Navyoga" className="w-full h-full object-contain" />
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse" />
             </div>
             <div className="hidden lg:block">
