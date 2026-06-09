@@ -69,7 +69,8 @@ export function RoleLoginPage({ role }: { role: LoginRole }) {
 
       setRoleAuth(role, token, user);
 
-      toast.success(config.welcomeText);
+      const userName = typeof user.name === "string" ? user.name.trim() : "";
+      toast.success(userName ? `Welcome back, ${userName}!` : config.welcomeText);
       navigate(config.destination);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to sign in.";

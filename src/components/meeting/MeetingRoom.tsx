@@ -30,14 +30,28 @@ const MeetingRoomShell = () => {
 
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-zinc-950">
-      {isRecording && (
-        <div className="absolute left-4 top-4 z-30 flex items-center gap-1.5 rounded-md border border-red-500/25 bg-red-500/10 px-2.5 py-1 backdrop-blur">
-          <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
-          <span className="text-[10px] font-extrabold uppercase tracking-widest text-red-500">
-            Rec
+      <div className="absolute left-4 top-4 z-30 flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-linear-to-br from-[#610981] to-[#8b0fa8] shadow-lg shadow-[#610981]/30">
+            <img
+              src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg"
+              alt="Navyoga"
+              className="h-full w-full object-contain"
+            />
+          </div>
+          <span className="text-sm font-semibold text-white drop-shadow">
+            Navyoga Wellness
           </span>
         </div>
-      )}
+        {isRecording && (
+          <div className="flex items-center gap-1.5 rounded-md border border-red-500/25 bg-red-500/10 px-2.5 py-1 backdrop-blur">
+            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-red-500">
+              Rec
+            </span>
+          </div>
+        )}
+      </div>
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col overflow-hidden">
           <VideoGrid />
