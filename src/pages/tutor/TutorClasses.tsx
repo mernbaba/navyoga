@@ -200,7 +200,7 @@ export function TutorClasses() {
           <CardContent>
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700! w-4 h-4" />
                 <Input
                   placeholder="Search by title, yoga type, or batch..."
                   value={searchQuery}

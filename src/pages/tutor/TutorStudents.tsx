@@ -75,9 +75,9 @@ export function TutorStudents() {
           <CardContent>
             <div className="mb-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700! w-4 h-4" />
                 <Input
-                  placeholder="Search by name or email…"
+                  placeholder="Search by name…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -92,7 +92,6 @@ export function TutorStudents() {
                     <TableHead>Name</TableHead>
                     <TableHead>Join Date</TableHead>
                     <TableHead>Membership</TableHead>
-                    <TableHead>Classes Enrolled</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -100,13 +99,13 @@ export function TutorStudents() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                         Loading…
                       </TableCell>
                     </TableRow>
                   ) : items.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                         No students found.
                       </TableCell>
                     </TableRow>
@@ -126,20 +125,6 @@ export function TutorStudents() {
                           <Badge variant="outline" className="capitalize">
                             {student.membershipType}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {student.enrolledClasses.slice(0, 2).map((cls, idx) => (
-                              <Badge key={idx} variant="secondary" className="text-xs">
-                                {cls}
-                              </Badge>
-                            ))}
-                            {student.enrolledClasses.length > 2 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{student.enrolledClasses.length - 2}
-                              </Badge>
-                            )}
-                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant={student.status === "active" ? "default" : "secondary"}>
@@ -208,7 +193,6 @@ export function TutorStudents() {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold">{selectedStudent.name}</h3>
-                      <p className="text-sm text-muted-foreground">{selectedStudent.email}</p>
                       <Badge
                         variant={selectedStudent.status === "active" ? "default" : "secondary"}
                         className="mt-1"
@@ -226,30 +210,6 @@ export function TutorStudents() {
                       <p className="text-muted-foreground">Membership</p>
                       <p className="font-medium capitalize">{selectedStudent.membershipType}</p>
                     </div>
-                    <div>
-                      <p className="text-muted-foreground">Phone</p>
-                      <p className="font-medium">{selectedStudent.phone}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-lg border">
-                  <h4 className="font-semibold mb-3" style={{ color: "#ff691d" }}>
-                    Enrolled Classes ({selectedStudent.enrolledClasses.length})
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedStudent.enrolledClasses.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No classes found.</p>
-                    ) : (
-                      selectedStudent.enrolledClasses.map((cls, idx) => (
-                        <div
-                          key={idx}
-                          className="px-3 py-2 rounded-lg bg-[#ffac96]/10 border border-[#ffac96]/20"
-                        >
-                          <p className="font-medium text-sm">{cls}</p>
-                        </div>
-                      ))
-                    )}
                   </div>
                 </div>
               </div>

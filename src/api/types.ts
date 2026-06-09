@@ -848,7 +848,6 @@ export type TutorStudentItem = {
   avatar: string | null;
   joinDate: string;
   membershipType: string;
-  enrolledClasses: string[];
   status: string;
 };
 
