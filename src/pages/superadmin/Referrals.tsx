@@ -10,7 +10,6 @@ import {
   GraduationCap,
   CheckCircle2,
   Clock,
-  // XCircle, // not from API: API only returns ACTIVE | PENDING (no Expired status)
   IndianRupee,
   Search,
 } from "lucide-react";
@@ -27,150 +26,9 @@ import type {
   TutorReferralRow,
 } from "../../api/types";
 
-// type ReferralStatus = "Active" | "Pending" | "Expired"; // not from API: "Expired" not in backend enum
 type ReferralStatusUI = "Active" | "Pending";
 
-// type ReferralRow = {
-//   id: string;
-//   referrer: { name: string; email: string };
-//   referee: { name: string; email: string };
-//   date: string;
-//   status: ReferralStatus;
-//   reward: number;
-//   subscription?: string;
-//   specialization?: string;
-//   classes?: number;
-// };
-
 type ReferralCategory = "users" | "tutors";
-
-// const userReferrals: ReferralRow[] = [
-//   {
-//     id: "UR001",
-//     referrer: { name: "Sarah Johnson", email: "sarah.j@email.com" },
-//     referee: { name: "Emma Davis", email: "emma.d@email.com" },
-//     date: "2026-04-15",
-//     subscription: "Monthly",
-//     status: "Active",
-//     reward: 300,
-//   },
-//   {
-//     id: "UR002",
-//     referrer: { name: "Michael Chen", email: "michael.c@email.com" },
-//     referee: { name: "David Lee", email: "david.l@email.com" },
-//     date: "2026-04-12",
-//     subscription: "Quarterly",
-//     status: "Active",
-//     reward: 300,
-//   },
-//   {
-//     id: "UR003",
-//     referrer: { name: "Priya Patel", email: "priya.p@email.com" },
-//     referee: { name: "Rahul Sharma", email: "rahul.s@email.com" },
-//     date: "2026-04-28",
-//     subscription: "Not subscribed yet",
-//     status: "Pending",
-//     reward: 0,
-//   },
-//   {
-//     id: "UR004",
-//     referrer: { name: "Sarah Johnson", email: "sarah.j@email.com" },
-//     referee: { name: "Lisa Anderson", email: "lisa.a@email.com" },
-//     date: "2026-04-10",
-//     subscription: "Half-Yearly",
-//     status: "Active",
-//     reward: 300,
-//   },
-//   {
-//     id: "UR005",
-//     referrer: { name: "Alex Thompson", email: "alex.t@email.com" },
-//     referee: { name: "Nina Martinez", email: "nina.m@email.com" },
-//     date: "2026-04-08",
-//     subscription: "Monthly",
-//     status: "Active",
-//     reward: 300,
-//   },
-//   {
-//     id: "UR006",
-//     referrer: { name: "Michael Chen", email: "michael.c@email.com" },
-//     referee: { name: "John Walker", email: "john.w@email.com" },
-//     date: "2026-03-20",
-//     subscription: "Cancelled",
-//     status: "Expired",
-//     reward: 0,
-//   },
-//   {
-//     id: "UR007",
-//     referrer: { name: "Emma Wilson", email: "emma.w@email.com" },
-//     referee: { name: "Sophia Brown", email: "sophia.b@email.com" },
-//     date: "2026-04-18",
-//     subscription: "Yearly",
-//     status: "Active",
-//     reward: 300,
-//   },
-//   {
-//     id: "UR008",
-//     referrer: { name: "Priya Patel", email: "priya.p@email.com" },
-//     referee: { name: "James Taylor", email: "james.t@email.com" },
-//     date: "2026-04-27",
-//     subscription: "Not subscribed yet",
-//     status: "Pending",
-//     reward: 0,
-//   },
-// ];
-
-// const tutorReferrals: ReferralRow[] = [
-//   {
-//     id: "TR001",
-//     referrer: { name: "Dr. Anita Desai", email: "anita.s@email.com" },
-//     referee: { name: "Vikram Singh", email: "vikram.s@email.com" },
-//     date: "2026-04-20",
-//     specialization: "Hatha Yoga",
-//     classes: 12,
-//     status: "Active",
-//     reward: 3000,
-//   },
-//   {
-//     id: "TR002",
-//     referrer: { name: "Raj Kumar", email: "raj.k@email.com" },
-//     referee: { name: "Maya Gupta", email: "maya.g@email.com" },
-//     date: "2026-04-05",
-//     specialization: "Vinyasa Flow",
-//     classes: 6,
-//     status: "Active",
-//     reward: 3000,
-//   },
-//   {
-//     id: "TR003",
-//     referrer: { name: "Dr. Anita Desai", email: "anita.d@email.com" },
-//     referee: { name: "Arjun Mehta", email: "arjun.m@email.com" },
-//     date: "2026-04-26",
-//     specialization: "Not verified yet",
-//     classes: 0,
-//     status: "Pending",
-//     reward: 0,
-//   },
-//   {
-//     id: "TR004",
-//     referrer: { name: "Lakshmi Iyer", email: "lakshmi.i@email.com" },
-//     referee: { name: "Neha Kapoor", email: "neha.k@email.com" },
-//     date: "2026-03-28",
-//     specialization: "Kundalini",
-//     classes: 15,
-//     status: "Active",
-//     reward: 3000,
-//   },
-//   {
-//     id: "TR005",
-//     referrer: { name: "Raj Kumar", email: "raj.k@email.com" },
-//     referee: { name: "Rohan Joshi", email: "rohan.j@email.com" },
-//     date: "2026-04-14",
-//     specialization: "Ashtanga",
-//     classes: 6,
-//     status: "Active",
-//     reward: 3000,
-//   },
-// ];
 
 const categoryMeta: Record<ReferralCategory, {
   title: string;
@@ -204,7 +62,6 @@ const categoryMeta: Record<ReferralCategory, {
 const statusStyle: Record<ReferralStatusUI, { pill: string; icon: typeof CheckCircle2 }> = {
   Active: { pill: "bg-green-500", icon: CheckCircle2 },
   Pending: { pill: "bg-amber-500", icon: Clock },
-  // Expired: { pill: "bg-red-500", icon: XCircle }, // not from API
 };
 
 const PAGE_SIZE = 20;

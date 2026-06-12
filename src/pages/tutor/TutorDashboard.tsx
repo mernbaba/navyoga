@@ -7,8 +7,17 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { getTutorDashboard } from "../../api/tutorDashboard";
+import { getMyTutorUserReferrals, getMyTutorTutorReferrals } from "../../api/referrals";
 import type { TutorDashboardStats } from "../../api/types";
 import { getCachedUser } from "../../lib/session";
+
+type RecentReferral = {
+  id: string;
+  name: string | null;
+  isTutor: boolean;
+  reward: string | null;
+  date: string;
+};
 
 const timeFormatter = new Intl.DateTimeFormat(undefined, {
   hour: "numeric",
@@ -27,6 +36,7 @@ export function TutorDashboard() {
   const [activeSession, setActiveSession] = useState<string | null>(null);
   const [stats, setStats] = useState<TutorDashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [recentReferrals, setRecentReferrals] = useState<RecentReferral[]>([]);
 
   const tutorName = getCachedUser("TUTOR")?.name ?? "Yoga Shikshak";
 
@@ -38,6 +48,20 @@ export function TutorDashboard() {
         toast.error(msg);
       })
       .finally(() => setIsLoading(false));
+
+    Promise.all([
+      getMyTutorUserReferrals("TUTOR", { limit: 3 }),
+      getMyTutorTutorReferrals("TUTOR", { limit: 3 }),
+    ]).then(([userRefs, tutorRefs]) => {
+      const combined: RecentReferral[] = [
+        ...userRefs.items.map((r) => ({ id: r.id, name: r.name, isTutor: false, reward: r.reward, date: r.date })),
+        ...tutorRefs.items.map((r) => ({ id: r.id, name: r.name, isTutor: true, reward: r.reward, date: r.date })),
+      ];
+      combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setRecentReferrals(combined.slice(0, 3));
+    }).catch(() => {
+      // referrals are non-critical; fail silently
+    });
   }, []);
 
   const handleStartClass = (classId: string, className?: string) => {
@@ -258,13 +282,10 @@ export function TutorDashboard() {
               </button>
             </CardHeader>
             <CardContent className="space-y-3">
-              {[
-                { id: 1, name: "Rajesh Kumar", type: "Sādhaka", time: "2 days ago", amount: 300 },
-                { id: 2, name: "Kavita Singh", type: "Yoga Shikshak", time: "5 days ago", amount: 3000 },
-                { id: 3, name: "Anjali Mehta", type: "Sādhaka", time: "1 week ago", amount: 300 },
-              ].map((ref) => {
-                const isTutor = ref.type === "Yoga Shikshak";
-                return (
+              {recentReferrals.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">No referrals yet.</p>
+              ) : (
+                recentReferrals.map((ref) => (
                   <div
                     key={ref.id}
                     className="flex items-center justify-between p-3 border border-border/50 rounded-xl hover:shadow-md hover:border-[#ffac96]/50 transition-all"
@@ -273,32 +294,34 @@ export function TutorDashboard() {
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                         style={{
-                          background: isTutor
+                          background: ref.isTutor
                             ? "radial-gradient(circle at top right, #c9a8e0 0%, #ddc4ec 40%, #f0e4f7 100%)"
                             : "radial-gradient(circle at top right, #ffac9655 0%, #ffd8c2 40%, #fff0e6 100%)",
                         }}
                       >
-                        {isTutor ? (
+                        {ref.isTutor ? (
                           <GraduationCap className="w-5 h-5" style={{ color: "#610981" }} strokeWidth={2.25} />
                         ) : (
                           <Users className="w-5 h-5" style={{ color: "#ff691d" }} strokeWidth={2.25} />
                         )}
                       </div>
                       <div>
-                        <h4 className="font-semibold text-sm">{ref.name}</h4>
+                        <h4 className="font-semibold text-sm">{ref.name ?? "—"}</h4>
                         <p className="text-xs text-muted-foreground">
-                          {ref.type} • {ref.time}
+                          {ref.isTutor ? "Yoga Shikshak" : "Sādhaka"} • {new Date(ref.date).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
-                    <Badge className="bg-[#10b981]/15 text-[#10b981] hover:bg-[#10b981]/15 border-0 flex items-center gap-0.5">
-                      <span>+</span>
-                      <IndianRupee className="w-3 h-3" />
-                      <span>{ref.amount.toLocaleString("en-IN")}</span>
-                    </Badge>
+                    {ref.reward != null && Number(ref.reward) > 0 && (
+                      <Badge className="bg-[#10b981]/15 text-[#10b981] hover:bg-[#10b981]/15 border-0 flex items-center gap-0.5">
+                        <span>+</span>
+                        <IndianRupee className="w-3 h-3" />
+                        <span>{Number(ref.reward).toLocaleString("en-IN")}</span>
+                      </Badge>
+                    )}
                   </div>
-                );
-              })}
+                ))
+              )}
             </CardContent>
           </Card>
 

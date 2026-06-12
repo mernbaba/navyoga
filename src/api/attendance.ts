@@ -6,6 +6,8 @@ import {
   type FrontlineAttendance,
   type MyFrontlineAttendance,
   type MyOperationsAttendance,
+  type MyTutorAttendanceRecord,
+  type MyTutorAttendanceToday,
   type OperationsAttendance,
   type PaginatedAttendance,
   type Role,
@@ -62,6 +64,43 @@ export function listOperationsAttendance(role: Role, params: AttendanceListParam
     authedRequest<ApiSuccess<PaginatedAttendance<OperationsAttendance>>>(role, {
       method: "GET",
       url: "/api/attendance/operations",
+      params,
+    }),
+  );
+}
+
+export type MarkTutorAttendanceParams = {
+  classesConducted?: number;
+  teachingHours?: number;
+};
+
+export function markMyTutorAttendance(role: Role, params: MarkTutorAttendanceParams = {}) {
+  return unwrap<TutorAttendance>(
+    authedRequest<ApiSuccess<TutorAttendance>>(role, {
+      method: "POST",
+      url: "/api/attendance/tutors/me",
+      data: params,
+    }),
+  );
+}
+
+export function getMyTutorAttendanceToday(role: Role) {
+  return unwrap<MyTutorAttendanceToday>(
+    authedRequest<ApiSuccess<MyTutorAttendanceToday>>(role, {
+      method: "GET",
+      url: "/api/attendance/tutors/me/today",
+    }),
+  );
+}
+
+export function getMyTutorAttendanceHistory(
+  role: Role,
+  params: Pick<AttendanceListParams, "startDate" | "endDate" | "page" | "limit"> = {},
+) {
+  return unwrap<PaginatedAttendance<MyTutorAttendanceRecord>>(
+    authedRequest<ApiSuccess<PaginatedAttendance<MyTutorAttendanceRecord>>>(role, {
+      method: "GET",
+      url: "/api/attendance/tutors/me/history",
       params,
     }),
   );

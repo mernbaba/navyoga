@@ -16,11 +16,8 @@ export function OperationsSettings() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [workingHours, setWorkingHours] = useState("");
-  const [timezone, setTimezone] = useState("Asia/Kolkata");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isSavingPrefs, setIsSavingPrefs] = useState(false);
 
   const loadProfile = () => {
     getMe("OPERATIONS")
@@ -30,8 +27,6 @@ export function OperationsSettings() {
         setLastName(fresh.lastName);
         setEmail(fresh.email);
         setPhone(fresh.phone);
-        setWorkingHours(fresh.workingHours ?? "");
-        setTimezone(fresh.timezone);
       })
       .catch((err: unknown) => toast.error(err instanceof Error ? err.message : "Failed to load profile."))
       .finally(() => setIsLoading(false));
@@ -54,21 +49,6 @@ export function OperationsSettings() {
       toast.error(error instanceof Error ? error.message : "Failed to update profile.");
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleSavePreferences = async () => {
-    if (isSavingPrefs) return;
-    setIsSavingPrefs(true);
-    try {
-      const updated = await patchMe("OPERATIONS", { workingHours, timezone });
-      setUser(updated);
-      setCachedUser("OPERATIONS", updated);
-      toast.success("Work preferences updated");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update preferences.");
-    } finally {
-      setIsSavingPrefs(false);
     }
   };
 
@@ -163,47 +143,6 @@ export function OperationsSettings() {
 
         <PasswordChangeCard role="OPERATIONS" />
 
-        <Card>
-          <CardHeader>
-            <CardTitle style={{ color: "#ff691d" }}>Work Preferences</CardTitle>
-            <CardDescription>Set your work preferences</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="workingHours" style={{ color: "#ffac96" }}>Working Hours</Label>
-                  <Input
-                    id="workingHours"
-                    value={workingHours}
-                    onChange={(event) => setWorkingHours(event.target.value)}
-                    disabled={isLoading}
-                    className="mt-1"
-                    placeholder="9:00 AM - 6:00 PM"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="timezone" style={{ color: "#ffac96" }}>Timezone</Label>
-                  <Input
-                    id="timezone"
-                    value={timezone}
-                    onChange={(event) => setTimezone(event.target.value)}
-                    disabled={isLoading}
-                    className="mt-1"
-                    placeholder="Asia/Kolkata"
-                  />
-                </div>
-              </div>
-              <Button
-                onClick={handleSavePreferences}
-                disabled={isLoading || isSavingPrefs}
-                className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
-              >
-                {isSavingPrefs ? "Saving..." : "Save Preferences"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

@@ -85,7 +85,6 @@ export type OperationsDashboard = {
     tutors: DashboardCardValue;
     frontline: DashboardCardValue;
     students: DashboardCardValue;
-    recorded: DashboardCardValue;
   };
   team: {
     employees: number;

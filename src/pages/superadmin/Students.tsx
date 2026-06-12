@@ -256,7 +256,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
+                  <TableHead>#</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Join Date</TableHead>
@@ -270,9 +270,9 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                 ) : visibleStudents.length === 0 ? (
                   <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No sādhakas found.</TableCell></TableRow>
                 ) : (
-                  visibleStudents.map((student) => (
+                  visibleStudents.map((student, index) => (
                     <TableRow key={student.id}>
-                      <TableCell className="font-mono text-xs">{student.id}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">#{(page - 1) * 20 + index + 1}</TableCell>
                       <TableCell>{student.name}</TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">

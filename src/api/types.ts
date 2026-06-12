@@ -867,3 +867,20 @@ export type MyFrontlineAttendance = {
   checkOut: string | null;
   status: "PRESENT" | "ABSENT";
 } | null;
+
+export type MyTutorAttendanceToday = {
+  id: string;
+  date: string;
+  classesConducted: number;
+  teachingHours: number;
+  status: AttendanceStatus;
+} | null;
+
+export type MyTutorAttendanceRecord = {
+  id: string;
+  date: string;
+  classesConducted: number;
+  teachingHours: number;
+  status: AttendanceStatus;
+  createdAt: string;
+};

@@ -2,7 +2,7 @@
 import { Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { Users, UserCog, Phone, Bell, Ticket, UserPlus, GraduationCap, CalendarDays, Video, Clock, LogIn, LogOut, IndianRupee } from "lucide-react";
+import { Users, UserCog, Phone, Bell, Ticket, UserPlus, GraduationCap, Clock, LogIn, LogOut, IndianRupee } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { toast } from "sonner";
 import { getMyOperationsAttendance, operationsCheckIn, operationsCheckOut } from "../../api/attendance";
@@ -89,12 +89,6 @@ export function OperationsDashboard() {
       change: dashboardData ? fmtDiff(dashboardData.cards.students.diff) : null,
       icon: UserPlus, color: '#f59e0b', href: '/operations/users',
     },
-    {
-      title: 'Recorded Classes',
-      value: dashboardData ? dashboardData.cards.recorded.total.toLocaleString() : '—',
-      change: dashboardData ? fmtDiff(dashboardData.cards.recorded.diff) : null,
-      icon: Video, color: '#8b5cf6', href: '/operations/classes/self-paced',
-    },
   ];
 
   const fmtRelative = (iso: string) => {
@@ -163,7 +157,7 @@ export function OperationsDashboard() {
           </div>
         </div>
  
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {metrics.map((metric, index) => {
             const Icon = metric.icon;
             return (
@@ -250,20 +244,6 @@ export function OperationsDashboard() {
                     <span className="font-medium">Notifications Sent</span>
                   </div>
                   <span className="text-sm font-semibold">{dashboardData ? dashboardData.system.notifications : '—'}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    <CalendarDays className="w-5 h-5" style={{ color: '#3b82f6' }} />
-                    <span className="font-medium">Active Classes</span>
-                  </div>
-                  <span className="text-sm font-semibold">{dashboardData ? (dashboardData.system.classes || '—') : '—'}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    <Video className="w-5 h-5" style={{ color: '#8b5cf6' }} />
-                    <span className="font-medium">Recorded Classes</span>
-                  </div>
-                  <span className="text-sm font-semibold">{dashboardData ? (dashboardData.system.recorded || '—') : '—'}</span>
                 </div>
               </div>
             </CardContent>
