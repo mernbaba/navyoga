@@ -33,8 +33,8 @@ import { performLogout, useRoleSession } from '../lib/session';
 type OpsNavItem = { name: string; href: string; icon: LucideIcon; expandable?: boolean };
 
 const classesSubNav = [
-  { name: 'Live', href: '/operations/classes/live' },
-  { name: 'Self Paced', href: '/operations/classes/self-paced' },
+  { name: 'Yoga Live', href: '/operations/classes/live' },
+  { name: 'Yoga Self Paced', href: '/operations/classes/self-paced' },
   { name: 'YTT Live', href: '/operations/classes/ytt-live' },
   { name: 'YTT Recorded', href: '/operations/classes/ytt-recorded' },
   { name: 'Events', href: '/operations/classes/events' },

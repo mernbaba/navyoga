@@ -23,6 +23,7 @@ export type LeadCreateBody = {
   email: string;
   phone: string;
   source: LeadSource;
+  page?: string;
   interest: string;
   location?: string;
   status?: LeadStatus;
@@ -31,7 +32,8 @@ export type LeadCreateBody = {
   assignedToId?: string;
 };
 
-export type LeadUpdateBody = Partial<Omit<LeadCreateBody, "location" | "lastContactDate" | "notes" | "assignedToId">> & {
+export type LeadUpdateBody = Partial<Omit<LeadCreateBody, "location" | "lastContactDate" | "notes" | "assignedToId" | "page">> & {
+  page?: string | null;
   location?: string | null;
   lastContactDate?: string | null;
   notes?: string | null;

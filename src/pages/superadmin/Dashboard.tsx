@@ -54,6 +54,7 @@ export function Dashboard() {
   const stats = [
     {
       name: 'Total Students',
+      href: '/superadmin/students',
       value: studentsTotal,
       icon: Users,
       color: 'text-blue-500',
@@ -63,6 +64,7 @@ export function Dashboard() {
     },
     {
       name: 'Active Tutors',
+      href: '/superadmin/tutors',
       value: tutorsTotal,
       icon: GraduationCap,
       color: 'text-[#610981]',
@@ -72,6 +74,7 @@ export function Dashboard() {
     },
     {
       name: 'Total Leads',
+      href: '/superadmin/leads',
       value: leadsTotal,
       icon: UserPlus,
       color: 'text-[#ff691d]',
@@ -81,6 +84,7 @@ export function Dashboard() {
     },
     {
       name: 'Monthly Revenue',
+      href: '/superadmin/financials',
       value: revenueTotal > 0 ? `₹${(revenueTotal / 1000).toFixed(0)}K` : '₹0',
       icon: IndianRupee,
       color: 'text-green-500',
@@ -110,7 +114,8 @@ export function Dashboard() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.name} className="relative overflow-hidden group hover:scale-105 transition-transform duration-300">
+          <Link key={stat.name} to={stat.href}>
+          <Card className="relative overflow-hidden group hover:scale-105 transition-transform duration-300 cursor-pointer">
             <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-[#ffac96]/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
 
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -131,6 +136,7 @@ export function Dashboard() {
               </div>
             </CardContent>
           </Card>
+          </Link>
         ))}
       </div>
 

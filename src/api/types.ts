@@ -176,6 +176,7 @@ export type Lead = {
   email: string;
   phone: string;
   source: LeadSource;
+  page: string | null;
   interest: string;
   location: string | null;
   status: LeadStatus;

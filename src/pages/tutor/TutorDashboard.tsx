@@ -4,7 +4,7 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Users, Calendar, Clock, TrendingUp, CheckCircle, Sparkles, Play, ClipboardCheck, Gift, ArrowRight, Award, GraduationCap, IndianRupee } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { getTutorDashboard } from "../../api/tutorDashboard";
 import type { TutorDashboardStats } from "../../api/types";
@@ -52,10 +52,10 @@ export function TutorDashboard() {
   };
 
   const statCards = [
-    { name: "Total Students", value: isLoading ? "—" : (stats?.totalStudents ?? 0), icon: Users, color: "#ff691d" },
-    { name: "Upcoming Classes", value: isLoading ? "—" : Math.max(0, (stats?.totalClasses ?? 0) - (stats?.completedClasses ?? 0)), icon: Calendar, color: "#610981" },
-    { name: "Completed", value: isLoading ? "—" : (stats?.completedClasses ?? 0), icon: CheckCircle, color: "#10b981" },
-    { name: "Avg. Attendance", value: isLoading ? "—" : `${stats?.avgAttendanceRate ?? 0}%`, icon: TrendingUp, color: "#3b82f6" },
+    { name: "Total Students", value: isLoading ? "—" : (stats?.totalStudents ?? 0), icon: Users, color: "#ff691d", href: "/tutor/students" },
+    { name: "Upcoming Classes", value: isLoading ? "—" : Math.max(0, (stats?.totalClasses ?? 0) - (stats?.completedClasses ?? 0)), icon: Calendar, color: "#610981", href: "/tutor/classes" },
+    { name: "Completed", value: isLoading ? "—" : (stats?.completedClasses ?? 0), icon: CheckCircle, color: "#10b981", href: "/tutor/attendance" },
+    { name: "Avg. Attendance", value: isLoading ? "—" : `${stats?.avgAttendanceRate ?? 0}%`, icon: TrendingUp, color: "#3b82f6", href: "/tutor/attendance" },
   ];
 
   return (
@@ -99,7 +99,8 @@ export function TutorDashboard() {
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {statCards.map((stat) => (
-            <Card key={stat.name} className="relative overflow-hidden group hover:scale-105 transition-transform duration-300">
+            <Link key={stat.name} to={stat.href}>
+            <Card className="relative overflow-hidden group hover:scale-105 transition-transform duration-300 cursor-pointer">
               <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-[#ffac96]/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium" style={{ color: "#ffac96" }}>
@@ -113,6 +114,7 @@ export function TutorDashboard() {
                 <div className="text-3xl font-bold">{stat.value}</div>
               </CardContent>
             </Card>
+            </Link>
           ))}
         </div>
 

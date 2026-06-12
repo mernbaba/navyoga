@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Badge } from "../../components/ui/badge";
-import { Plus, Search, Edit, Trash2, Mail, Phone, Calendar } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Mail, Phone, Calendar, Eye, MapPin, FileText, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { listLeads, createLead, updateLead, deleteLead, getLeadStats, type LeadStats } from "../../api/leads";
 import type { Lead, LeadSource, LeadStatus, Role } from "../../api/types";
@@ -22,6 +22,15 @@ function statusVariant(status: LeadStatus): "default" | "secondary" | "outline" 
   if (status === "INTERESTED") return "secondary";
   if (status === "CONVERTED") return "default";
   return "outline";
+}
+
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
+      <span className="text-sm font-medium">{value || <span className="text-muted-foreground italic">—</span>}</span>
+    </div>
+  );
 }
 
 type LeadsRole = Extract<Role, "SUPERADMIN" | "FRONTLINE" | "OPERATIONS">;
@@ -44,6 +53,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
     email: "",
     phone: "",
     source: "WEBSITE" as LeadSource,
+    page: "",
     interest: "",
     location: "",
     notes: "",
@@ -52,6 +62,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
   const [editing, setEditing] = useState<Lead | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<Lead | null>(null);
 
   useEffect(() => {
     setPage(1);
@@ -111,13 +122,14 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
         email: addForm.email,
         phone: addForm.phone,
         source: addForm.source,
+        page: addForm.page || undefined,
         interest: addForm.interest,
         location: addForm.location || undefined,
         notes: addForm.notes || undefined,
       });
       toast.success("Lead added successfully");
       setIsAddOpen(false);
-      setAddForm({ name: "", email: "", phone: "", source: "WEBSITE", interest: "", location: "", notes: "" });
+      setAddForm({ name: "", email: "", phone: "", source: "WEBSITE", page: "", interest: "", location: "", notes: "" });
       refetch();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to add lead.");
@@ -154,6 +166,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
         phone: String(fd.get("phone") || ""),
         source: fd.get("source") as LeadSource,
         status: fd.get("status") as LeadStatus,
+        page: String(fd.get("page") || "") || null,
         interest: String(fd.get("interest") || ""),
         location: String(fd.get("location") || "") || null,
         notes: String(fd.get("notes") || "") || null,
@@ -209,6 +222,10 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                       {SOURCES.map((s) => <SelectItem key={s} value={s}>{s.replace("_", " ")}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="add-page">Page</Label>
+                  <Input id="add-page" value={addForm.page} onChange={(e) => setAddForm({ ...addForm, page: e.target.value })} placeholder="e.g., /yoga-live, /home" />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="interest">Interest</Label>
@@ -318,6 +335,9 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => setViewing(lead)}>
+                            <Eye className="w-4 h-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => setEditing(lead)}>
                             <Edit className="w-4 h-4" />
                           </Button>
@@ -355,6 +375,85 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
         </CardContent>
       </Card>
 
+      {/* View Modal */}
+      <Dialog open={!!viewing} onOpenChange={(open) => !open && setViewing(null)}>
+        <DialogContent className="max-w-2xl">
+          {viewing && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <DialogTitle className="text-xl">{viewing.name}</DialogTitle>
+                    <p className="text-xs text-muted-foreground font-mono mt-1">ID: {viewing.id}</p>
+                  </div>
+                  <Badge variant={statusVariant(viewing.status)} className="shrink-0 mt-1">
+                    {viewing.status.replace("_", " ")}
+                  </Badge>
+                </div>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 py-2">
+                <div className="flex items-start gap-2">
+                  <Mail className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <DetailRow label="Email" value={viewing.email} />
+                </div>
+                <div className="flex items-start gap-2">
+                  <Phone className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <DetailRow label="Phone" value={viewing.phone} />
+                </div>
+                <div className="flex items-start gap-2">
+                  <Globe className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <DetailRow label="Source" value={viewing.source.replace(/_/g, " ")} />
+                </div>
+                <div className="flex items-start gap-2">
+                  <FileText className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <DetailRow label="Page" value={viewing.page} />
+                </div>
+                <div className="flex items-start gap-2">
+                  <FileText className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <DetailRow label="Interest" value={viewing.interest} />
+                </div>
+                <div className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <DetailRow label="Location" value={viewing.location} />
+                </div>
+                <div className="flex items-start gap-2">
+                  <Calendar className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <DetailRow
+                    label="Last Contact Date"
+                    value={viewing.lastContactDate ? new Date(viewing.lastContactDate).toLocaleDateString() : null}
+                  />
+                </div>
+                <div className="flex items-start gap-2">
+                  <Calendar className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <DetailRow label="Created At" value={new Date(viewing.createdAt).toLocaleString()} />
+                </div>
+                {viewing.notes && (
+                  <div className="md:col-span-2 flex items-start gap-2">
+                    <FileText className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <DetailRow label="Notes" value={viewing.notes} />
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setViewing(null)}>Close</Button>
+                <Button
+                  onClick={() => {
+                    setEditing(viewing);
+                    setViewing(null);
+                  }}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Lead
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Modal */}
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-w-2xl">
           {editing && (
@@ -396,6 +495,10 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                       {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace("_", " ")}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-page">Page</Label>
+                  <Input id="edit-page" name="page" defaultValue={editing.page ?? ""} placeholder="e.g., /yoga-live, /home" />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-interest">Interest <span className="text-red-500">*</span></Label>

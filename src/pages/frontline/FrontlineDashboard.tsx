@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from "react";
+import { Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -64,10 +65,10 @@ export function FrontlineDashboard() {
   };
 
   const stats = [
-    { name: "Today's Calls", value: 32, target: 50, icon: Phone, color: '#ff691d' },
-    { name: "Connected", value: 24, percentage: 75, icon: PhoneCall, color: '#10b981' },
-    { name: "New Leads", value: 18, trend: '+12%', icon: Users, color: '#610981' },
-    { name: "Conversions", value: 5, trend: '+25%', icon: CheckCircle, color: '#3b82f6' },
+    { name: "Today's Calls", value: 32, target: 50, icon: Phone, color: '#ff691d', href: '/frontline/call-log' },
+    { name: "Connected", value: 24, percentage: 75, icon: PhoneCall, color: '#10b981', href: '/frontline/call-log' },
+    { name: "New Leads", value: 18, trend: '+12%', icon: Users, color: '#610981', href: '/frontline/leads' },
+    { name: "Conversions", value: 5, trend: '+25%', icon: CheckCircle, color: '#3b82f6', href: '/frontline/leads' },
   ];
 
   const recentCalls = [
@@ -166,7 +167,8 @@ export function FrontlineDashboard() {
  
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
-            <Card key={stat.name} className="relative overflow-hidden group hover:scale-105 transition-transform duration-300">
+            <Link key={stat.name} to={stat.href}>
+            <Card className="relative overflow-hidden group hover:scale-105 transition-transform duration-300 cursor-pointer">
               <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-[#ffac96]/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
               
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -196,9 +198,10 @@ export function FrontlineDashboard() {
                 )}
               </CardContent>
             </Card>
+            </Link>
           ))}
         </div>
- 
+
         <div className="grid gap-4 lg:grid-cols-2">
  
           <Card className="relative overflow-hidden">

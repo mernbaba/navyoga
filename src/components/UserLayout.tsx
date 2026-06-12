@@ -34,8 +34,8 @@ import { PhoneVerificationModal } from "./student/PhoneVerificationModal";
 
 const navigation = [
   { name: 'Dashboard', href: '/user/dashboard', icon: LayoutDashboard },
-  { name: 'Live Classes', href: '/user/classes', icon: BookOpen },
-  { name: 'Self-Paced Classes', href: '/user/self-paced', icon: GraduationCap },
+  { name: 'Yoga Live', href: '/user/classes', icon: BookOpen },
+  { name: 'Yoga Self Paced', href: '/user/self-paced', icon: GraduationCap },
   { name: 'YTT Live', href: '/user/ytt-live', icon: Radio },
   { name: 'YTT Recorded', href: '/user/ytt-recorded', icon: Video },
   { name: 'Attendance', href: '/user/attendance', icon: Calendar },

@@ -64,6 +64,7 @@ export function UserDashboard() {
     return [
       {
         title: "Enrolled Classes",
+        to: "/user/classes",
         value: (m?.enrolledClasses ?? 0).toLocaleString(),
         icon: BookOpen,
         color: "#ff691d",
@@ -72,6 +73,7 @@ export function UserDashboard() {
       },
       {
         title: "Hours Completed",
+        to: "/user/attendance",
         value: (m?.hoursCompleted ?? 0).toLocaleString(),
         icon: Clock,
         color: "#610981",
@@ -80,6 +82,7 @@ export function UserDashboard() {
       },
       {
         title: "Recordings Watched",
+        to: "/user/self-paced",
         value: (m?.recordingsWatched ?? 0).toLocaleString(),
         icon: Video,
         color: "#10b981",
@@ -88,6 +91,7 @@ export function UserDashboard() {
       },
       {
         title: "Attendance Rate",
+        to: "/user/attendance",
         value: `${m?.attendanceRate ?? 0}%`,
         icon: TrendingUp,
         color: "#f59e0b",
@@ -178,8 +182,9 @@ export function UserDashboard() {
                 transition={{ delay: index * 0.1 }}
                 whileHover={{ y: -5, transition: { duration: 0.2 } }}
               >
-                <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-300">
-                  <div 
+                <Link to={metric.to}>
+                <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer">
+                  <div
                     className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-20"
                     style={{ backgroundColor: metric.color }}
                   />
@@ -198,6 +203,7 @@ export function UserDashboard() {
                     <p className="text-xs font-medium mt-1" style={{ color: metric.color }}>{metric.change}</p>
                   </CardContent>
                 </Card>
+                </Link>
               </motion.div>
             );
           })}

@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from "react";
+import { Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Users, UserCog, Phone, Bell, Ticket, UserPlus, GraduationCap, CalendarDays, Video, Image, TrendingUp, Activity, Clock, LogIn, LogOut } from "lucide-react";
@@ -54,11 +55,11 @@ export function OperationsDashboard() {
   const dotColor = attendance?.checkOut ? "#10b981" : attendance?.checkIn ? "#f59e0b" : "#94a3b8";
   const borderColor = attendance?.checkOut ? "#10b98140" : attendance?.checkIn ? "#f59e0b40" : "#e2e8f0";
   const metrics = [
-    { title: 'Total Employees', value: '156', change: '+8', icon: Users, color: '#ff691d' },
-    { title: 'Active Tutors', value: '42', change: '+5', icon: GraduationCap, color: '#610981' },
-    { title: 'Frontline Team', value: '28', change: '+3', icon: Phone, color: '#10b981' },
-    { title: 'Active Users', value: '1,247', change: '+156', icon: UserPlus, color: '#f59e0b' },
-    { title: 'Recorded Classes', value: '89', change: '+12', icon: Video, color: '#8b5cf6' },
+    { title: 'Total Employees', value: '156', change: '+8', icon: Users, color: '#ff691d', href: '/operations/employees' },
+    { title: 'Active Tutors', value: '42', change: '+5', icon: GraduationCap, color: '#610981', href: '/operations/tutors' },
+    { title: 'Frontline Team', value: '28', change: '+3', icon: Phone, color: '#10b981', href: '/operations/frontline-team' },
+    { title: 'Active Users', value: '1,247', change: '+156', icon: UserPlus, color: '#f59e0b', href: '/operations/users' },
+    { title: 'Recorded Classes', value: '89', change: '+12', icon: Video, color: '#8b5cf6', href: '/operations/classes/self-paced' },
   ];
 
   const recentActivities = [
@@ -182,7 +183,8 @@ export function OperationsDashboard() {
           {metrics.map((metric, index) => {
             const Icon = metric.icon;
             return (
-              <Card key={index} className="relative overflow-hidden">
+              <Link key={index} to={metric.href}>
+              <Card className="relative overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-300">
                 <div 
                   className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10"
                   style={{ backgroundColor: metric.color }}
@@ -202,6 +204,7 @@ export function OperationsDashboard() {
                   </div>
                 </CardContent>
               </Card>
+              </Link>
             );
           })}
         </div>
