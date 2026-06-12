@@ -307,7 +307,7 @@ export function TutorReferrals() {
             <div>
               <h1 className="text-3xl font-bold mb-1">Referral Program</h1>
               <p className="text-white/85 text-base">
-                Refer students and tutors to earn rewards
+                Refer sādhakas and yoga shikshaks to earn rewards
               </p>
             </div>
           </div>
@@ -334,7 +334,7 @@ export function TutorReferrals() {
             }`}
           >
             <GraduationCap className="w-4 h-4" />
-            Tutor Referrals
+            Yoga Shikshak Referrals
           </button>
         </div>
 
@@ -343,7 +343,7 @@ export function TutorReferrals() {
           <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow bg-white">
             <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
               <CardTitle className="text-xs font-medium text-muted-foreground">
-                {activeTab === "user" ? "Total Students Referred" : "Total Tutors Referred"}
+                {activeTab === "user" ? "Total Sādhakas Referred" : "Total Yoga Shikshaks Referred"}
               </CardTitle>
               {activeTab === "user" ? (
                 <Users className="w-5 h-5" style={{ color: "#ff691d" }} strokeWidth={2.25} />
@@ -414,7 +414,7 @@ export function TutorReferrals() {
               style={{ color: "#ff691d" }}
             >
               <Share2 className="w-5 h-5" />
-              Share Your {activeTab === "user" ? "User" : "Tutor"} Referral Code
+              Share Your {activeTab === "user" ? "User" : "Yoga Shikshak"} Referral Code
             </CardTitle>
           </CardHeader>
           <CardContent className="relative z-10 space-y-5">
@@ -492,13 +492,13 @@ export function TutorReferrals() {
               className="text-base"
               style={{ color: "#ff691d" }}
             >
-              Referred {activeTab === "user" ? "Students" : "Tutors"} ({data.total})
+              Referred {activeTab === "user" ? "Sādhakas" : "Yoga Shikshaks"} ({data.total})
             </CardTitle>
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
             {data.list.length === 0 ? (
               <div className="text-center text-sm text-muted-foreground py-8">
-                {isLoading ? "Loading..." : `No referred ${activeTab === "user" ? "students" : "tutors"} yet`}
+                {isLoading ? "Loading..." : `No referred ${activeTab === "user" ? "sādhakas" : "yoga shikshaks"} yet`}
               </div>
             ) : (
               data.list.map((item) => (

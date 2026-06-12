@@ -552,12 +552,12 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
               </div>
             </div>
 
-            {/* Tutor */}
+            {/* Yoga Shikshak */}
             <div className="space-y-1.5">
-              <Label>Tutor</Label>
+              <Label>Yoga Shikshak</Label>
               <Select value={form.tutorId} onValueChange={(v) => setField("tutorId", v)}>
                 <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
-                  <SelectValue placeholder="Assign a tutor (optional)" />
+                  <SelectValue placeholder="Assign a yoga shikshak (optional)" />
                 </SelectTrigger>
                 <SelectContent>
                   {tutors.map((t) => (
@@ -1064,10 +1064,10 @@ function EditGeneratedClassDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Tutor</Label>
+            <Label>Yoga Shikshak</Label>
             <Select value={form.tutorId} onValueChange={(v) => setField("tutorId", v)}>
               <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
-                <SelectValue placeholder="Assign a tutor" />
+                <SelectValue placeholder="Assign a yoga shikshak" />
               </SelectTrigger>
               <SelectContent>
                 {tutors.map((t) => (

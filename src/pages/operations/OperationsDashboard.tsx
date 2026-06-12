@@ -56,16 +56,16 @@ export function OperationsDashboard() {
   const borderColor = attendance?.checkOut ? "#10b98140" : attendance?.checkIn ? "#f59e0b40" : "#e2e8f0";
   const metrics = [
     { title: 'Total Employees', value: '156', change: '+8', icon: Users, color: '#ff691d', href: '/operations/employees' },
-    { title: 'Active Tutors', value: '42', change: '+5', icon: GraduationCap, color: '#610981', href: '/operations/tutors' },
+    { title: 'Active Yoga Shikshaks', value: '42', change: '+5', icon: GraduationCap, color: '#610981', href: '/operations/tutors' },
     { title: 'Frontline Team', value: '28', change: '+3', icon: Phone, color: '#10b981', href: '/operations/frontline-team' },
-    { title: 'Active Users', value: '1,247', change: '+156', icon: UserPlus, color: '#f59e0b', href: '/operations/users' },
+    { title: 'Active Sādhakas', value: '1,247', change: '+156', icon: UserPlus, color: '#f59e0b', href: '/operations/users' },
     { title: 'Recorded Classes', value: '89', change: '+12', icon: Video, color: '#8b5cf6', href: '/operations/classes/self-paced' },
   ];
 
   const recentActivities = [
     { id: 1, action: 'New Event Created', user: 'International Yoga Day Celebration', time: '2 mins ago', type: 'event', status: 'Active' },
     { id: 2, action: 'New Banner Created', user: 'Annual Plan 20% OFF', time: '5 mins ago', type: 'banner', status: 'Active' },
-    { id: 3, action: 'New Tutor Added', user: 'Priya Sharma', time: '10 mins ago', type: 'tutor', status: 'Completed' },
+    { id: 3, action: 'New Yoga Shikshak Added', user: 'Priya Sharma', time: '10 mins ago', type: 'tutor', status: 'Completed' },
     { id: 4, action: 'Event Registration', user: '12 new registrations', time: '15 mins ago', type: 'event', status: 'Active' },
     { id: 5, action: 'Notification Sent', user: 'Platform Maintenance Alert', time: '25 mins ago', type: 'notification', status: 'Sent' },
     { id: 6, action: 'Coupon Code Created', user: 'SUMMER25', time: '45 mins ago', type: 'coupon', status: 'Active' },
@@ -227,7 +227,7 @@ export function OperationsDashboard() {
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                   <div className="flex items-center gap-3">
                     <GraduationCap className="w-5 h-5" style={{ color: '#ff691d' }} />
-                    <span className="font-medium">Tutors</span>
+                    <span className="font-medium">Yoga Shikshaks</span>
                   </div>
                   <span className="text-sm font-semibold">42</span>
                 </div>

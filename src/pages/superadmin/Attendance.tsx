@@ -53,13 +53,13 @@ const categoryMeta: Record<AttendanceCategory, {
 }> = {
   users: {
     title: "User Attendance Records",
-    subtitle: "Student attendance across all classes",
+    subtitle: "Sādhaka attendance across all classes",
     icon: Users,
     searchPlaceholder: "Search by name or class...",
   },
   tutors: {
-    title: "Tutor Attendance Records",
-    subtitle: "Tutor teaching activity and presence",
+    title: "Yoga Shikshak Attendance Records",
+    subtitle: "Yoga Shikshak teaching activity and presence",
     icon: GraduationCap,
     searchPlaceholder: "Search by name...",
   },
@@ -154,14 +154,14 @@ export function Attendance() {
     switch (category) {
       case "users":
         return [
-          { label: "Student Name", getValue: (r) => (r as StudentAttendance).student?.name ?? "—" },
+          { label: "Sādhaka Name", getValue: (r) => (r as StudentAttendance).student?.name ?? "—" },
           { label: "Class", getValue: (r) => (r as StudentAttendance).subscriptionClass?.title ?? "—" },
           { label: "Date", getValue: (r) => formatDate(r.date) },
           { label: "Time", getValue: (r) => formatTime((r as StudentAttendance).subscriptionClass?.scheduledAt) },
         ];
       case "tutors":
         return [
-          { label: "Tutor Name", getValue: (r) => (r as TutorAttendance).tutor?.name ?? "—" },
+          { label: "Yoga Shikshak Name", getValue: (r) => (r as TutorAttendance).tutor?.name ?? "—" },
           { label: "Classes Conducted", getValue: (r) => {
             const v = (r as TutorAttendance).classesConducted;
             return v == null ? "—" : String(v);

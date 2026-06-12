@@ -1070,7 +1070,7 @@ export function ClassesEvents() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead className="pl-4">Student</TableHead>
+                  <TableHead className="pl-4">Sādhaka</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead className="pr-4 text-right">Enrolled On</TableHead>
                 </TableRow>
@@ -1093,7 +1093,7 @@ export function ClassesEvents() {
                           <Users className="w-5 h-5 text-muted-foreground" />
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {enrollmentsSearch ? "No students match your search." : "No enrollments yet."}
+                          {enrollmentsSearch ? "No sādhakas match your search." : "No enrollments yet."}
                         </p>
                       </div>
                     </TableCell>

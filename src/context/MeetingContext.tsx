@@ -641,7 +641,7 @@ export const MeetingProvider = ({
     const isHost =
       !!selfRef.current && selfRef.current.userId === hostUserId;
     if (!isHost) {
-      toast.error("Only the tutor can record this class");
+      toast.error("Only the yoga shikshak can record this class");
       return;
     }
     if (isRecording) {

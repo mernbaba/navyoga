@@ -118,7 +118,7 @@ export function UserLayout() {
                     </div>
                     <div>
                       <h2 className="font-semibold text-lg" style={{ color: '#ff691d' }}>Navyoga</h2>
-                      <Badge variant="secondary" className="text-xs mt-1">Student Portal</Badge>
+                      <Badge variant="secondary" className="text-xs mt-1">Sādhaka Portal</Badge>
                     </div>
                   </div>
                 </div>
@@ -145,7 +145,7 @@ export function UserLayout() {
             </div>
             <div>
               <h1 className="font-semibold text-lg" style={{ color: '#ff691d' }}>Navyoga Wellness</h1>
-              <Badge variant="secondary" className="text-xs hidden sm:inline-flex">Student Portal</Badge>
+              <Badge variant="secondary" className="text-xs hidden sm:inline-flex">Sādhaka Portal</Badge>
             </div>
           </div>
 

@@ -235,7 +235,7 @@ export function FinancialsPayments() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none z-10" />
               <Input
-                placeholder="Search by student, payment ID, order ID…"
+                placeholder="Search by sādhaka, payment ID, order ID…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"

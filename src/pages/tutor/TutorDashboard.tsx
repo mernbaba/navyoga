@@ -28,7 +28,7 @@ export function TutorDashboard() {
   const [stats, setStats] = useState<TutorDashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const tutorName = getCachedUser("TUTOR")?.name ?? "Tutor";
+  const tutorName = getCachedUser("TUTOR")?.name ?? "Yoga Shikshak";
 
   useEffect(() => {
     getTutorDashboard("TUTOR")
@@ -52,7 +52,7 @@ export function TutorDashboard() {
   };
 
   const statCards = [
-    { name: "Total Students", value: isLoading ? "—" : (stats?.totalStudents ?? 0), icon: Users, color: "#ff691d", href: "/tutor/students" },
+    { name: "Total Sādhakas", value: isLoading ? "—" : (stats?.totalStudents ?? 0), icon: Users, color: "#ff691d", href: "/tutor/students" },
     { name: "Upcoming Classes", value: isLoading ? "—" : Math.max(0, (stats?.totalClasses ?? 0) - (stats?.completedClasses ?? 0)), icon: Calendar, color: "#610981", href: "/tutor/classes" },
     { name: "Completed", value: isLoading ? "—" : (stats?.completedClasses ?? 0), icon: CheckCircle, color: "#10b981", href: "/tutor/attendance" },
     { name: "Avg. Attendance", value: isLoading ? "—" : `${stats?.avgAttendanceRate ?? 0}%`, icon: TrendingUp, color: "#3b82f6", href: "/tutor/attendance" },
@@ -73,11 +73,11 @@ export function TutorDashboard() {
                     <Sparkles className="w-6 h-6" />
                   </div>
                   <Badge variant="secondary" className="bg-white/20 text-white border-0">
-                    Yoga Tutor
+                    Yoga Shikshak
                   </Badge>
                 </div>
                 <h1 className="text-4xl font-bold mb-2">Welcome, {tutorName}! 👋</h1>
-                <p className="text-white/80 text-lg">Ready to inspire your students today?</p>
+                <p className="text-white/80 text-lg">Ready to inspire your sādhakas today?</p>
               </div>
               {activeSession && (
                 <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 border-2 border-white/30">
@@ -259,11 +259,11 @@ export function TutorDashboard() {
             </CardHeader>
             <CardContent className="space-y-3">
               {[
-                { id: 1, name: "Rajesh Kumar", type: "Student", time: "2 days ago", amount: 300 },
-                { id: 2, name: "Kavita Singh", type: "Tutor", time: "5 days ago", amount: 3000 },
-                { id: 3, name: "Anjali Mehta", type: "Student", time: "1 week ago", amount: 300 },
+                { id: 1, name: "Rajesh Kumar", type: "Sādhaka", time: "2 days ago", amount: 300 },
+                { id: 2, name: "Kavita Singh", type: "Yoga Shikshak", time: "5 days ago", amount: 3000 },
+                { id: 3, name: "Anjali Mehta", type: "Sādhaka", time: "1 week ago", amount: 300 },
               ].map((ref) => {
-                const isTutor = ref.type === "Tutor";
+                const isTutor = ref.type === "Yoga Shikshak";
                 return (
                   <div
                     key={ref.id}
@@ -351,7 +351,7 @@ export function TutorDashboard() {
                 </div>
                 <div className="flex-1">
                   <h4 className="font-bold text-base">
-                    {isLoading ? "—" : `${stats?.totalStudents ?? 0} Students`}
+                    {isLoading ? "—" : `${stats?.totalStudents ?? 0} Sādhakas`}
                   </h4>
                   <p className="text-xs text-muted-foreground">Across all classes</p>
                 </div>

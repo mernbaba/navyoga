@@ -194,7 +194,7 @@ export function ClassesLive() {
     if (!form.difficulty) return toast.error("Difficulty is required");
     if (!form.duration || isNaN(Number(form.duration))) return toast.error("Valid duration is required");
     if (!form.scheduledAt) return toast.error("Scheduled date/time is required");
-    if (!form.tutorId) return toast.error("Tutor is required");
+    if (!form.tutorId) return toast.error("Yoga Shikshak is required");
     if (!form.batchId) return toast.error("Batch is required");
 
     setSaving(true);
@@ -560,17 +560,17 @@ export function ClassesLive() {
               )}
             </div>
 
-            {/* Tutor */}
+            {/* Yoga Shikshak */}
             <div className="space-y-1.5">
               <Label>
-                Tutor <span className="text-red-500">*</span>
+                Yoga Shikshak <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={form.tutorId}
                 onValueChange={(v) => setField("tutorId", v)}
               >
                 <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
-                  <SelectValue placeholder="Assign a tutor" />
+                  <SelectValue placeholder="Assign a yoga shikshak" />
                 </SelectTrigger>
                 <SelectContent>
                   {tutors.map((t) => (

@@ -438,7 +438,7 @@ export function OperationsRecordedClasses() {
                       onChange={(e) =>
                         setPublishForm({ ...publishForm, description: e.target.value })
                       }
-                      placeholder="Describe what students will learn in this session..."
+                      placeholder="Describe what sādhakas will learn in this session..."
                       className="w-full min-h-25 px-3 py-2 rounded-md border border-input bg-background"
                       disabled={selectedVideo.status === 'published'}
                     />
@@ -634,7 +634,7 @@ export function OperationsRecordedClasses() {
                   onChange={(e) =>
                     setUploadForm({ ...uploadForm, description: e.target.value })
                   }
-                  placeholder="Describe what students will learn, the benefits, and what to expect..."
+                  placeholder="Describe what sādhakas will learn, the benefits, and what to expect..."
                   className="w-full min-h-30 px-3 py-2 rounded-md border border-input bg-background"
                 />
               </div>

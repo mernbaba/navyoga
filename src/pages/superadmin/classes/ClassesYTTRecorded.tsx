@@ -272,7 +272,7 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
               id="course-desc"
               rows={3}
               className="min-h-20 max-h-40"
-              placeholder="What students will learn"
+              placeholder="What sādhakas will learn"
               value={form.description ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             />
@@ -649,7 +649,7 @@ function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreat
                   id="cls-desc"
                   rows={3}
                   className="min-h-20 max-h-40"
-                  placeholder="optional · what students will learn"
+                  placeholder="optional · what sādhakas will learn"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
@@ -1086,7 +1086,7 @@ function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, o
                   id="ec-desc"
                   rows={3}
                   className="min-h-20 max-h-40"
-                  placeholder="optional · what students will learn"
+                  placeholder="optional · what sādhakas will learn"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />

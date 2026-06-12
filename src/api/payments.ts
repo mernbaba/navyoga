@@ -30,7 +30,7 @@ export type VerifyPaymentInput = {
 export type PaymentRecord = {
   id: string;
   type: string;
-  amount: string;
+  subtotal: string;
   status: "PAID" | "PENDING" | "FAILED";
   orderId: string;
   paymentId: string;

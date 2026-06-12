@@ -28,7 +28,7 @@ import { performLogout, useRoleSession } from "../lib/session";
 const navigation = [
   { name: 'Dashboard', href: '/tutor/dashboard', icon: LayoutDashboard },
   { name: 'My Classes', href: '/tutor/classes', icon: Calendar },
-  { name: 'My Students', href: '/tutor/students', icon: Users },
+  { name: 'My Sādhakas', href: '/tutor/students', icon: Users },
   { name: 'Attendance', href: '/tutor/attendance', icon: ClipboardCheck },
   { name: 'Referrals', href: '/tutor/referrals', icon: Gift },
   { name: 'Settings', href: '/tutor/settings', icon: SettingsIcon },
@@ -104,7 +104,7 @@ export function TutorLayout() {
                     <h2 className="text-lg font-semibold" style={{ color: '#ff691d' }}>
                       Navyoga Wellness
                     </h2>
-                    <p className="text-xs" style={{ color: '#ffac96' }}>Tutor Portal</p>
+                    <p className="text-xs" style={{ color: '#ffac96' }}>Yoga Shikshak Portal</p>
                   </div>
                 </div>
               </div>
@@ -125,7 +125,7 @@ export function TutorLayout() {
               </h1>
               <p className="text-xs flex items-center gap-1" style={{ color: '#ffac96' }}>
                 <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                Tutor Portal
+                Yoga Shikshak Portal
               </p>
             </div>
           </div>

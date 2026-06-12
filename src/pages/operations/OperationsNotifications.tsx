@@ -13,7 +13,7 @@ import type { Notification, NotificationAudience } from "../../api/types";
 
 const AUDIENCES: { value: NotificationAudience; label: string }[] = [
   { value: "ALL_USERS", label: "All Users" },
-  { value: "ACTIVE_STUDENTS", label: "Active Students" },
+  { value: "ACTIVE_STUDENTS", label: "Active Sādhakas" },
   { value: "PREMIUM_MEMBERS", label: "Premium Members" },
 ];
 
@@ -153,7 +153,7 @@ export function OperationsNotifications() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-semibold" style={{ color: "#ff691d" }}>App Notifications</h1>
-          <p className="text-muted-foreground mt-1">Send messages to students and staff</p>
+          <p className="text-muted-foreground mt-1">Send messages to sādhakas and staff</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-1">
@@ -259,7 +259,7 @@ export function OperationsNotifications() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle style={{ color: "#ff691d" }}>Create Notification</DialogTitle>
-            <DialogDescription>Compose a new notification for students or staff</DialogDescription>
+            <DialogDescription>Compose a new notification for sādhakas or staff</DialogDescription>
           </DialogHeader>
           <NotificationForm
             form={createForm}

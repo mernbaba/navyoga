@@ -550,16 +550,16 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
           </div>
 
           <div className="space-y-1">
-            <Label>Tutor</Label>
+            <Label>Yoga Shikshak</Label>
             <Select
               value={form.tutorId || NO_TUTOR}
               onValueChange={(v) => set("tutorId", v === NO_TUTOR ? "" : v)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Assign a tutor" />
+                <SelectValue placeholder="Assign a yoga shikshak" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NO_TUTOR}>No tutor</SelectItem>
+                <SelectItem value={NO_TUTOR}>No yoga shikshak</SelectItem>
                 {tutors.map((t) => (
                   <SelectItem key={t.id} value={t.id}>
                     <span className="flex items-center gap-2">

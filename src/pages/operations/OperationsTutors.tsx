@@ -74,7 +74,7 @@ export function OperationsTutors() {
   const activeCount = tutors.filter((t) => t.status === "ACTIVE").length;
 
   const metrics = [
-    { title: "Total Tutors", value: String(total), icon: GraduationCap, color: "#ff691d" },
+    { title: "Total Yoga Shikshaks", value: String(total), icon: GraduationCap, color: "#ff691d" },
     { title: "Active (page)", value: String(activeCount), icon: GraduationCap, color: "#10b981" },
     { title: "Avg Experience", value: tutors.length ? `${Math.round(tutors.reduce((s, t) => s + t.experience, 0) / tutors.length)} yr` : "—", icon: Award, color: "#f59e0b" },
   ];
@@ -94,12 +94,12 @@ export function OperationsTutors() {
         bio: addForm.bio || undefined,
         referredByCode: addForm.referredByCode.trim() || undefined,
       });
-      toast.success("Tutor added successfully");
+      toast.success("Yoga Shikshak added successfully");
       setIsAddOpen(false);
       setAddForm({ name: "", email: "", phone: "", password: "", experience: "", specializations: "", bio: "", referredByCode: "" });
       refetch();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to add tutor.");
+      toast.error(error instanceof Error ? error.message : "Failed to add yoga shikshak.");
     } finally {
       setIsAdding(false);
     }
@@ -123,11 +123,11 @@ export function OperationsTutors() {
         bio: String(fd.get("bio") || "") || null,
         status: fd.get("status") as StaffStatus,
       });
-      toast.success("Tutor updated successfully");
+      toast.success("Yoga Shikshak updated successfully");
       setEditing(null);
       refetch();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update tutor.");
+      toast.error(error instanceof Error ? error.message : "Failed to update yoga shikshak.");
     } finally {
       setIsUpdating(false);
     }
@@ -137,10 +137,10 @@ export function OperationsTutors() {
     if (!confirm(`Delete ${tutor.name}? This cannot be undone.`)) return;
     try {
       await deleteTutor("OPERATIONS", tutor.id);
-      toast.success("Tutor deleted successfully");
+      toast.success("Yoga Shikshak deleted successfully");
       refetch();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete tutor.");
+      toast.error(error instanceof Error ? error.message : "Failed to delete yoga shikshak.");
     }
   };
 
@@ -148,7 +148,7 @@ export function OperationsTutors() {
     <div className="p-6 lg:p-8">
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-semibold" style={{ color: "#ff691d" }}>Tutor Management</h1>
+          <h1 className="text-3xl font-semibold" style={{ color: "#ff691d" }}>Yoga Shikshak Management</h1>
           <p className="text-muted-foreground mt-1">Manage yoga instructors and their assignments</p>
         </div>
 
@@ -175,12 +175,12 @@ export function OperationsTutors() {
         <Card>
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <CardTitle style={{ color: "#ff691d" }}>All Tutors</CardTitle>
+              <CardTitle style={{ color: "#ff691d" }}>All Yoga Shikshaks</CardTitle>
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
                   <Input
-                    placeholder="Search tutors..."
+                    placeholder="Search yoga shikshaks..."
                     value={searchTerm}
                     onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                     className="pl-10 w-full sm:w-64"
@@ -194,7 +194,7 @@ export function OperationsTutors() {
                   </SelectContent>
                 </Select>
                 <Button onClick={() => setIsAddOpen(true)} className="gap-2" style={{ backgroundColor: "#610981" }}>
-                  <Plus className="w-4 h-4" />Add Tutor
+                  <Plus className="w-4 h-4" />Add Yoga Shikshak
                 </Button>
               </div>
             </div>
@@ -204,7 +204,7 @@ export function OperationsTutors() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Tutor</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Yoga Shikshak</th>
                     <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Specializations</th>
                     <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Experience</th>
                     <th className="text-left py-3 px-4 font-medium text-sm" style={{ color: "#ffac96" }}>Status</th>
@@ -215,7 +215,7 @@ export function OperationsTutors() {
                   {isLoading && tutors.length === 0 ? (
                     <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">Loading...</td></tr>
                   ) : tutors.length === 0 ? (
-                    <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">No tutors found.</td></tr>
+                    <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">No yoga shikshaks found.</td></tr>
                   ) : (
                     tutors.map((tutor) => (
                       <tr key={tutor.id} className="border-b hover:bg-gray-50">
@@ -267,8 +267,8 @@ export function OperationsTutors() {
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle style={{ color: "#ff691d" }}>Add New Tutor</DialogTitle>
-            <DialogDescription>Fill in the details to add a new tutor</DialogDescription>
+            <DialogTitle style={{ color: "#ff691d" }}>Add New Yoga Shikshak</DialogTitle>
+            <DialogDescription>Fill in the details to add a new yoga shikshak</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAdd} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -327,7 +327,7 @@ export function OperationsTutors() {
             </div>
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-              <Button type="submit" style={{ backgroundColor: "#610981" }} disabled={isAdding}>{isAdding ? "Adding..." : "Add Tutor"}</Button>
+              <Button type="submit" style={{ backgroundColor: "#610981" }} disabled={isAdding}>{isAdding ? "Adding..." : "Add Yoga Shikshak"}</Button>
             </div>
           </form>
         </DialogContent>
@@ -336,8 +336,8 @@ export function OperationsTutors() {
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle style={{ color: "#ff691d" }}>Edit Tutor</DialogTitle>
-            <DialogDescription>Update tutor details</DialogDescription>
+            <DialogTitle style={{ color: "#ff691d" }}>Edit Yoga Shikshak</DialogTitle>
+            <DialogDescription>Update yoga shikshak details</DialogDescription>
           </DialogHeader>
           {editing && (
             <form onSubmit={handleEdit} className="space-y-4">
@@ -378,7 +378,7 @@ export function OperationsTutors() {
               </div>
               <div className="flex justify-end gap-3 pt-4">
                 <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-                <Button type="submit" style={{ backgroundColor: "#610981" }} disabled={isUpdating}>{isUpdating ? "Updating..." : "Update Tutor"}</Button>
+                <Button type="submit" style={{ backgroundColor: "#610981" }} disabled={isUpdating}>{isUpdating ? "Updating..." : "Update Yoga Shikshak"}</Button>
               </div>
             </form>
           )}

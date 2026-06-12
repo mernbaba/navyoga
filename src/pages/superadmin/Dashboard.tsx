@@ -53,7 +53,7 @@ export function Dashboard() {
 
   const stats = [
     {
-      name: 'Total Students',
+      name: 'Total Sādhakas',
       href: '/superadmin/students',
       value: studentsTotal,
       icon: Users,
@@ -63,7 +63,7 @@ export function Dashboard() {
       trend: studentsDiff >= 0 ? 'up' : 'down',
     },
     {
-      name: 'Active Tutors',
+      name: 'Active Yoga Shikshaks',
       href: '/superadmin/tutors',
       value: tutorsTotal,
       icon: GraduationCap,
@@ -185,7 +185,7 @@ export function Dashboard() {
           <div className="absolute top-0 left-0 w-40 h-40 bg-[#ff691d]/5 rounded-full blur-3xl" />
           <CardHeader>
             <CardTitle style={{ color: '#ff691d' }}>Class Popularity</CardTitle>
-            <CardDescription>Number of students enrolled by class type</CardDescription>
+            <CardDescription>Number of sādhakas enrolled by class type</CardDescription>
           </CardHeader>
           <CardContent>
             {popularityChartData.length > 0 ? (
@@ -229,7 +229,7 @@ export function Dashboard() {
                       borderRadius: '12px',
                       boxShadow: '0 4px 12px rgba(255, 172, 150, 0.2)'
                     }}
-                    formatter={(value: number) => [`${value} students`, 'Enrolled']}
+                    formatter={(value: number) => [`${value} sādhakas`, 'Enrolled']}
                   />
                   <Bar
                     key="bar"
@@ -251,7 +251,7 @@ export function Dashboard() {
           <div className="absolute bottom-0 right-0 w-40 h-40 bg-[#ffac96]/10 rounded-full blur-3xl" />
           <CardHeader>
             <CardTitle style={{ color: '#ff691d' }}>Membership Distribution</CardTitle>
-            <CardDescription>Active students by membership type</CardDescription>
+            <CardDescription>Active sādhakas by membership type</CardDescription>
           </CardHeader>
           <CardContent className="flex items-center justify-center">
             {membershipChartData.length > 0 ? (

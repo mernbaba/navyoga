@@ -98,12 +98,12 @@ export function Tutors() {
         bio: addForm.bio || undefined,
         referredByCode: addForm.referredByCode.trim() || undefined,
       });
-      toast.success("Tutor added successfully.");
+      toast.success("Yoga Shikshak added successfully.");
       setIsAddOpen(false);
       setAddForm({ name: "", email: "", phone: "", password: "", experience: "", specializations: "", bio: "", referredByCode: "" });
       refetch();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to add tutor.");
+      toast.error(error instanceof Error ? error.message : "Failed to add yoga shikshak.");
     } finally {
       setIsAdding(false);
     }
@@ -127,11 +127,11 @@ export function Tutors() {
         bio: String(formData.get("bio") || "") || null,
         status: formData.get("status") as StaffStatus,
       });
-      toast.success("Tutor updated successfully.");
+      toast.success("Yoga Shikshak updated successfully.");
       setEditingTutor(null);
       refetch();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update tutor.");
+      toast.error(error instanceof Error ? error.message : "Failed to update yoga shikshak.");
     } finally {
       setIsUpdating(false);
     }
@@ -141,10 +141,10 @@ export function Tutors() {
     if (!confirm(`Remove ${tutor.name}? This cannot be undone.`)) return;
     try {
       await deleteTutor("SUPERADMIN", tutor.id);
-      toast.success("Tutor removed.");
+      toast.success("Yoga Shikshak removed.");
       refetch();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to remove tutor.");
+      toast.error(error instanceof Error ? error.message : "Failed to remove yoga shikshak.");
     }
   };
 
@@ -238,7 +238,7 @@ export function Tutors() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
               <Input
-                placeholder="Search by name, email, or tutor ID..."
+                placeholder="Search by name, email, or yoga shikshak ID..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -275,7 +275,7 @@ export function Tutors() {
                 {isLoading && tutors.length === 0 ? (
                   <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
                 ) : tutors.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No tutors found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No yoga shikshaks found.</TableCell></TableRow>
                 ) : (
                   tutors.map((tutor) => (
                     <TableRow key={tutor.id}>

@@ -191,11 +191,11 @@ const categoryMeta: Record<ReferralCategory, {
     rewardLabel: "Paid to referrers",
   },
   tutors: {
-    title: "Tutor Referrals",
-    subtitle: "Track all tutor referral activities",
+    title: "Yoga Shikshak Referrals",
+    subtitle: "Track all yoga shikshak referral activities",
     icon: GraduationCap,
-    totalLabel: "All tutor referrals",
-    activeLabel: "Verified tutors",
+    totalLabel: "All yoga shikshak referrals",
+    activeLabel: "Verified yoga shikshaks",
     pendingLabel: "Awaiting verification",
     rewardLabel: "Paid to referrers",
   },
@@ -451,7 +451,7 @@ export function Referrals() {
             className="h-full rounded-lg gap-2 text-gray-400 bg-transparent border-0 transition-all data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-[#610981] data-[state=active]:font-semibold"
           >
             <GraduationCap className="w-4 h-4" />
-            Tutor Referrals
+            Yoga Shikshak Referrals
           </TabsTrigger>
         </TabsList>
       </Tabs>

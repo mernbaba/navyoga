@@ -51,8 +51,8 @@ export function TutorStudents() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-semibold" style={{ color: "#ff691d" }}>My Students</h1>
-            <p className="text-muted-foreground mt-1">Students enrolled in your classes</p>
+            <h1 className="text-3xl font-semibold" style={{ color: "#ff691d" }}>My Sādhakas</h1>
+            <p className="text-muted-foreground mt-1">Sādhakas enrolled in your classes</p>
           </div>
         </div>
 
@@ -69,8 +69,8 @@ export function TutorStudents() {
 
         <Card>
           <CardHeader>
-            <CardTitle style={{ color: "#ff691d" }}>All Students</CardTitle>
-            <CardDescription>View student information and progress</CardDescription>
+            <CardTitle style={{ color: "#ff691d" }}>All Sādhakas</CardTitle>
+            <CardDescription>View sādhaka information and progress</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="mb-4">
@@ -106,7 +106,7 @@ export function TutorStudents() {
                   ) : items.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        No students found.
+                        No sādhakas found.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -151,7 +151,7 @@ export function TutorStudents() {
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-4">
                 <span className="text-sm text-muted-foreground">
-                  Page {page} of {totalPages} ({total} students)
+                  Page {page} of {totalPages} ({total} sādhakas)
                 </span>
                 <div className="flex gap-2">
                   <Button
@@ -181,8 +181,8 @@ export function TutorStudents() {
         <Dialog open={!!selectedStudent} onOpenChange={() => setSelectedStudent(null)}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle style={{ color: "#ff691d" }}>Student Details</DialogTitle>
-              <DialogDescription>Comprehensive student information</DialogDescription>
+              <DialogTitle style={{ color: "#ff691d" }}>Sādhaka Details</DialogTitle>
+              <DialogDescription>Comprehensive sādhaka information</DialogDescription>
             </DialogHeader>
             {selectedStudent && (
               <div className="space-y-4 py-4">

@@ -664,7 +664,7 @@ export function ClassesWorkshops() {
                 id="ws-desc"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="What students will learn"
+                placeholder="What sādhakas will learn"
                 rows={3}
                 className="min-h-20 max-h-40"
               />
@@ -859,7 +859,7 @@ export function ClassesWorkshops() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead className="pl-4">Student</TableHead>
+                  <TableHead className="pl-4">Sādhaka</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Enrolled On</TableHead>
                   <TableHead className="pr-4 text-right">Actions</TableHead>
@@ -872,7 +872,7 @@ export function ClassesWorkshops() {
                   </TableCell></TableRow>
                 ) : enrollments.length === 0 ? (
                   <TableRow><TableCell colSpan={4} className="text-center py-10 text-sm text-muted-foreground">
-                    {debouncedEnrollSearch ? "No students match your search." : "No enrollments yet."}
+                    {debouncedEnrollSearch ? "No sādhakas match your search." : "No enrollments yet."}
                   </TableCell></TableRow>
                 ) : (
                   enrollments.map((row) => (

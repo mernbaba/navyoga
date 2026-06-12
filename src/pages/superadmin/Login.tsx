@@ -25,7 +25,7 @@ export function Login() {
       toast.success('Welcome back, Super Admin!');
       navigate('/');
     } else if (selectedRole === 'tutor') {
-      toast.success('Welcome back, Tutor!');
+      toast.success('Welcome back, Yoga Shikshak!');
       navigate('/tutor');
     } else if (selectedRole === 'frontline') {
       toast.success('Welcome back, Frontline Team!');
@@ -34,7 +34,7 @@ export function Login() {
       toast.success('Welcome back, Operations Team!');
       navigate('/operations');
     } else {
-      toast.success('Welcome back, Student!');
+      toast.success('Welcome back, Sādhaka!');
       navigate('/user');
     }
   };
@@ -50,7 +50,7 @@ export function Login() {
     },
     {
       id: 'tutor' as const,
-      name: 'Tutor',
+      name: 'Yoga Shikshak',
       icon: GraduationCap,
       description: 'Manage classes & students',
       color: '#ff691d',

@@ -74,7 +74,7 @@ export function OperationsLayout() {
   const navigation: OpsNavItem[] = [
     { name: 'Dashboard', href: '/operations/dashboard', icon: LayoutDashboard },
     { name: 'Employees', href: '/operations/employees', icon: Users },
-    { name: 'Tutors', href: '/operations/tutors', icon: GraduationCap },
+    { name: 'Yoga Shikshaks', href: '/operations/tutors', icon: GraduationCap },
     { name: 'Frontline Team', href: '/operations/frontline-team', icon: Phone },
     { name: 'App Notifications', href: '/operations/notifications', icon: Bell },
     { name: 'Coupon Codes', href: '/operations/coupons', icon: Ticket },

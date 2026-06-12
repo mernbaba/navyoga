@@ -24,8 +24,8 @@ const loginPageConfig: Record<LoginRole, LoginPageConfig> = {
     destination: "/superadmin/dashboard",
   },
   TUTOR: {
-    roleLabel: "Tutor",
-    welcomeText: "Welcome back, Tutor!",
+    roleLabel: "Yoga Shikshak",
+    welcomeText: "Welcome back, Yoga Shikshak!",
     destination: "/tutor/dashboard",
   },
   OPERATIONS: {
@@ -39,8 +39,8 @@ const loginPageConfig: Record<LoginRole, LoginPageConfig> = {
     destination: "/frontline/dashboard",
   },
   STUDENT: {
-    roleLabel: "Student",
-    welcomeText: "Welcome back, Student!",
+    roleLabel: "Sādhaka",
+    welcomeText: "Welcome back, Sādhaka!",
     destination: "/user/dashboard",
   },
 };

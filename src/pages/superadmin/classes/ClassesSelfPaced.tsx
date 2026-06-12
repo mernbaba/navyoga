@@ -684,7 +684,7 @@ function ClassFormView({
           id="cf-desc"
           value={form.description}
           onChange={(e) => onChange({ description: e.target.value })}
-          placeholder="optional · what students will learn"
+          placeholder="optional · what sādhakas will learn"
           rows={3}
           className="w-full min-h-20 max-h-40 px-3 py-2 rounded-md border border-gray-200 bg-background text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring resize-y"
         />

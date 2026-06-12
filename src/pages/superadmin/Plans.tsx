@@ -294,7 +294,7 @@ function LivePlansTab() {
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="font-normal">Batch Restricted</Label>
-                    <p className="text-xs text-muted-foreground">Students must select a batch</p>
+                    <p className="text-xs text-muted-foreground">Sādhakas must select a batch</p>
                   </div>
                   <input type="checkbox" name="batchRestricted" defaultChecked={editing.batchRestricted} className="sr-only peer" id="edit-live-batchRestricted" />
                   <label

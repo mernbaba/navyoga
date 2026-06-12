@@ -29,7 +29,7 @@ const primaryStats = [
     color: "#ff691d",
   },
   {
-    title: "Total Students Taught",
+    title: "Total Sādhakas Taught",
     value: "342",
     icon: Users,
     color: "#10b981",
@@ -58,7 +58,7 @@ const secondaryStats = [
     subtext: "+6 from last month",
   },
   {
-    title: "Avg Students/Class",
+    title: "Avg Sādhakas/Class",
     value: "24",
     valueColor: "#10b981",
     icon: Users,

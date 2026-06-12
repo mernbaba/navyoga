@@ -14,7 +14,7 @@ export function VideoSession() {
 
   const displayName =
     (user && "name" in user && typeof user.name === "string" ? user.name : null) ??
-    "Tutor";
+    "Yoga Shikshak";
 
   return (
     <MeetingRoom
