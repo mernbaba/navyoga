@@ -38,7 +38,7 @@ const navigation = [
   { name: 'Yoga Self Paced', href: '/user/self-paced', icon: GraduationCap },
   { name: 'YTT Live', href: '/user/ytt-live', icon: Radio },
   { name: 'YTT Recorded', href: '/user/ytt-recorded', icon: Video },
-  { name: 'Attendance', href: '/user/attendance', icon: Calendar },
+  // { name: 'Attendance', href: '/user/attendance', icon: Calendar },
   { name: 'Events', href: '/user/events', icon: CalendarDays },
   { name: 'Referrals', href: '/user/referrals', icon: Gift },
   { name: 'Profile', href: '/user/profile', icon: UserIcon },

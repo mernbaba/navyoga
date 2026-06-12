@@ -2,16 +2,18 @@
 import { Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { Users, UserCog, Phone, Bell, Ticket, UserPlus, GraduationCap, CalendarDays, Video, Image, TrendingUp, Activity, Clock, LogIn, LogOut } from "lucide-react";
+import { Users, UserCog, Phone, Bell, Ticket, UserPlus, GraduationCap, CalendarDays, Video, Clock, LogIn, LogOut, IndianRupee } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { toast } from "sonner";
 import { getMyOperationsAttendance, operationsCheckIn, operationsCheckOut } from "../../api/attendance";
+import { getOperationsDashboard, type OperationsDashboard as OperationsDashboardData } from "../../api/dashboard";
 import type { MyOperationsAttendance } from "../../api/types";
 
 export function OperationsDashboard() {
   const [attendance, setAttendance] = useState<MyOperationsAttendance>(null);
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(true);
   const [isClocking, setIsClocking] = useState(false);
+  const [dashboardData, setDashboardData] = useState<OperationsDashboardData | null>(null);
 
   useEffect(() => {
     setIsAttendanceLoading(true);
@@ -19,6 +21,12 @@ export function OperationsDashboard() {
       .then(setAttendance)
       .catch(() => setAttendance(null))
       .finally(() => setIsAttendanceLoading(false));
+  }, []);
+
+  useEffect(() => {
+    getOperationsDashboard("OPERATIONS")
+      .then(setDashboardData)
+      .catch(() => setDashboardData(null));
   }, []);
 
   const fmtTime = (ts: string | null) =>
@@ -54,83 +62,59 @@ export function OperationsDashboard() {
 
   const dotColor = attendance?.checkOut ? "#10b981" : attendance?.checkIn ? "#f59e0b" : "#94a3b8";
   const borderColor = attendance?.checkOut ? "#10b98140" : attendance?.checkIn ? "#f59e0b40" : "#e2e8f0";
+  const fmtDiff = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `${n}` : "—");
+
   const metrics = [
-    { title: 'Total Employees', value: '156', change: '+8', icon: Users, color: '#ff691d', href: '/operations/employees' },
-    { title: 'Active Yoga Shikshaks', value: '42', change: '+5', icon: GraduationCap, color: '#610981', href: '/operations/tutors' },
-    { title: 'Frontline Team', value: '28', change: '+3', icon: Phone, color: '#10b981', href: '/operations/frontline-team' },
-    { title: 'Active Sādhakas', value: '1,247', change: '+156', icon: UserPlus, color: '#f59e0b', href: '/operations/users' },
-    { title: 'Recorded Classes', value: '89', change: '+12', icon: Video, color: '#8b5cf6', href: '/operations/classes/self-paced' },
-  ];
-
-  const recentActivities = [
-    { id: 1, action: 'New Event Created', user: 'International Yoga Day Celebration', time: '2 mins ago', type: 'event', status: 'Active' },
-    { id: 2, action: 'New Banner Created', user: 'Annual Plan 20% OFF', time: '5 mins ago', type: 'banner', status: 'Active' },
-    { id: 3, action: 'New Yoga Shikshak Added', user: 'Priya Sharma', time: '10 mins ago', type: 'tutor', status: 'Completed' },
-    { id: 4, action: 'Event Registration', user: '12 new registrations', time: '15 mins ago', type: 'event', status: 'Active' },
-    { id: 5, action: 'Notification Sent', user: 'Platform Maintenance Alert', time: '25 mins ago', type: 'notification', status: 'Sent' },
-    { id: 6, action: 'Coupon Code Created', user: 'SUMMER25', time: '45 mins ago', type: 'coupon', status: 'Active' },
-    { id: 7, action: 'Event Updated', user: 'Advanced Meditation Retreat', time: '1 hour ago', type: 'event', status: 'Updated' },
-    { id: 8, action: 'Employee Updated', user: 'Rahul Kumar', time: '2 hours ago', type: 'employee', status: 'Completed' },
-  ];
-
-  const quickStats = [
-    { label: 'Pending Approvals', value: '12', color: '#f59e0b' },
-    { label: 'Active Coupons', value: '8', color: '#10b981' },
-    { label: 'New Leads Today', value: '34', color: '#610981' },
-    { label: 'Scheduled Classes', value: '156', color: '#ff691d' },
-  ];
-
-  const recentUpdates = [
     {
-      module: 'Events Management',
-      update: 'New Events Module Added',
-      description: 'Operations team can now create, read, edit and delete events. Users can browse and register for events.',
-      date: 'Today',
-      badge: 'New Module',
-      color: '#3b82f6'
+      title: 'Total Employees',
+      value: dashboardData ? dashboardData.cards.employees.total.toLocaleString() : '—',
+      change: dashboardData ? fmtDiff(dashboardData.cards.employees.diff) : null,
+      icon: Users, color: '#ff691d', href: '/operations/employees',
     },
     {
-      module: 'App Notifications',
-      update: 'Added User Banner Management',
-      description: 'New tab for creating and managing promotional banners with image upload support',
-      date: 'Today',
-      badge: 'New Feature',
-      color: '#10b981'
+      title: 'Active Yoga Shikshaks',
+      value: dashboardData ? dashboardData.cards.tutors.total.toLocaleString() : '—',
+      change: dashboardData ? fmtDiff(dashboardData.cards.tutors.diff) : null,
+      icon: GraduationCap, color: '#610981', href: '/operations/tutors',
     },
     {
-      module: 'App Notifications',
-      update: 'Enhanced Analytics',
-      description: 'Added banner impression tracking, click rates, and performance metrics',
-      date: 'Today',
-      badge: 'Enhancement',
-      color: '#610981'
+      title: 'Frontline Team',
+      value: dashboardData ? dashboardData.cards.frontline.total.toLocaleString() : '—',
+      change: dashboardData ? fmtDiff(dashboardData.cards.frontline.diff) : null,
+      icon: Phone, color: '#10b981', href: '/operations/frontline-team',
+    },
+    {
+      title: 'Active Sādhakas',
+      value: dashboardData ? dashboardData.cards.students.total.toLocaleString() : '—',
+      change: dashboardData ? fmtDiff(dashboardData.cards.students.diff) : null,
+      icon: UserPlus, color: '#f59e0b', href: '/operations/users',
+    },
+    {
+      title: 'Recorded Classes',
+      value: dashboardData ? dashboardData.cards.recorded.total.toLocaleString() : '—',
+      change: dashboardData ? fmtDiff(dashboardData.cards.recorded.diff) : null,
+      icon: Video, color: '#8b5cf6', href: '/operations/classes/self-paced',
     },
   ];
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'event': return <CalendarDays className="w-4 h-4" />;
-      case 'banner': return <Image className="w-4 h-4" />;
-      case 'tutor': return <GraduationCap className="w-4 h-4" />;
-      case 'notification': return <Bell className="w-4 h-4" />;
-      case 'coupon': return <Ticket className="w-4 h-4" />;
-      case 'employee': return <Users className="w-4 h-4" />;
-      case 'class': return <CalendarDays className="w-4 h-4" />;
-      case 'lead': return <UserPlus className="w-4 h-4" />;
-      default: return <Activity className="w-4 h-4" />;
-    }
+  const fmtRelative = (iso: string) => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins} min${mins === 1 ? "" : "s"} ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} hr${hrs === 1 ? "" : "s"} ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
   };
 
-  const getActivityColor = (type: string) => {
-    switch (type) {
-      case 'event': return '#3b82f6';
-      case 'banner': return '#10b981';
-      case 'tutor': return '#ff691d';
-      case 'notification': return '#8b5cf6';
-      case 'coupon': return '#f59e0b';
-      case 'employee': return '#610981';
-      case 'class': return '#3b82f6';
-      case 'lead': return '#ec4899';
+  const fmtPaymentType = (type: string) =>
+    type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+  const audienceColor = (audience: string) => {
+    switch (audience) {
+      case "ALL": return '#610981';
+      case "STUDENTS": return '#f59e0b';
+      case "TUTORS": return '#ff691d';
       default: return '#64748b';
     }
   };
@@ -200,7 +184,11 @@ export function OperationsDashboard() {
                 <CardContent>
                   <div className="flex items-baseline gap-2">
                     <div className="text-2xl font-semibold">{metric.value}</div>
-                    <span className="text-sm font-medium text-green-600">{metric.change}</span>
+                    {metric.change != null && (
+                      <span className={`text-sm font-medium ${metric.change.startsWith('-') ? 'text-red-500' : 'text-green-600'}`}>
+                        {metric.change}
+                      </span>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -222,21 +210,21 @@ export function OperationsDashboard() {
                     <UserCog className="w-5 h-5" style={{ color: '#610981' }} />
                     <span className="font-medium">Employees</span>
                   </div>
-                  <span className="text-sm font-semibold">156</span>
+                  <span className="text-sm font-semibold">{dashboardData ? dashboardData.team.employees : '—'}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                   <div className="flex items-center gap-3">
                     <GraduationCap className="w-5 h-5" style={{ color: '#ff691d' }} />
                     <span className="font-medium">Yoga Shikshaks</span>
                   </div>
-                  <span className="text-sm font-semibold">42</span>
+                  <span className="text-sm font-semibold">{dashboardData ? dashboardData.team.tutors : '—'}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                   <div className="flex items-center gap-3">
                     <Phone className="w-5 h-5" style={{ color: '#10b981' }} />
                     <span className="font-medium">Frontline Team</span>
                   </div>
-                  <span className="text-sm font-semibold">28</span>
+                  <span className="text-sm font-semibold">{dashboardData ? dashboardData.team.frontline : '—'}</span>
                 </div>
               </div>
             </CardContent>
@@ -254,28 +242,28 @@ export function OperationsDashboard() {
                     <Ticket className="w-5 h-5" style={{ color: '#f59e0b' }} />
                     <span className="font-medium">Active Coupons</span>
                   </div>
-                  <span className="text-sm font-semibold">8</span>
+                  <span className="text-sm font-semibold">{dashboardData ? dashboardData.system.coupons : '—'}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                   <div className="flex items-center gap-3">
                     <Bell className="w-5 h-5" style={{ color: '#8b5cf6' }} />
                     <span className="font-medium">Notifications Sent</span>
                   </div>
-                  <span className="text-sm font-semibold">245</span>
+                  <span className="text-sm font-semibold">{dashboardData ? dashboardData.system.notifications : '—'}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                   <div className="flex items-center gap-3">
                     <CalendarDays className="w-5 h-5" style={{ color: '#3b82f6' }} />
                     <span className="font-medium">Active Classes</span>
                   </div>
-                  <span className="text-sm font-semibold">156</span>
+                  <span className="text-sm font-semibold">{dashboardData ? (dashboardData.system.classes || '—') : '—'}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                   <div className="flex items-center gap-3">
                     <Video className="w-5 h-5" style={{ color: '#8b5cf6' }} />
                     <span className="font-medium">Recorded Classes</span>
                   </div>
-                  <span className="text-sm font-semibold">89</span>
+                  <span className="text-sm font-semibold">{dashboardData ? (dashboardData.system.recorded || '—') : '—'}</span>
                 </div>
               </div>
             </CardContent>
@@ -283,43 +271,33 @@ export function OperationsDashboard() {
         </div>
  
         <div className="grid gap-4 md:grid-cols-2">
+          {/* Recent Payments */}
           <Card className="relative overflow-hidden">
             <div className="absolute top-0 right-0 w-40 h-40 bg-[#610981]/5 rounded-full blur-3xl" />
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle style={{ color: '#ff691d' }}>Recent Activities</CardTitle>
-                <Badge variant="secondary" className="text-xs">Last 24 hours</Badge>
+                <CardTitle style={{ color: '#ff691d' }}>Recent Payments</CardTitle>
+                <Badge variant="secondary" className="text-xs">Last 5</Badge>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {recentActivities.map((activity) => (
-                  <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-linear-to-r from-gray-50 to-white border border-gray-100 hover:shadow-sm transition-shadow">
-                    <div 
-                      className="p-2 rounded-lg shrink-0"
-                      style={{ backgroundColor: `${getActivityColor(activity.type)}20` }}
-                    >
-                      <div style={{ color: getActivityColor(activity.type) }}>
-                        {getActivityIcon(activity.type)}
-                      </div>
+              <div className="space-y-3">
+                {!dashboardData ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">Loading...</p>
+                ) : dashboardData.recentPayments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No payments yet</p>
+                ) : dashboardData.recentPayments.map((p) => (
+                  <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100 hover:shadow-sm transition-shadow">
+                    <div className="p-2 rounded-lg shrink-0" style={{ backgroundColor: '#ff691d20' }}>
+                      <IndianRupee className="w-4 h-4" style={{ color: '#ff691d' }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm">{activity.action}</p>
-                          <p className="text-xs text-muted-foreground truncate">{activity.user}</p>
-                        </div>
-                        <div className="flex flex-col items-end gap-1 shrink-0">
-                          <Badge 
-                            variant="outline" 
-                            className="text-xs"
-                            style={{ borderColor: getActivityColor(activity.type), color: getActivityColor(activity.type) }}
-                          >
-                            {activity.status}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">{activity.time}</span>
-                        </div>
-                      </div>
+                      <p className="font-medium text-sm truncate">{p.studentName}</p>
+                      <p className="text-xs text-muted-foreground">{fmtPaymentType(p.type)}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className="text-sm font-semibold text-green-600">₹{p.amount.toLocaleString('en-IN')}</span>
+                      <span className="text-xs text-muted-foreground">{fmtRelative(p.createdAt)}</span>
                     </div>
                   </div>
                 ))}
@@ -327,44 +305,44 @@ export function OperationsDashboard() {
             </CardContent>
           </Card>
 
+          {/* Recent Notifications */}
           <Card className="relative overflow-hidden">
             <div className="absolute top-0 right-0 w-40 h-40 bg-[#10b981]/5 rounded-full blur-3xl" />
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle style={{ color: '#ff691d' }}>Module Updates</CardTitle>
-                <Badge className="text-xs" style={{ backgroundColor: '#10b981' }}>Latest</Badge>
+                <CardTitle style={{ color: '#ff691d' }}>Recent Notifications</CardTitle>
+                <Badge className="text-xs" style={{ backgroundColor: '#8b5cf6' }}>Last 5</Badge>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentUpdates.map((update, index) => (
-                  <div key={index} className="p-4 rounded-lg border-2 hover:shadow-md transition-shadow" style={{ borderColor: `${update.color}30`, backgroundColor: `${update.color}05` }}>
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="p-2 rounded-lg"
-                          style={{ backgroundColor: `${update.color}20` }}
-                        >
-                          <TrendingUp className="w-4 h-4" style={{ color: update.color }} />
+              <div className="space-y-3">
+                {!dashboardData ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">Loading...</p>
+                ) : dashboardData.recentNotifications.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No notifications yet</p>
+                ) : dashboardData.recentNotifications.map((n) => (
+                  <div key={n.id} className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:shadow-sm transition-shadow" style={{ backgroundColor: `${audienceColor(n.targetAudience)}05` }}>
+                    <div className="p-2 rounded-lg shrink-0" style={{ backgroundColor: `${audienceColor(n.targetAudience)}20` }}>
+                      <Bell className="w-4 h-4" style={{ color: audienceColor(n.targetAudience) }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{n.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">{n.message}</p>
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-sm">{update.module}</h4>
-                          <p className="text-xs text-muted-foreground">{update.date}</p>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <Badge
+                            variant="outline"
+                            className="text-xs"
+                            style={{ borderColor: audienceColor(n.targetAudience), color: audienceColor(n.targetAudience) }}
+                          >
+                            {n.sent ? 'Sent' : 'Scheduled'}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">{fmtRelative(n.createdAt)}</span>
                         </div>
                       </div>
-                      <Badge 
-                        className="text-xs shrink-0"
-                        style={{ backgroundColor: update.color, color: 'white' }}
-                      >
-                        {update.badge}
-                      </Badge>
                     </div>
-                    <h5 className="font-medium text-sm mb-1" style={{ color: update.color }}>
-                      {update.update}
-                    </h5>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {update.description}
-                    </p>
                   </div>
                 ))}
               </div>

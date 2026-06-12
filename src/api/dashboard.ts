@@ -98,6 +98,22 @@ export type OperationsDashboard = {
     classes: number;
     recorded: number;
   };
+  recentPayments: Array<{
+    id: string;
+    studentName: string;
+    amount: number;
+    type: string;
+    status: string;
+    createdAt: string;
+  }>;
+  recentNotifications: Array<{
+    id: string;
+    title: string;
+    message: string;
+    targetAudience: string;
+    sent: boolean;
+    createdAt: string;
+  }>;
 };
 
 export function getSuperadminDashboard(role: Role) {

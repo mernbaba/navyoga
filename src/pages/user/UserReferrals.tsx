@@ -551,7 +551,7 @@ export function UserReferrals() {
                   </div>
                 </div>
 
-                <div className="pt-4">
+                {/* <div className="pt-4">
                   <p className="text-sm font-medium mb-3">Share on Social Media</p>
                   <div className="flex flex-wrap gap-2">
                     <Button
@@ -583,7 +583,7 @@ export function UserReferrals() {
                       Twitter
                     </Button>
                   </div>
-                </div>
+                </div> */}
               </CardContent>
             </Card>
           </motion.div>
