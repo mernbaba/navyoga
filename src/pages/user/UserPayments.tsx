@@ -39,6 +39,7 @@ import { listBatches } from "../../api/batches";
 import type { LivePlan, SelfPacedPlan, YTTPlan, Batch } from "../../api/types";
 import { CouponInput, type CouponApplied } from "../../components/CouponInput";
 import type { CouponValidateBody } from "../../api/coupons";
+import { computeGstBreakup, useGstPercentage } from "../../lib/gst";
 
 type PlanCategory = "live" | "self-paced" | "ytt-recorded" | "ytt-live";
 
@@ -60,11 +61,8 @@ type UiPlan = {
 
 const COLOR_DEFAULT = "#ff691d";
 
-const GST_RATE = 0.05;
 const formatINR = (val: number) =>
   val.toLocaleString("en-IN", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
-const gstAmount = (price: number) => price * GST_RATE;
-const priceWithGst = (price: number) => price * (1 + GST_RATE);
 
 const formatValidity = (days: number) => {
   if (days <= 31) return "month";
@@ -135,6 +133,7 @@ const isValidTab = (v: string | null): v is TabValue =>
   v !== null && (VALID_TABS as string[]).includes(v);
 
 export function UserPayments() {
+  const { gstPercentage } = useGstPercentage();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get("tab");
   const activeTab: TabValue = isValidTab(tabFromUrl) ? tabFromUrl : "live";
@@ -526,7 +525,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                               ₹{plan.originalPrice}
                             </span>
                           )}
-                          <span className="text-sm text-muted-foreground">+ GST</span>
+                          <span className="text-sm text-muted-foreground">incl. GST</span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
                           for {plan.duration}
@@ -763,7 +762,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                               ₹{plan.originalPrice}
                             </span>
                           )}
-                          <span className="text-sm text-muted-foreground">+ GST</span>
+                          <span className="text-sm text-muted-foreground">incl. GST</span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
                           {plan.duration}
@@ -875,7 +874,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                               ₹{plan.originalPrice}
                             </span>
                           )}
-                          <span className="text-sm text-muted-foreground">+ GST</span>
+                          <span className="text-sm text-muted-foreground">incl. GST</span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
                           {plan.duration}
@@ -937,9 +936,13 @@ const [isEnrolling, setIsEnrolling] = useState(false);
             </DialogDescription>
           </DialogHeader>
           {selectedPlan && (() => {
-            const discountedPrice = appliedCoupon
-              ? Math.max(0, selectedPlan.price - appliedCoupon.discountAmount)
+            // Listed prices are GST-inclusive. The coupon's finalAmount is the
+            // GST-inclusive amount actually charged; without a coupon it's the
+            // plan price. GST shown is the portion contained within that total.
+            const totalPayable = appliedCoupon
+              ? appliedCoupon.finalAmount
               : selectedPlan.price;
+            const breakup = computeGstBreakup(totalPayable, gstPercentage);
             return (
             <div className="space-y-4">
               <div className="p-4 rounded-lg border-2" style={{ borderColor: selectedPlan.color }}>
@@ -967,14 +970,24 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                       <span>− ₹{formatINR(appliedCoupon.discountAmount)}</span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">GST (5%)</span>
-                    <span>₹{formatINR(gstAmount(discountedPrice))}</span>
-                  </div>
+                  {gstPercentage > 0 && (
+                    <>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Taxable value</span>
+                        <span>₹{formatINR(breakup.baseAmount)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          GST ({formatINR(gstPercentage)}%, incl.)
+                        </span>
+                        <span>₹{formatINR(breakup.gstAmount)}</span>
+                      </div>
+                    </>
+                  )}
                   <div className="flex items-baseline justify-between pt-1.5">
                     <span className="font-semibold">Total payable</span>
                     <span className="text-3xl font-bold" style={{ color: selectedPlan.color }}>
-                      ₹{formatINR(priceWithGst(discountedPrice))}
+                      ₹{formatINR(breakup.total)}
                     </span>
                   </div>
                   {selectedPlan.monthlyPrice && (

@@ -42,6 +42,7 @@ import { useRazorpay } from "react-razorpay";
 import { UserWorkshopsList } from "./UserWorkshopsList";
 import { resolveMediaUrl } from "../../lib/media";
 import { CouponInput, type CouponApplied } from "../../components/CouponInput";
+import { computeGstBreakup, useGstPercentage } from "../../lib/gst";
 
 interface Event {
   id: string;
@@ -104,6 +105,7 @@ export function UserEvents() {
   const [isRegistering, setIsRegistering] = useState(false);
   const { Razorpay } = useRazorpay();
   const [appliedCoupon, setAppliedCoupon] = useState<CouponApplied | null>(null);
+  const { gstPercentage } = useGstPercentage();
 
   useEffect(() => {
     let cancelled = false;
@@ -871,6 +873,14 @@ export function UserEvents() {
                       onCleared={() => setAppliedCoupon(null)}
                     />
                   )}
+                {(() => {
+                  // Prices are GST-inclusive. GST shown is the portion contained
+                  // within the charged total (coupon finalAmount, else price).
+                  const totalPayable = appliedCoupon
+                    ? appliedCoupon.finalAmount
+                    : selectedEvent.price;
+                  const breakup = computeGstBreakup(totalPayable, gstPercentage);
+                  return (
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">
@@ -887,13 +897,19 @@ export function UserEvents() {
                         <span className="text-3xl font-bold" style={{ color: "#ff691d" }}>
                           {selectedEvent.price === 0
                             ? "Free"
-                            : (appliedCoupon
-                                ? appliedCoupon.finalAmount
-                                : selectedEvent.price
-                              ).toLocaleString()}
+                            : totalPayable.toLocaleString()}
                         </span>
                       </div>
                     </div>
+                    {selectedEvent.price > 0 && gstPercentage > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Incl. GST ({gstPercentage.toLocaleString("en-IN")}%): ₹
+                        {breakup.gstAmount.toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </p>
+                    )}
                   </div>
                   <Button
                     size="lg"
@@ -922,6 +938,8 @@ export function UserEvents() {
                     )}
                   </Button>
                 </div>
+                  );
+                })()}
               </div>
             </div>
           )}

@@ -45,6 +45,7 @@ import type {
 } from "../../api/types";
 import { resolveMediaUrl } from "../../lib/media";
 import { CouponInput, type CouponApplied } from "../../components/CouponInput";
+import { computeGstBreakup, useGstPercentage } from "../../lib/gst";
 
 const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1506126613408-eca07ce68773";
@@ -90,6 +91,7 @@ export function UserWorkshopsList() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<CouponApplied | null>(null);
+  const { gstPercentage } = useGstPercentage();
 
   useEffect(() => {
     let cancelled = false;
@@ -529,6 +531,14 @@ export function UserWorkshopsList() {
                     onCleared={() => setAppliedCoupon(null)}
                   />
                 )}
+                {(() => {
+                  // Prices are GST-inclusive. GST shown is the portion contained
+                  // within the charged total (coupon finalAmount, else price).
+                  const totalPayable = appliedCoupon
+                    ? appliedCoupon.finalAmount
+                    : Number(detail.price);
+                  const breakup = computeGstBreakup(totalPayable, gstPercentage);
+                  return (
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-xs text-muted-foreground">
@@ -545,13 +555,19 @@ export function UserWorkshopsList() {
                         <span className="text-2xl font-bold" style={{ color: "#ff691d" }}>
                           {Number(detail.price) === 0
                             ? "Free"
-                            : (appliedCoupon
-                                ? appliedCoupon.finalAmount
-                                : Number(detail.price)
-                              ).toLocaleString("en-IN")}
+                            : totalPayable.toLocaleString("en-IN")}
                         </span>
                       </div>
                     </div>
+                    {Number(detail.price) > 0 && gstPercentage > 0 && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Incl. GST ({gstPercentage.toLocaleString("en-IN")}%): ₹
+                        {breakup.gstAmount.toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </p>
+                    )}
                   </div>
                   <Button
                     size="lg"
@@ -570,6 +586,8 @@ export function UserWorkshopsList() {
                     )}
                   </Button>
                 </div>
+                  );
+                })()}
               </div>
             </>
           )}
