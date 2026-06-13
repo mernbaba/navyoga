@@ -45,10 +45,18 @@ export type FinancialsPayment = {
   status: PaymentStatus;
 };
 
+export type DateRange =
+  | "THIS_WEEK"
+  | "LAST_7_DAYS"
+  | "LAST_MONTH"
+  | "LAST_3_MONTHS"
+  | "LAST_1_YEAR";
+
 export type FinancialsPaymentListParams = {
   q?: string;
   type?: PaymentType;
   status?: PaymentStatus;
+  dateRange?: DateRange;
   page?: number;
   limit?: number;
 };
@@ -82,4 +90,17 @@ export function listFinancialsPayments(
       params,
     }),
   );
+}
+
+export async function exportFinancialsPayments(
+  role: Role,
+  params: Omit<FinancialsPaymentListParams, "page" | "limit"> = {},
+): Promise<Blob> {
+  const res = await authedRequest<Blob>(role, {
+    method: "GET",
+    url: "/api/financials/payments/export",
+    params,
+    responseType: "blob",
+  });
+  return res.data;
 }

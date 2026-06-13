@@ -821,6 +821,8 @@ export type BusinessSettings = {
   email: string;
   phone: string;
   address: string;
+  // GST rate (percent) applied to all purchases. Decimal serialized as a string.
+  gstPercentage: string;
   timezone: string;
   currency: string;
   language: string;

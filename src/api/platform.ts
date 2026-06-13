@@ -6,6 +6,7 @@ export type PlatformUpdateBody = Partial<{
   email: string;
   phone: string;
   address: string;
+  gstPercentage: number;
   timezone: string;
   currency: string;
   language: string;

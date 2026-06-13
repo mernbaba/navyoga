@@ -112,7 +112,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/",
-    element: <Navigate to="/login" replace />,
+    element: <Navigate to={import.meta.env.VITE_BASE_REDIRECT || "/login"} replace />,
   },
   {
     path: "/superadmin",

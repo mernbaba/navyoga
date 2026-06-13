@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import { Users, Calendar, Clock, TrendingUp, CheckCircle, Sparkles, Play, ClipboardCheck, Gift, ArrowRight, Award, GraduationCap, IndianRupee } from "lucide-react";
+import { Users, Calendar, Clock, TrendingUp, CheckCircle, Play, ClipboardCheck, Gift, ArrowRight, Award, GraduationCap, IndianRupee } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -93,10 +93,7 @@ export function TutorDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                    <Sparkles className="w-6 h-6" />
-                  </div>
-                  <Badge variant="secondary" className="bg-white/20 text-white border-0">
+<Badge variant="secondary" className="bg-white/20 text-white border-0">
                     Yoga Shikshak
                   </Badge>
                 </div>

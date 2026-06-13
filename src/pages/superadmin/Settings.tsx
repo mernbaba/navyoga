@@ -30,6 +30,7 @@ export function Settings() {
   const [businessEmail, setBusinessEmail] = useState("");
   const [businessPhone, setBusinessPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [gstPercentage, setGstPercentage] = useState("");
   const [timezone, setTimezone] = useState("");
   const [currency, setCurrency] = useState("");
   const [language, setLanguage] = useState("");
@@ -62,6 +63,7 @@ export function Settings() {
         setBusinessEmail(fresh.email);
         setBusinessPhone(fresh.phone);
         setAddress(fresh.address);
+        setGstPercentage(String(fresh.gstPercentage));
         setTimezone(fresh.timezone);
         setCurrency(fresh.currency);
         setLanguage(fresh.language);
@@ -108,6 +110,13 @@ export function Settings() {
   ) => {
     event.preventDefault();
     if (isPlatformSaving) return;
+
+    const gstValue = Number(gstPercentage);
+    if (Number.isNaN(gstValue) || gstValue < 0 || gstValue > 100) {
+      toast.error("GST percentage must be a number between 0 and 100.");
+      return;
+    }
+
     setIsPlatformSaving(true);
     try {
       const updated = await updatePlatform({
@@ -115,6 +124,7 @@ export function Settings() {
         email: businessEmail,
         phone: businessPhone,
         address,
+        gstPercentage: gstValue,
         timezone,
         currency,
         language,
@@ -249,6 +259,23 @@ export function Settings() {
                 onChange={(event) => setAddress(event.target.value)}
                 disabled={isPlatformLoading}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="gstPercentage">GST Percentage (%)</Label>
+              <Input
+                id="gstPercentage"
+                type="number"
+                min={0}
+                max={100}
+                step="0.01"
+                value={gstPercentage}
+                onChange={(event) => setGstPercentage(event.target.value)}
+                disabled={isPlatformLoading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Applied to all purchases. Prices are GST-inclusive; this drives
+                the tax breakup shown at checkout.
+              </p>
             </div>
            {/* <div className="grid gap-2">
               <Label htmlFor="timezone">Timezone</Label>

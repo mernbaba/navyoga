@@ -7,7 +7,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { registerStudent } from "../../api/auth";
-import { setRoleAuth } from "../../lib/auth";
+import { isRoleAuthenticated, setRoleAuth } from "../../lib/auth";
 
 export function UserRegister() {
   const navigate = useNavigate();
@@ -20,6 +20,12 @@ export function UserRegister() {
   const [referredByCode, setReferredByCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isRoleAuthenticated("STUDENT")) {
+      navigate("/user/dashboard", { replace: true });
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const ref = searchParams.get("ref");

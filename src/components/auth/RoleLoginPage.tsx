@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { motion } from "motion/react";
@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { loginWithRole, setRoleAuth } from "../../lib/auth";
+import { isRoleAuthenticated, loginWithRole, setRoleAuth } from "../../lib/auth";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
 
 export type LoginRole = "SUPERADMIN" | "TUTOR" | "OPERATIONS" | "FRONTLINE" | "STUDENT";
@@ -54,6 +54,12 @@ export function RoleLoginPage({ role }: { role: LoginRole }) {
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
   const config = loginPageConfig[role];
+
+  useEffect(() => {
+    if (isRoleAuthenticated(role)) {
+      navigate(config.destination, { replace: true });
+    }
+  }, [role, config.destination, navigate]);
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

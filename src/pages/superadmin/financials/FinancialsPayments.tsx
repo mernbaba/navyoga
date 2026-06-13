@@ -33,15 +33,18 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getFinancialsPaymentStats,
   listFinancialsPayments,
+  exportFinancialsPayments,
   type FinancialsPayment,
   type FinancialsPaymentStats,
   type PaymentStatus,
   type PaymentType,
+  type DateRange,
 } from "../../../api/financials";
 
 const PAGE_SIZE = 20;
@@ -86,9 +89,11 @@ export function FinancialsPayments() {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"ALL" | PaymentType>("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | PaymentStatus>("ALL");
+  const [dateRange, setDateRange] = useState<"ALL" | DateRange>("ALL");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -119,6 +124,7 @@ export function FinancialsPayments() {
       q: searchQuery || undefined,
       type: typeFilter === "ALL" ? undefined : typeFilter,
       status: statusFilter === "ALL" ? undefined : statusFilter,
+      dateRange: dateRange === "ALL" ? undefined : dateRange,
       page,
       limit: PAGE_SIZE,
     })
@@ -144,11 +150,34 @@ export function FinancialsPayments() {
     return () => {
       cancelled = true;
     };
-  }, [searchQuery, typeFilter, statusFilter, page]);
+  }, [searchQuery, typeFilter, statusFilter, dateRange, page]);
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, typeFilter, statusFilter]);
+  }, [searchQuery, typeFilter, statusFilter, dateRange]);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const blob = await exportFinancialsPayments("SUPERADMIN", {
+        q: searchQuery || undefined,
+        type: typeFilter === "ALL" ? undefined : typeFilter,
+        status: statusFilter === "ALL" ? undefined : statusFilter,
+        dateRange: dateRange === "ALL" ? undefined : dateRange,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `payments-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Export failed";
+      toast.error(message);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const subscriptionShare =
     stats && stats.revenue > 0
@@ -226,12 +255,28 @@ export function FinancialsPayments() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle style={{ color: "#ff691d" }}>Recent Payments</CardTitle>
-          <CardDescription>View and search payment transactions</CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle style={{ color: "#ff691d" }}>Recent Payments</CardTitle>
+            <CardDescription>View and search payment transactions</CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            disabled={exporting}
+            className="shrink-0"
+          >
+            {exporting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
+            {exporting ? "Exporting…" : "Export CSV"}
+          </Button>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 grid gap-3 md:grid-cols-[1fr_180px_180px]">
+          <div className="mb-4 grid gap-3 md:grid-cols-[1fr_160px_160px_180px]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none z-10" />
               <Input
@@ -270,6 +315,22 @@ export function FinancialsPayments() {
                 <SelectItem value="PAID">Paid</SelectItem>
                 <SelectItem value="PENDING">Pending</SelectItem>
                 <SelectItem value="FAILED">Failed</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={dateRange}
+              onValueChange={(v) => setDateRange(v as "ALL" | DateRange)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All time" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All time</SelectItem>
+                <SelectItem value="THIS_WEEK">This week</SelectItem>
+                <SelectItem value="LAST_7_DAYS">Last 7 days</SelectItem>
+                <SelectItem value="LAST_MONTH">Last month</SelectItem>
+                <SelectItem value="LAST_3_MONTHS">Last 3 months</SelectItem>
+                <SelectItem value="LAST_1_YEAR">Last 1 year</SelectItem>
               </SelectContent>
             </Select>
           </div>
