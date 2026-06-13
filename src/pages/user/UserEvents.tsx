@@ -42,7 +42,7 @@ import { useRazorpay } from "react-razorpay";
 import { UserWorkshopsList } from "./UserWorkshopsList";
 import { resolveMediaUrl } from "../../lib/media";
 import { CouponInput, type CouponApplied } from "../../components/CouponInput";
-import { computeGstBreakup, useGstPercentage } from "../../lib/gst";
+import { computeGstAddOn, useGstPercentage } from "../../lib/gst";
 
 interface Event {
   id: string;
@@ -874,18 +874,17 @@ export function UserEvents() {
                     />
                   )}
                 {(() => {
-                  // Prices are GST-inclusive. GST shown is the portion contained
-                  // within the charged total (coupon finalAmount, else price).
-                  const totalPayable = appliedCoupon
-                    ? appliedCoupon.finalAmount
+                  // Prices are GST-exclusive base values. The coupon discounts
+                  // the base; GST is added on top to form the total payable.
+                  const discountedBase = appliedCoupon
+                    ? Math.max(0, selectedEvent.price - appliedCoupon.discountAmount)
                     : selectedEvent.price;
-                  const breakup = computeGstBreakup(totalPayable, gstPercentage);
+                  const breakup = computeGstAddOn(discountedBase, gstPercentage);
+                  const isFree = selectedEvent.price === 0;
                   return (
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      {appliedCoupon ? "Total payable" : "Event Price"}
-                    </p>
+                    <p className="text-sm text-muted-foreground mb-1">Total payable</p>
                     <div className="flex items-baseline gap-2">
                       {appliedCoupon && (
                         <span className="text-base text-muted-foreground line-through">
@@ -895,15 +894,19 @@ export function UserEvents() {
                       <div className="flex items-center gap-2">
                         <IndianRupee className="w-6 h-6" style={{ color: "#ff691d" }} />
                         <span className="text-3xl font-bold" style={{ color: "#ff691d" }}>
-                          {selectedEvent.price === 0
+                          {isFree
                             ? "Free"
-                            : totalPayable.toLocaleString()}
+                            : breakup.total.toLocaleString("en-IN", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
                         </span>
                       </div>
                     </div>
-                    {selectedEvent.price > 0 && gstPercentage > 0 && (
+                    {!isFree && gstPercentage > 0 && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        Incl. GST ({gstPercentage.toLocaleString("en-IN")}%): ₹
+                        ₹{breakup.baseAmount.toLocaleString("en-IN")} + GST (
+                        {gstPercentage.toLocaleString("en-IN")}%) ₹
                         {breakup.gstAmount.toLocaleString("en-IN", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,

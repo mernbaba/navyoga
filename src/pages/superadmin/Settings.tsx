@@ -273,8 +273,8 @@ export function Settings() {
                 disabled={isPlatformLoading}
               />
               <p className="text-xs text-muted-foreground">
-                Applied to all purchases. Prices are GST-inclusive; this drives
-                the tax breakup shown at checkout.
+                Applied to all purchases. Prices are GST-exclusive; this rate is
+                added on top at checkout.
               </p>
             </div>
            {/* <div className="grid gap-2">
