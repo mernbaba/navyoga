@@ -54,6 +54,24 @@ export function listWorkshops(role: Role, params: WorkshopListParams = {}) {
   );
 }
 
+export type WorkshopStats = {
+  total: number;
+  live: number;
+  totalCapacity: number;
+  totalEnrolled: number;
+};
+
+// Admin/operations stat cards — aggregates across ALL workshops, independent of
+// the paginated list, so the cards don't show only the current page's data.
+export function getWorkshopStats(role: Role) {
+  return unwrap<WorkshopStats>(
+    authedRequest<ApiSuccess<WorkshopStats>>(role, {
+      method: "GET",
+      url: `${BASE}/stats`,
+    }),
+  );
+}
+
 export function getWorkshop(role: Role, id: string) {
   return unwrap<WorkshopWithSessions>(
     authedRequest<ApiSuccess<WorkshopWithSessions>>(role, {
@@ -262,6 +280,24 @@ export function listUpcomingWorkshops(role: Role, params: UpcomingWorkshopParams
       method: "GET",
       url: `${BASE}/upcoming`,
       params,
+    }),
+  );
+}
+
+export type UpcomingWorkshopStats = {
+  total: number;
+  registered: number;
+  upcoming: number;
+  totalCapacity: number;
+};
+
+// Aggregates across ALL upcoming workshops (not the current page) for the stat
+// cards, so they stay correct independent of pagination.
+export function getUpcomingWorkshopStats(role: Role) {
+  return unwrap<UpcomingWorkshopStats>(
+    authedRequest<ApiSuccess<UpcomingWorkshopStats>>(role, {
+      method: "GET",
+      url: `${BASE}/upcoming/stats`,
     }),
   );
 }

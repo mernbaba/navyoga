@@ -39,7 +39,6 @@ import {
   Star,
   Clock,
   IndianRupee,
-  Sparkles,
   TrendingUp,
   ClipboardList,
   Upload,
@@ -52,8 +51,10 @@ import {
   updateEvent,
   deleteEvent,
   listEventEnrollments,
+  getEventStats,
   requestEventThumbnailPresign,
   type CreateEventInput,
+  type EventStats,
 } from "../../../api/events";
 import type { AppEvent, EventEnrollmentRow } from "../../../api/types";
 import { resolveMediaUrl } from "../../../lib/media";
@@ -116,6 +117,7 @@ export function ClassesEvents() {
   const role = useClassesRole();
   const [events, setEvents] = useState<AppEvent[]>([]);
   const [total, setTotal] = useState(0);
+  const [stats, setStats] = useState<EventStats | null>(null);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -199,6 +201,22 @@ export function ClassesEvents() {
       cancelled = true;
     };
   }, [debouncedQuery, filterFeatured, page, refreshKey]);
+
+  // Stat cards aggregate across ALL events (not just the current page), so they
+  // come from a dedicated endpoint. Refetched after create/delete via refreshKey.
+  useEffect(() => {
+    let cancelled = false;
+    getEventStats(role)
+      .then((res) => {
+        if (!cancelled) setStats(res);
+      })
+      .catch(() => {
+        // best-effort — cards fall back to page-derived counts
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [role, refreshKey]);
 
   // Manage object URL lifetime for the picked thumbnail preview.
   useEffect(() => {
@@ -339,7 +357,7 @@ export function ClassesEvents() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <div className="w-8 h-8 rounded-lg bg-linear-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-md shadow-[#ffac96]/40">
-              <Sparkles className="w-4 h-4 text-white" />
+              <Calendar className="w-4 h-4 text-white" />
             </div>
             <h1 className="text-2xl font-semibold tracking-tight">Events</h1>
           </div>
@@ -361,28 +379,28 @@ export function ClassesEvents() {
         {[
           {
             label: "Total Events",
-            value: total,
+            value: stats?.total ?? total,
             icon: Calendar,
             color: "text-[#610981]",
             bg: "bg-[#610981]/8",
           },
           {
             label: "Upcoming",
-            value: upcomingCount,
+            value: stats?.upcoming ?? upcomingCount,
             icon: TrendingUp,
             color: "text-emerald-600",
             bg: "bg-emerald-50",
           },
           {
             label: "Featured",
-            value: featuredCount,
+            value: stats?.featured ?? featuredCount,
             icon: Star,
             color: "text-[#ff691d]",
             bg: "bg-[#ff691d]/8",
           },
           {
             label: "Total Capacity",
-            value: totalCapacity,
+            value: stats?.totalCapacity ?? totalCapacity,
             icon: Users,
             color: "text-sky-600",
             bg: "bg-sky-50",
@@ -545,7 +563,7 @@ export function ClassesEvents() {
                               />
                             ) : (
                               <div className="w-10 h-10 rounded-lg bg-linear-to-br from-[#610981]/15 to-[#ff691d]/10 flex items-center justify-center shrink-0">
-                                <Sparkles className="w-4 h-4 text-[#610981]/60" />
+                                <ImageIcon className="w-4 h-4 text-[#610981]/60" />
                               </div>
                             )}
                             <div className="min-w-0">
@@ -699,7 +717,7 @@ export function ClassesEvents() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-md bg-linear-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center">
-                  <Sparkles className="w-3.5 h-3.5 text-white" />
+                  <Calendar className="w-3.5 h-3.5 text-white" />
                 </div>
                 {dialogMode === "create" ? "Create Event" : "Edit Event"}
               </DialogTitle>

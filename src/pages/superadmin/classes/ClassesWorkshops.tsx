@@ -42,7 +42,6 @@ import {
   Calendar,
   Users,
   IndianRupee,
-  Sparkles,
   ClipboardList,
   Layers,
   Upload,
@@ -57,8 +56,10 @@ import {
   deleteWorkshop,
   listWorkshopEnrollments,
   removeWorkshopEnrollment,
+  getWorkshopStats,
   requestWorkshopThumbnailPresign,
   type CreateWorkshopInput,
+  type WorkshopStats,
 } from "../../../api/workshops";
 import type {
   Workshop,
@@ -225,6 +226,8 @@ export function ClassesWorkshops() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [stats, setStats] = useState<WorkshopStats | null>(null);
+  const [statsKey, setStatsKey] = useState(0);
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>("create");
@@ -289,6 +292,22 @@ export function ClassesWorkshops() {
       cancelled = true;
     };
   }, [page, debouncedSearch, modeFilter]);
+
+  // Stat cards aggregate across ALL workshops (not just the current page), so
+  // they come from a dedicated endpoint. statsKey bumps after create/delete.
+  useEffect(() => {
+    let cancelled = false;
+    getWorkshopStats(role)
+      .then((res) => {
+        if (!cancelled) setStats(res);
+      })
+      .catch(() => {
+        // best-effort — cards fall back to page-derived counts
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [role, statsKey]);
 
   // Load enrollments
   useEffect(() => {
@@ -403,6 +422,7 @@ export function ClassesWorkshops() {
       setWorkshops(res.items);
       setTotal(res.total);
       setTotalPages(res.totalPages);
+      setStatsKey((k) => k + 1);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save workshop.");
     } finally {
@@ -419,6 +439,7 @@ export function ClassesWorkshops() {
       setDeleteTarget(null);
       setWorkshops((prev) => prev.filter((w) => w.id !== deleteTarget.id));
       setTotal((t) => Math.max(0, t - 1));
+      setStatsKey((k) => k + 1);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete workshop.");
     } finally {
@@ -450,9 +471,14 @@ export function ClassesWorkshops() {
     navigate(`${classesBase}/workshops/${w.id}`);
   }
 
-  const totalCapacity = workshops.reduce((sum, w) => sum + (w.capacity ?? 0), 0);
-  const totalEnrolled = workshops.reduce((sum, w) => sum + w.enrollmentCount, 0);
-  const liveCount = workshops.filter((w) => w.mode === "LIVE").length;
+  // Page-derived fallbacks, used only until the aggregate stats load.
+  const pageCapacity = workshops.reduce((sum, w) => sum + (w.capacity ?? 0), 0);
+  const pageEnrolled = workshops.reduce((sum, w) => sum + w.enrollmentCount, 0);
+  const pageLiveCount = workshops.filter((w) => w.mode === "LIVE").length;
+
+  const totalCapacity = stats?.totalCapacity ?? pageCapacity;
+  const totalEnrolled = stats?.totalEnrolled ?? pageEnrolled;
+  const liveCount = stats?.live ?? pageLiveCount;
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -460,7 +486,7 @@ export function ClassesWorkshops() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-start gap-3">
           <div className="p-2.5 rounded-2xl bg-linear-to-br from-[#610981] to-[#8b0fa8] shadow-lg">
-            <Sparkles className="w-6 h-6 text-white" />
+            <Layers className="w-6 h-6 text-white" />
           </div>
           <div>
             <h1 className="text-3xl font-bold" style={{ color: "#610981" }}>
@@ -482,10 +508,10 @@ export function ClassesWorkshops() {
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total Workshops" value={total} icon={<Layers className="w-5 h-5 text-white" />} gradient="from-orange-500 to-red-500" />
-        <StatCard label="Live (this page)" value={liveCount} icon={<Calendar className="w-5 h-5 text-white" />} gradient="from-rose-500 to-pink-500" />
+        <StatCard label="Total Workshops" value={stats?.total ?? total} icon={<Layers className="w-5 h-5 text-white" />} gradient="from-orange-500 to-red-500" />
+        <StatCard label="Live Workshops" value={liveCount} icon={<Calendar className="w-5 h-5 text-white" />} gradient="from-rose-500 to-pink-500" />
         <StatCard label="Total Capacity" value={totalCapacity} icon={<Users className="w-5 h-5 text-white" />} gradient="from-purple-600 to-pink-600" />
-        <StatCard label="Total Enrolled" value={totalEnrolled} icon={<Sparkles className="w-5 h-5 text-white" />} gradient="from-emerald-500 to-teal-500" />
+        <StatCard label="Total Enrolled" value={totalEnrolled} icon={<Users className="w-5 h-5 text-white" />} gradient="from-emerald-500 to-teal-500" />
       </div>
 
       {/* Search + Filter */}
@@ -555,7 +581,7 @@ export function ClassesWorkshops() {
                     <TableCell colSpan={7} className="text-center py-10">
                       <div className="flex flex-col items-center gap-2">
                         <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                          <Sparkles className="w-5 h-5 text-muted-foreground" />
+                          <Layers className="w-5 h-5 text-muted-foreground" />
                         </div>
                         <p className="text-sm text-muted-foreground">
                           {debouncedSearch || modeFilter !== "ALL" ? "No workshops match your filters." : "No workshops yet."}

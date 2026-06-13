@@ -41,6 +41,24 @@ export function listEvents(role: Role, params: EventListParams = {}) {
   );
 }
 
+export type EventStats = {
+  total: number;
+  upcoming: number;
+  featured: number;
+  totalCapacity: number;
+};
+
+// Admin/operations stat cards — aggregates across ALL events, independent of
+// the paginated list, so the cards don't show only the current page's data.
+export function getEventStats(role: Role) {
+  return unwrap<EventStats>(
+    authedRequest<ApiSuccess<EventStats>>(role, {
+      method: "GET",
+      url: "/api/events/stats",
+    }),
+  );
+}
+
 export function getEvent(role: Role, id: string) {
   return unwrap<AppEvent>(
     authedRequest<ApiSuccess<AppEvent>>(role, {
@@ -132,6 +150,24 @@ export function listUpcomingEvents(role: Role, params: UpcomingEventListParams =
       method: "GET",
       url: "/api/events/upcoming",
       params,
+    }),
+  );
+}
+
+export type UpcomingEventStats = {
+  total: number;
+  upcoming: number;
+  featured: number;
+  registered: number;
+};
+
+// Aggregates across ALL upcoming events (not the current page) for the stat
+// cards, so they stay correct independent of pagination.
+export function getUpcomingEventStats(role: Role) {
+  return unwrap<UpcomingEventStats>(
+    authedRequest<ApiSuccess<UpcomingEventStats>>(role, {
+      method: "GET",
+      url: "/api/events/upcoming/stats",
     }),
   );
 }

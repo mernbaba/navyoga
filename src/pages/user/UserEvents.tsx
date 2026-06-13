@@ -23,7 +23,6 @@ import {
   CalendarDays,
   IndianRupee,
   Video,
-  Sparkles,
   Trophy,
   Heart,
   TrendingUp,
@@ -33,8 +32,10 @@ import { toast } from "sonner";
 import {
   enrollInFreeEvent,
   getMyEventEnrollment,
+  getUpcomingEventStats,
   listMyEventEnrollments,
   listUpcomingEvents,
+  type UpcomingEventStats,
 } from "../../api/events";
 import { initiatePayment, verifyPayment } from "../../api/payments";
 import type { AppEvent } from "../../api/types";
@@ -106,6 +107,23 @@ export function UserEvents() {
   const { Razorpay } = useRazorpay();
   const [appliedCoupon, setAppliedCoupon] = useState<CouponApplied | null>(null);
   const { gstPercentage } = useGstPercentage();
+  const [eventStats, setEventStats] = useState<UpcomingEventStats | null>(null);
+
+  // Stat cards aggregate across ALL upcoming events, fetched separately from
+  // the paginated list so they don't collapse to a single page's data.
+  useEffect(() => {
+    let cancelled = false;
+    getUpcomingEventStats("STUDENT")
+      .then((res) => {
+        if (!cancelled) setEventStats(res);
+      })
+      .catch(() => {
+        // best-effort — cards fall back to page-derived counts
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -321,31 +339,34 @@ export function UserEvents() {
     enrolledIds.has(e.id),
   ).length;
 
+  // These cards render only on the events tab (the workshops tab delegates to
+  // UserWorkshopsList, which has its own aggregate stats). Prefer the
+  // backend-aggregated counts; fall back to page-derived values until loaded.
   const stats = [
     {
       label: `Total ${tabNoun}`,
-      value: tabFilteredEvents.length.toString(),
+      value: (eventStats?.total ?? tabFilteredEvents.length).toString(),
       icon: Calendar,
       color: "#ff691d",
       gradient: "from-orange-500 to-red-500",
     },
     {
       label: "Registered",
-      value: registeredInTab.toString(),
+      value: (eventStats?.registered ?? registeredInTab).toString(),
       icon: Star,
       color: "#10b981",
       gradient: "from-green-500 to-teal-500",
     },
     {
       label: "Upcoming",
-      value: tabFilteredEvents.length.toString(),
+      value: (eventStats?.upcoming ?? tabFilteredEvents.length).toString(),
       icon: TrendingUp,
       color: "#610981",
       gradient: "from-purple-600 to-pink-600",
     },
     {
       label: "Featured",
-      value: featuredEvents.length.toString(),
+      value: (eventStats?.featured ?? featuredEvents.length).toString(),
       icon: Trophy,
       color: "#f59e0b",
       gradient: "from-yellow-500 to-orange-500",
@@ -509,7 +530,6 @@ export function UserEvents() {
                                 </Badge>
                               )}
                               <Badge className="bg-white/90 text-gray-900 text-xs font-semibold">
-                                <Sparkles className="w-3 h-3 mr-1" />
                                 Featured
                               </Badge>
                             </div>
@@ -762,7 +782,6 @@ export function UserEvents() {
                   )}
                   {selectedEvent.featured && (
                     <Badge className="bg-white/90 text-gray-900 text-sm font-semibold">
-                      <Sparkles className="w-4 h-4 mr-1" />
                       Featured
                     </Badge>
                   )}
@@ -935,7 +954,6 @@ export function UserEvents() {
                       "Registering…"
                     ) : (
                       <>
-                        <Sparkles className="w-5 h-5" />
                         Register Now
                       </>
                     )}

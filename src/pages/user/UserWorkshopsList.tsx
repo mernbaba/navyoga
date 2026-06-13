@@ -20,7 +20,6 @@ import {
   Clock,
   Star,
   IndianRupee,
-  Sparkles,
   Trophy,
   TrendingUp,
   ListVideo,
@@ -32,9 +31,11 @@ import { useRazorpay } from "react-razorpay";
 import {
   enrollInFreeWorkshop,
   getMyWorkshopEnrollment,
+  getUpcomingWorkshopStats,
   getWorkshop,
   listMyWorkshopEnrolledIds,
   listUpcomingWorkshops,
+  type UpcomingWorkshopStats,
 } from "../../api/workshops";
 import { initiatePayment, verifyPayment } from "../../api/payments";
 import type {
@@ -92,6 +93,23 @@ export function UserWorkshopsList() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<CouponApplied | null>(null);
   const { gstPercentage } = useGstPercentage();
+  const [statsData, setStatsData] = useState<UpcomingWorkshopStats | null>(null);
+
+  // Stat cards aggregate across ALL upcoming workshops, fetched separately from
+  // the paginated list so they don't collapse to a single page's data.
+  useEffect(() => {
+    let cancelled = false;
+    getUpcomingWorkshopStats("STUDENT")
+      .then((res) => {
+        if (!cancelled) setStatsData(res);
+      })
+      .catch(() => {
+        // best-effort — cards fall back to page-derived counts
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -142,8 +160,9 @@ export function UserWorkshopsList() {
     };
   }, []);
 
-  const totalCapacity = workshops.reduce((sum, w) => sum + (w.capacity ?? 0), 0);
-  const upcomingCount = workshops.filter((w) => {
+  // Page-derived fallbacks, used only until the aggregate stats load.
+  const pageCapacity = workshops.reduce((sum, w) => sum + (w.capacity ?? 0), 0);
+  const pageUpcoming = workshops.filter((w) => {
     if (!w.startDate) return true;
     return new Date(w.startDate).getTime() > Date.now();
   }).length;
@@ -151,28 +170,28 @@ export function UserWorkshopsList() {
   const stats = [
     {
       label: "Total Workshops",
-      value: workshops.length.toString(),
+      value: (statsData?.total ?? workshops.length).toString(),
       icon: Calendar,
       color: "#ff691d",
       gradient: "from-orange-500 to-red-500",
     },
     {
       label: "Registered",
-      value: enrolledIds.size.toString(),
+      value: (statsData?.registered ?? enrolledIds.size).toString(),
       icon: Star,
       color: "#10b981",
       gradient: "from-green-500 to-teal-500",
     },
     {
       label: "Upcoming",
-      value: upcomingCount.toString(),
+      value: (statsData?.upcoming ?? pageUpcoming).toString(),
       icon: TrendingUp,
       color: "#610981",
       gradient: "from-purple-600 to-pink-600",
     },
     {
       label: "Total Capacity",
-      value: totalCapacity.toString(),
+      value: (statsData?.totalCapacity ?? pageCapacity).toString(),
       icon: Trophy,
       color: "#f59e0b",
       gradient: "from-yellow-500 to-orange-500",
@@ -352,7 +371,7 @@ export function UserWorkshopsList() {
             <CardContent className="relative z-10">
               {workshops.length === 0 ? (
                 <div className="text-center py-12">
-                  <Sparkles className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                  <Calendar className="w-16 h-16 mx-auto text-gray-300 mb-4" />
                   <h3 className="text-lg font-semibold text-gray-600 mb-2">No workshops yet</h3>
                   <p className="text-sm text-muted-foreground">Check back soon for upcoming workshops.</p>
                 </div>
@@ -585,7 +604,7 @@ export function UserWorkshopsList() {
                     ) : isRegistering ? (
                       "Processing…"
                     ) : (
-                      <><Sparkles className="w-5 h-5" /> Enroll Now</>
+                      <>Enroll Now</>
                     )}
                   </Button>
                 </div>
