@@ -1,6 +1,7 @@
 export * from "./types";
 export * as authApi from "./auth";
-export * as employeesApi from "./employees";
+export * as operationsApi from "./operations";
+export * as frontlineApi from "./frontline";
 export * as tutorsApi from "./tutors";
 export * as leadsApi from "./leads";
 export * as tasksApi from "./tasks";

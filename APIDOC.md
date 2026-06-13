@@ -484,68 +484,21 @@ See [Logout](#logout-all-roles).
 
 ---
 
-## Employees — `/api/employees`
+## Operations Staff Management — `/api/operations`
 
-Generic non-panel staff (Cleaners, Accountants, Marketing, …). The `Employee` model has no password — these accounts cannot log in. CRUD is for record-keeping only.
+Admin CRUD for Operations panel accounts. **All endpoints require `SUPERADMIN` auth** — Operations staff cannot manage other Operations staff.
 
-**All endpoints require `SUPERADMIN` or `OPERATIONS` auth.**
+| Method   | Path   | Notes                                                                                                                                 |
+| -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST`   | `/`    | Create. Body matches Register Operations (requires `password`). Auto-assigns `employeeId` (`OPS-<YEAR>-###`).                          |
+| `GET`    | `/`    | Paginated list. Query: `q` (name/email/employeeId), `status`, `department`, `page`, `limit`.                                           |
+| `GET`    | `/:id` | Single record by UUID. `404` if not found.                                                                                            |
+| `PATCH`  | `/:id` | Partial update. `employeeId` and `password` are immutable here. Updates name/email/phone/department/workingHours/timezone/salary/joinDate/status/isActive. |
+| `DELETE` | `/:id` | Hard-delete. Returns `409` if the staff member has attendance history — set `status: TERMINATED` instead.                              |
 
-> **Note:** Unlike the auth endpoints, employee routes do not run a strict schema validation. The server enforces (a) presence of required fields on create, (b) email uniqueness, and (c) that at least one field is provided on update. Type/format errors surface as `500` from Prisma.
+## Frontline Staff Management — `/api/frontline`
 
-### `POST /`
-
-Create an employee. Auto-assigns `employeeId` (`E001`, `E002`, …).
-
-**Body fields:**
-
-| Field        | Type   | Required | Notes                                                       |
-| ------------ | ------ | :------: | ----------------------------------------------------------- |
-| `email`      | string |    ✅    | Lowercased + trimmed server-side; must be unique            |
-| `name`       | string |    ✅    |                                                             |
-| `phone`      | string |    ✅    |                                                             |
-| `role`       | string |    ✅    | Job title (e.g. `"Accountant"`)                             |
-| `department` | string |    ✅    |                                                             |
-| `salary`     | number |    ✅    | Coerced via `Number(...)`                                   |
-| `joinDate`   | string |    ✅    | Anything `new Date(...)` accepts (ISO date or ISO datetime) |
-| `avatar`     | string |    ⬜    | Image URL                                                   |
-| `status`     | string |    ⬜    | `ACTIVE` \| `ON_LEAVE` \| `TERMINATED` (default `ACTIVE`)   |
-
-A required field is treated as missing if it's `undefined`, `null`, or an empty string — response is `400 Missing required fields: ...`.
-
-**Responses:** `201` — `{ data: <Employee> }`, `400` — required field missing, `409` — email already registered.
-
-### `GET /`
-
-List employees, paginated, with optional filters.
-
-**Query params:**
-
-| Param        | Type    | Required | Notes                                                  |
-| ------------ | ------- | :------: | ------------------------------------------------------ |
-| `q`          | string  |    ⬜    | Substring match across `name` / `email` / `employeeId` |
-| `status`     | string  |    ⬜    | `ACTIVE` \| `ON_LEAVE` \| `TERMINATED`                 |
-| `department` | string  |    ⬜    | Case-insensitive substring match                       |
-| `role`       | string  |    ⬜    | Case-insensitive substring match                       |
-| `page`       | integer |    ⬜    | Default `1`                                            |
-| `limit`      | integer |    ⬜    | Default `20`; clamped to `[1, 100]`                    |
-
-Returns the standard paginated envelope.
-
-### `GET /:id`
-
-Get a single employee by primary key (`id`, the UUID — not `employeeId`). `404` if not found.
-
-### `PATCH /:id`
-
-Partial update — send only the fields to change. `avatar` may be passed as `null` to clear it. `employeeId` is immutable.
-
-**Responses:** `200` — `{ data: <Employee> }`, `400` — empty body, `404` — not found, `409` — email collision.
-
-### `DELETE /:id`
-
-Hard-deletes the employee. `404` if not found, `200` on success with `data: null`.
-
-> Tip: prefer `PATCH /:id` with `{"status":"TERMINATED"}` over delete to preserve history.
+Admin CRUD for Frontline panel accounts. **Endpoints require `SUPERADMIN` or `OPERATIONS` auth** — Operations staff manage Frontline accounts. Shape mirrors `/api/operations`, with Frontline-specific fields (`designation`, `dailyTarget`) and per-row metrics (`callsToday`, `leadsAssigned`, `conversions`, `performance`). Create body matches Register Frontline (requires `password`).
 
 ---
 

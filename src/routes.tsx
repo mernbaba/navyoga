@@ -48,7 +48,6 @@ import { FrontlineCallLog } from "./pages/frontline/FrontlineCallLog";
 import { FrontlineTasks } from "./pages/frontline/FrontlineTasks";
 import { FrontlineSettings } from "./pages/frontline/FrontlineSettings";
 import { OperationsDashboard } from "./pages/operations/OperationsDashboard";
-import { OperationsEmployees } from "./pages/operations/OperationsEmployees";
 import { OperationsTutors } from "./pages/operations/OperationsTutors";
 import { OperationsFrontlineTeam } from "./pages/operations/OperationsFrontlineTeam";
 import { OperationsNotifications } from "./pages/operations/OperationsNotifications";
@@ -208,7 +207,6 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/operations/dashboard" replace /> },
       { path: "dashboard", Component: OperationsDashboard },
-      { path: "employees", Component: OperationsEmployees },
       { path: "tutors", Component: OperationsTutors },
       { path: "frontline-team", Component: OperationsFrontlineTeam },
       { path: "notifications", Component: OperationsNotifications },

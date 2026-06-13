@@ -127,6 +127,11 @@ export type FrontlineAgentRow = FrontlineUser & {
   performance: number;
 };
 
+export type OperationsStaffRow = OperationsUser & {
+  isActive: boolean;
+  updatedAt: string;
+};
+
 export type StudentUser = {
   id: string;
   email: string;
@@ -147,22 +152,6 @@ export type StudentUser = {
   currentLevel?: string | null;
   areasOfInterest?: string | null;
   termsAcceptedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type Employee = {
-  id: string;
-  employeeId: string;
-  email: string;
-  name: string;
-  phone: string;
-  avatar: string | null;
-  role: string;
-  department: string;
-  salary: number;
-  joinDate: string;
-  status: StaffStatus;
   createdAt: string;
   updatedAt: string;
 };
