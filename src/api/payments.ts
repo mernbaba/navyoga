@@ -1,15 +1,18 @@
 import { authedRequest } from "../lib/apiClient";
 import { unwrap, type ApiSuccess, type Role } from "./types";
 
-type WithCoupon<T> = T & { couponCode?: string };
+// `isUpgrade` is honored only for the four subscription domains. When set and
+// the student holds an active enrollment in that domain, the backend credits
+// the unused-time value of the current plan against the new plan's price.
+type WithExtras<T> = T & { couponCode?: string; isUpgrade?: boolean };
 
 export type InitiatePaymentInput =
-  | WithCoupon<{ type: "SELF_PACED"; planId: string }>
-  | WithCoupon<{ type: "LIVE"; planId: string; batchId?: string }>
-  | WithCoupon<{ type: "YTT_LIVE"; planId: string; courseId: string }>
-  | WithCoupon<{ type: "YTT_RECORDED"; planId: string; courseId: string }>
-  | WithCoupon<{ type: "EVENT"; entityId: string }>
-  | WithCoupon<{ type: "WORKSHOP"; entityId: string }>;
+  | WithExtras<{ type: "SELF_PACED"; planId: string }>
+  | WithExtras<{ type: "LIVE"; planId: string; batchId?: string }>
+  | WithExtras<{ type: "YTT_LIVE"; planId: string; courseId: string }>
+  | WithExtras<{ type: "YTT_RECORDED"; planId: string; courseId: string }>
+  | WithExtras<{ type: "EVENT"; entityId: string }>
+  | WithExtras<{ type: "WORKSHOP"; entityId: string }>;
 
 export type InitiatePaymentResponse = {
   orderId: string;
@@ -17,6 +20,13 @@ export type InitiatePaymentResponse = {
   currency: string;
   key: string;
   paymentRecordId: string;
+  // GST breakup returned by the backend. baseAmount + gstAmount === the charged
+  // amount (amountCharged, in rupees). For an upgrade, baseAmount already has
+  // the unused-days credit subtracted.
+  gstPercentage?: number;
+  baseAmount?: number;
+  gstAmount?: number;
+  amountCharged?: number;
   originalAmount?: number;
   discountAmount?: number;
 };

@@ -47,6 +47,7 @@ type UiPlan = {
   id: string;
   name: string;
   duration: string;
+  validity: number; // raw plan validity in days — used for upgrade proration
   price: number;
   originalPrice?: number;
   monthlyPrice?: number;
@@ -81,6 +82,7 @@ const livePlanToUi = (p: LivePlan): UiPlan => ({
   id: p.id,
   name: p.name,
   duration: formatValidity(p.validity),
+  validity: p.validity,
   price: toNumber(p.price),
   originalPrice: optionalNumber(p.originalPrice),
   popular: false,
@@ -93,6 +95,7 @@ const selfPacedToUi = (p: SelfPacedPlan): UiPlan => ({
   id: p.id,
   name: p.name,
   duration: formatValidity(p.validity),
+  validity: p.validity,
   price: toNumber(p.price),
   originalPrice: optionalNumber(p.originalPrice),
   popular: false,
@@ -105,6 +108,7 @@ const yttRecordedToUi = (plan: YTTPlan): UiPlan => ({
   id: plan.id,
   name: plan.name,
   duration: formatValidity(plan.validity),
+  validity: plan.validity,
   price: toNumber(plan.price),
   originalPrice: optionalNumber(plan.originalPrice),
   popular: false,
@@ -118,6 +122,7 @@ const yttLiveToUi = (plan: YTTPlan): UiPlan => ({
   id: plan.id,
   name: plan.name,
   duration: formatValidity(plan.validity),
+  validity: plan.validity,
   price: toNumber(plan.price),
   originalPrice: optionalNumber(plan.originalPrice),
   popular: false,
@@ -176,6 +181,10 @@ export function UserPayments() {
   const [activeSelfPacedPlanId, setActiveSelfPacedPlanId] = useState<string | null>(null);
   const [activeYttLiveKeys, setActiveYttLiveKeys] = useState<Set<string>>(new Set());
   const [activeYttRecordedKeys, setActiveYttRecordedKeys] = useState<Set<string>>(new Set());
+  // Expiry (ISO) of the active enrollment per category, keyed for upgrade
+  // proration. Live/self-paced have one active plan → key is the category;
+  // YTT is per-course → key is `${planId}:${courseId}`, matching the *Keys sets.
+  const [activeExpiry, setActiveExpiry] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -219,6 +228,13 @@ export function UserPayments() {
       setActiveSelfPacedPlanId(selfPacedData.subscription?.planId ?? null);
       setActiveYttLiveKeys(new Set(yttLiveData.map((e) => `${e.planId}:${e.courseId}`)));
       setActiveYttRecordedKeys(new Set(yttRecordedData.map((e) => `${e.planId}:${e.courseId}`)));
+
+      const expiry: Record<string, string> = {};
+      if (liveData.enrollment) expiry["live"] = liveData.enrollment.endDate;
+      if (selfPacedData.subscription) expiry["self-paced"] = selfPacedData.subscription.expiresAt;
+      for (const e of yttLiveData) expiry[`${e.planId}:${e.courseId}`] = e.expiresAt;
+      for (const e of yttRecordedData) expiry[`${e.planId}:${e.courseId}`] = e.expiresAt;
+      setActiveExpiry(expiry);
     } catch {
       // silently ignore — plan cards render without subscription highlights
     }
@@ -246,9 +262,103 @@ const isSubscribed = (plan: UiPlan): boolean => {
     }
   };
 
+  const plansForCategory = (category: PlanCategory): UiPlan[] => {
+    switch (category) {
+      case "live": return livePlans;
+      case "self-paced": return selfPacedPlans;
+      case "ytt-live": return yttLivePlans;
+      case "ytt-recorded": return yttSelfPacedPlans;
+    }
+  };
+
+  // The student's current active plan in the same category (and course, for
+  // YTT) as `plan` — the one being replaced on an upgrade. Returns the matching
+  // UiPlan (for old price + validity) and its enrollment expiry, or null when
+  // the category isn't locked. For YTT, only an enrollment on the *same course*
+  // counts (a different course is a fresh purchase, not an upgrade).
+  const currentActiveFor = (plan: UiPlan): { plan: UiPlan; expiresAt: string } | null => {
+    const list = plansForCategory(plan.category);
+    if (plan.category === "live") {
+      if (!activeLivePlanId) return null;
+      const cur = list.find((p) => p.id === activeLivePlanId);
+      const expiresAt = activeExpiry["live"];
+      return cur && expiresAt ? { plan: cur, expiresAt } : null;
+    }
+    if (plan.category === "self-paced") {
+      if (!activeSelfPacedPlanId) return null;
+      const cur = list.find((p) => p.id === activeSelfPacedPlanId);
+      const expiresAt = activeExpiry["self-paced"];
+      return cur && expiresAt ? { plan: cur, expiresAt } : null;
+    }
+    // YTT: find the active key for THIS card's course.
+    const keys = plan.category === "ytt-live" ? activeYttLiveKeys : activeYttRecordedKeys;
+    const match = [...keys].find((k) => k.endsWith(`:${plan.courseId ?? ""}`));
+    if (!match) return null;
+    const activePlanId = match.split(":")[0];
+    const cur = list.find((p) => p.id === activePlanId && p.courseId === plan.courseId);
+    const expiresAt = activeExpiry[match];
+    return cur && expiresAt ? { plan: cur, expiresAt } : null;
+  };
+
+  // An upgrade is a locked category + a card that is NOT the current plan, with
+  // a resolvable current plan in the same course.
+  const isUpgradeTarget = (plan: UiPlan): boolean =>
+    isCategoryLocked(plan.category) && !isSubscribed(plan) && currentActiveFor(plan) !== null;
+
+  // Rupee credit for the unused time on the current plan, prorated over its
+  // validity — mirrors the backend computeUpgradeBase. remainingDays uses ceil
+  // and is clamped to [0, oldValidity].
+  const upgradeCreditFor = (plan: UiPlan): number => {
+    const current = currentActiveFor(plan);
+    if (!current || current.plan.validity <= 0) return 0;
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const remainingMs = new Date(current.expiresAt).getTime() - Date.now();
+    const rawDays = Math.ceil(remainingMs / msPerDay);
+    const remainingDays = Math.min(Math.max(rawDays, 0), current.plan.validity);
+    const credit = (remainingDays / current.plan.validity) * current.plan.price;
+    return Math.round(credit * 100) / 100;
+  };
+
 const [isEnrolling, setIsEnrolling] = useState(false);
   const { Razorpay } = useRazorpay();
   const [appliedCoupon, setAppliedCoupon] = useState<CouponApplied | null>(null);
+
+  // Shared CTA renderer for a plan card. Three states:
+  //  - current plan        → non-interactive "Your Current Plan" block
+  //  - locked + upgradeable → enabled "Upgrade to this plan"
+  //  - locked, not upgradeable (e.g. data still loading) → disabled
+  //  - unlocked            → the domain's normal buy label
+  // `bg` builds the enabled background (flat colour or gradient per domain).
+  const renderPlanCta = (
+    plan: UiPlan,
+    buyLabel: string,
+    bg: (color: string) => string,
+    extraClass = "",
+  ) => {
+    if (isSubscribed(plan)) {
+      return (
+        <div className="w-full py-4 text-base font-semibold rounded-xl flex items-center justify-center gap-2 bg-green-50 text-green-700 border-2 border-green-500">
+          <Check className="w-5 h-5" />
+          Your Current Plan
+        </div>
+      );
+    }
+    const locked = isCategoryLocked(plan.category);
+    const upgrade = isUpgradeTarget(plan);
+    const disabled = locked && !upgrade;
+    const label = upgrade ? "Upgrade to this plan" : disabled ? "Active on another plan" : buyLabel;
+    return (
+      <Button
+        className={`w-full py-6 text-base font-semibold rounded-xl ${extraClass}`}
+        style={{ background: disabled ? "#9ca3af" : bg(plan.color), color: "white" }}
+        onClick={() => handleUpgrade(plan)}
+        disabled={disabled}
+      >
+        {upgrade && <Crown className="w-5 h-5 mr-2" />}
+        {label}
+      </Button>
+    );
+  };
 
   const handleUpgrade = (plan: UiPlan) => {
     setSelectedPlan(plan);
@@ -274,18 +384,21 @@ const [isEnrolling, setIsEnrolling] = useState(false);
   // required product fields aren't ready yet (e.g. LIVE without a chosen batch).
   const couponContext: Omit<CouponValidateBody, "code"> | null = (() => {
     if (!selectedPlan) return null;
+    // Preview the coupon against the upgrade base when this is an upgrade, so
+    // the displayed discount matches the eventual charge.
+    const isUpgrade = isUpgradeTarget(selectedPlan) || undefined;
     switch (selectedPlan.category) {
       case "live":
         if (!selectedBatchId) return null;
-        return { type: "LIVE", planId: selectedPlan.id, batchId: selectedBatchId };
+        return { type: "LIVE", planId: selectedPlan.id, batchId: selectedBatchId, isUpgrade };
       case "self-paced":
-        return { type: "SELF_PACED", planId: selectedPlan.id };
+        return { type: "SELF_PACED", planId: selectedPlan.id, isUpgrade };
       case "ytt-live":
         if (!selectedPlan.courseId) return null;
-        return { type: "YTT_LIVE", planId: selectedPlan.id, courseId: selectedPlan.courseId };
+        return { type: "YTT_LIVE", planId: selectedPlan.id, courseId: selectedPlan.courseId, isUpgrade };
       case "ytt-recorded":
         if (!selectedPlan.courseId) return null;
-        return { type: "YTT_RECORDED", planId: selectedPlan.id, courseId: selectedPlan.courseId };
+        return { type: "YTT_RECORDED", planId: selectedPlan.id, courseId: selectedPlan.courseId, isUpgrade };
     }
   })();
 
@@ -309,21 +422,23 @@ const [isEnrolling, setIsEnrolling] = useState(false);
       return;
     }
 
+    const upgrading = isUpgradeTarget(selectedPlan);
     setIsEnrolling(true);
     setShowUpgradeDialog(false);
 
     try {
       const couponCode = appliedCoupon?.code;
+      const isUpgrade = upgrading || undefined; // omit the field for fresh purchases
       const paymentInput: InitiatePaymentInput = (() => {
         switch (selectedPlan.category) {
           case "live":
-            return { type: "LIVE", planId: selectedPlan.id, batchId: selectedBatchId || undefined, couponCode };
+            return { type: "LIVE", planId: selectedPlan.id, batchId: selectedBatchId || undefined, couponCode, isUpgrade };
           case "self-paced":
-            return { type: "SELF_PACED", planId: selectedPlan.id, couponCode };
+            return { type: "SELF_PACED", planId: selectedPlan.id, couponCode, isUpgrade };
           case "ytt-live":
-            return { type: "YTT_LIVE", planId: selectedPlan.id, courseId: selectedPlan.courseId!, couponCode };
+            return { type: "YTT_LIVE", planId: selectedPlan.id, courseId: selectedPlan.courseId!, couponCode, isUpgrade };
           case "ytt-recorded":
-            return { type: "YTT_RECORDED", planId: selectedPlan.id, courseId: selectedPlan.courseId!, couponCode };
+            return { type: "YTT_RECORDED", planId: selectedPlan.id, courseId: selectedPlan.courseId!, couponCode, isUpgrade };
         }
       })();
 
@@ -347,7 +462,11 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                   razorpayPaymentId: response.razorpay_payment_id,
                   razorpaySignature: response.razorpay_signature,
                 });
-                toast.success(`Successfully subscribed to ${selectedPlan.name}!`);
+                toast.success(
+                  upgrading
+                    ? `Successfully upgraded to ${selectedPlan.name}!`
+                    : `Successfully subscribed to ${selectedPlan.name}!`,
+                );
                 setAppliedCoupon(null);
                 void fetchSubscriptions();
                 resolve();
@@ -550,24 +669,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                         ))}
                       </div>
 
-                      {isSubscribed(plan) ? (
-                        <div className="w-full py-4 text-base font-semibold rounded-xl flex items-center justify-center gap-2 bg-green-50 text-green-700 border-2 border-green-500">
-                          <Check className="w-5 h-5" />
-                          Your Current Plan
-                        </div>
-                      ) : (
-                        <Button
-                          className="w-full py-6 text-base font-semibold rounded-xl"
-                          style={{
-                            backgroundColor: isCategoryLocked(plan.category) ? '#9ca3af' : plan.color,
-                            color: 'white',
-                          }}
-                          onClick={() => handleUpgrade(plan)}
-                          disabled={isCategoryLocked(plan.category)}
-                        >
-                          {isCategoryLocked(plan.category) ? "Active on another plan" : "Get Started"}
-                        </Button>
-                      )}
+                      {renderPlanCta(plan, "Get Started", (c) => c)}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -669,31 +771,14 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                       ))}
                     </div>
                     
-                    {isSubscribed(plan) ? (
-                      <div className="w-full py-4 text-base font-semibold rounded-xl flex items-center justify-center gap-2 bg-green-50 text-green-700 border-2 border-green-500">
-                        <Check className="w-5 h-5" />
-                        Your Current Plan
-                      </div>
-                    ) : (
-                      <Button
-                        className="w-full py-6 text-base font-semibold rounded-xl"
-                        style={{
-                          backgroundColor: isCategoryLocked(plan.category) ? '#9ca3af' : plan.color,
-                          color: 'white',
-                        }}
-                        onClick={() => handleUpgrade(plan)}
-                        disabled={isCategoryLocked(plan.category)}
-                      >
-                        {isCategoryLocked(plan.category) ? "Active on another plan" : "Get Started"}
-                      </Button>
-                    )}
+                    {renderPlanCta(plan, "Get Started", (c) => c)}
                   </CardContent>
                 </Card>
               </motion.div>
             ))}
           </motion.div>
         </TabsContent>
- 
+
         <TabsContent value="ytt" className="space-y-8">
           <div>
             <div className="flex items-center justify-between mb-6">
@@ -782,24 +867,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                         ))}
                       </div>
                       
-                      {isSubscribed(plan) ? (
-                        <div className="w-full py-4 text-base font-semibold rounded-xl flex items-center justify-center gap-2 bg-green-50 text-green-700 border-2 border-green-500">
-                          <Check className="w-5 h-5" />
-                          Your Current Plan
-                        </div>
-                      ) : (
-                        <Button
-                          className="w-full py-6 text-base font-semibold rounded-xl"
-                          style={{
-                            backgroundColor: isCategoryLocked(plan.category) ? '#9ca3af' : plan.color,
-                            color: 'white',
-                          }}
-                          onClick={() => handleUpgrade(plan)}
-                          disabled={isCategoryLocked(plan.category)}
-                        >
-                          {isCategoryLocked(plan.category) ? "Active on another plan" : "Enroll Now"}
-                        </Button>
-                      )}
+                      {renderPlanCta(plan, "Enroll Now", (c) => c)}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -894,23 +962,11 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                         ))}
                       </div>
                       
-                      {isSubscribed(plan) ? (
-                        <div className="w-full py-4 text-base font-semibold rounded-xl flex items-center justify-center gap-2 bg-green-50 text-green-700 border-2 border-green-500">
-                          <Check className="w-5 h-5" />
-                          Your Current Plan
-                        </div>
-                      ) : (
-                        <Button
-                          className="w-full py-6 text-base font-semibold rounded-xl shadow-lg"
-                          style={{
-                            background: isCategoryLocked(plan.category) ? '#9ca3af' : `linear-gradient(135deg, ${plan.color}, ${plan.color}dd)`,
-                            color: 'white',
-                          }}
-                          onClick={() => handleUpgrade(plan)}
-                          disabled={isCategoryLocked(plan.category)}
-                        >
-                          {isCategoryLocked(plan.category) ? "Active on another plan" : "Enroll Now"}
-                        </Button>
+                      {renderPlanCta(
+                        plan,
+                        "Enroll Now",
+                        (c) => `linear-gradient(135deg, ${c}, ${c}dd)`,
+                        "shadow-lg",
                       )}
                     </CardContent>
                   </Card>
@@ -930,18 +986,28 @@ const [isEnrolling, setIsEnrolling] = useState(false);
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle style={{ color: '#ff691d' }}>Subscribe to {selectedPlan?.name}</DialogTitle>
+            <DialogTitle style={{ color: '#ff691d' }}>
+              {selectedPlan && isUpgradeTarget(selectedPlan)
+                ? `Upgrade to ${selectedPlan.name}`
+                : `Subscribe to ${selectedPlan?.name}`}
+            </DialogTitle>
             <DialogDescription>
-              Review your plan details and confirm your subscription
+              {selectedPlan && isUpgradeTarget(selectedPlan)
+                ? "Your current plan's unused days are credited towards this upgrade."
+                : "Review your plan details and confirm your subscription"}
             </DialogDescription>
           </DialogHeader>
           {selectedPlan && (() => {
-            // Listed prices are GST-exclusive base values. The coupon discounts
-            // the base; GST is then added on top to form the total payable
-            // (matching the backend's charged amount).
+            // Listed prices are GST-exclusive base values. On an upgrade the
+            // unused-time credit is subtracted from the base first; then the
+            // coupon discounts the remaining base; then GST is added on top —
+            // matching the backend's charged amount.
+            const upgrading = isUpgradeTarget(selectedPlan);
+            const credit = upgrading ? upgradeCreditFor(selectedPlan) : 0;
+            const afterCredit = Math.max(0, selectedPlan.price - credit);
             const discountedBase = appliedCoupon
-              ? Math.max(0, selectedPlan.price - appliedCoupon.discountAmount)
-              : selectedPlan.price;
+              ? Math.max(0, afterCredit - appliedCoupon.discountAmount)
+              : afterCredit;
             const breakup = computeGstAddOn(discountedBase, gstPercentage);
             return (
             <div className="space-y-4">
@@ -964,6 +1030,12 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                       <span>₹{formatINR(selectedPlan.price)}</span>
                     </span>
                   </div>
+                  {upgrading && credit > 0 && (
+                    <div className="flex items-center justify-between text-sm text-green-700">
+                      <span>Credit for unused days</span>
+                      <span>− ₹{formatINR(credit)}</span>
+                    </div>
+                  )}
                   {appliedCoupon && (
                     <div className="flex items-center justify-between text-sm text-green-700">
                       <span>Coupon ({appliedCoupon.code})</span>

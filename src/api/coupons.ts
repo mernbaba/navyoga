@@ -17,6 +17,9 @@ export type CouponValidateBody = {
   courseId?: string;
   batchId?: string;
   entityId?: string;
+  // When upgrading, preview the discount against the upgrade base (plan price
+  // minus the unused-days credit) so it matches the eventual charge.
+  isUpgrade?: boolean;
 };
 
 export type CouponValidateResponse = {
