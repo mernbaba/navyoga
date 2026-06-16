@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router";
-import { ArrowRight, Eye, EyeOff, Lock, Mail, Phone, User as UserIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, Phone, User as UserIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
@@ -72,6 +72,14 @@ export function UserRegister() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-white p-4 relative overflow-hidden">
+      <Link
+        to="https://navyogawellness.com/?ref=app"
+        className="absolute top-6 left-6 z-20 inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-[#610981] transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Website
+      </Link>
+
       <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full blur-3xl opacity-5" style={{ backgroundColor: "#ff691d" }} />
       <div className="absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full blur-3xl opacity-5" style={{ backgroundColor: "#610981" }} />
 
@@ -114,7 +122,7 @@ export function UserRegister() {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 required
-                placeholder="you@navyoga.com"
+                placeholder="you@navyogawellness.com"
                 className="h-14 pl-12 pr-4 border-gray-200 rounded-xl text-base"
               />
             </div>

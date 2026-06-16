@@ -176,7 +176,7 @@ export function Login() {
                     <Input
                       id="email"
                       type="text"
-                      placeholder="your.email@navyoga.com"
+                      placeholder="your.email@navyogawellness.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="h-12 border-2 border-gray-200 focus:border-[#ff691d] transition-colors bg-gray-50 focus:bg-white"
