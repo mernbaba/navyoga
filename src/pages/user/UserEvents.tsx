@@ -657,9 +657,6 @@ export function UserEvents() {
                               <h3 className="font-bold text-lg mb-1 group-hover:text-purple-700 transition-colors">
                                 {event.title}
                               </h3>
-                              <p className="text-sm text-muted-foreground">
-                                with {event.instructor || "—"}
-                              </p>
                             </div>
                             <div className="text-right">
                               <div className="flex items-center gap-1 justify-end mb-1">
