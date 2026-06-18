@@ -34,6 +34,7 @@ import {
   getMyEventEnrollment,
   getUpcomingEventStats,
   listMyEventEnrollments,
+  listPastEvents,
   listUpcomingEvents,
   type UpcomingEventStats,
 } from "../../api/events";
@@ -63,12 +64,13 @@ interface Event {
   status?: "Upcoming" | "Registering" | "Full" | "Completed";
   featured: boolean;
   benefits?: string[];
+  isPast?: boolean;
 }
 
 const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1506126613408-eca07ce68773";
 
-function mapAppEvent(e: AppEvent): Event {
+function mapAppEvent(e: AppEvent, isPast = false): Event {
   const priceNum = Number.parseFloat(e.price);
   const when = new Date(e.date);
   const time = Number.isNaN(when.getTime())
@@ -91,6 +93,7 @@ function mapAppEvent(e: AppEvent): Event {
     registered: e.occupancy,
     image: resolveMediaUrl(e.thumbnail) ?? FALLBACK_IMG,
     featured: e.featured,
+    isPast,
   };
 }
 
@@ -101,6 +104,7 @@ export function UserEvents() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"events" | "workshops">("events");
   const [events, setEvents] = useState<Event[]>([]);
+  const [pastEvents, setPastEvents] = useState<Event[]>([]);
   const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
@@ -171,6 +175,21 @@ export function UserEvents() {
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Past events are view-only — the last 10 held events, newest first.
+  useEffect(() => {
+    let cancelled = false;
+    listPastEvents("STUDENT", { limit: 10 })
+      .then((res) => {
+        if (!cancelled) setPastEvents(res.items.map((e) => mapAppEvent(e, true)));
+      })
+      .catch(() => {
+        // best-effort — section simply hides if it fails to load
       });
     return () => {
       cancelled = true;
@@ -741,6 +760,96 @@ export function UserEvents() {
                 </CardContent>
               </Card>
             </motion.div>
+
+            {pastEvents.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <Card className="relative overflow-hidden border-0 shadow-xl">
+                  <div className="absolute top-0 right-0 w-96 h-96 bg-linear-to-bl from-gray-400/10 to-transparent rounded-full blur-3xl" />
+                  <CardHeader className="relative z-10">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-linear-to-br from-gray-500 to-gray-600 shadow-lg">
+                        <CalendarDays className="w-5 h-5 text-white" />
+                      </div>
+                      <CardTitle className="text-xl text-gray-600">
+                        Past Events ({pastEvents.length})
+                      </CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="relative z-10">
+                    <div className="space-y-4">
+                      {pastEvents.map((event) => (
+                        <motion.div
+                          key={event.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          whileHover={{ scale: 1.01, transition: { duration: 0.2 } }}
+                          className="group flex flex-col md:flex-row gap-4 p-4 rounded-2xl border-2 border-gray-100 hover:border-gray-200 transition-all duration-300 cursor-pointer bg-white hover:shadow-lg"
+                          onClick={() => openEventDetails(event)}
+                        >
+                          <div className="relative w-full md:w-48 h-40 rounded-xl overflow-hidden shrink-0">
+                            <img
+                              src={event.image}
+                              alt={event.title}
+                              className="w-full h-full object-cover grayscale group-hover:scale-110 transition-transform duration-300"
+                            />
+                            <div className="absolute top-2 left-2">
+                              <Badge className="bg-gray-700/90 text-white text-xs font-semibold">
+                                Past
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-4 mb-2">
+                              <h3 className="font-bold text-lg mb-1 text-gray-700">
+                                {event.title}
+                              </h3>
+                              <Badge variant="secondary" className="text-xs">
+                                {event.registered}/{event.capacity} attended
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                              {event.description}
+                            </p>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                <Calendar className="w-4 h-4 text-gray-500" />
+                                <span>
+                                  {new Date(event.date).toLocaleDateString("en-IN", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  })}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                <Clock className="w-4 h-4 text-gray-500" />
+                                <span>{event.time || "—"}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                <CalendarDays className="w-4 h-4 text-gray-500" />
+                                <span>{event.duration}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                {event.location.includes("Online") ? (
+                                  <Video className="w-4 h-4 text-gray-500" />
+                                ) : (
+                                  <MapPin className="w-4 h-4 text-gray-500" />
+                                )}
+                                <span className="truncate">{event.location}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
           </>
         )}
         </>
@@ -878,7 +987,8 @@ export function UserEvents() {
               )}
 
               <div className="pt-4 border-t space-y-3">
-                {selectedEvent.price > 0 &&
+                {!selectedEvent.isPast &&
+                  selectedEvent.price > 0 &&
                   !enrolledIds.has(selectedEvent.id) &&
                   selectedEvent.registered < selectedEvent.capacity && (
                     <CouponInput
@@ -900,7 +1010,9 @@ export function UserEvents() {
                   return (
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Total payable</p>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      {selectedEvent.isPast ? "Price" : "Total payable"}
+                    </p>
                     <div className="flex items-baseline gap-2">
                       {appliedCoupon && (
                         <span className="text-base text-muted-foreground line-through">
@@ -935,12 +1047,15 @@ export function UserEvents() {
                     onClick={() => handleRegister(selectedEvent)}
                     className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white shadow-lg gap-2"
                     disabled={
+                      selectedEvent.isPast ||
                       isRegistering ||
                       enrolledIds.has(selectedEvent.id) ||
                       selectedEvent.registered >= selectedEvent.capacity
                     }
                   >
-                    {enrolledIds.has(selectedEvent.id) ? (
+                    {selectedEvent.isPast ? (
+                      "Event Ended"
+                    ) : enrolledIds.has(selectedEvent.id) ? (
                       <>
                         <Star className="w-5 h-5" />
                         Already Registered

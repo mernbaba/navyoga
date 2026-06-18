@@ -154,6 +154,18 @@ export function listUpcomingEvents(role: Role, params: UpcomingEventListParams =
   );
 }
 
+// View-only list of the most recent past events (newest first, capped at 10).
+// Students can browse these but cannot register.
+export function listPastEvents(role: Role, params: { q?: string; limit?: number } = {}) {
+  return unwrap<{ items: AppEvent[] }>(
+    authedRequest<ApiSuccess<{ items: AppEvent[] }>>(role, {
+      method: "GET",
+      url: "/api/events/past",
+      params,
+    }),
+  );
+}
+
 export type UpcomingEventStats = {
   total: number;
   upcoming: number;

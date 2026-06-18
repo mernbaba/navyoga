@@ -62,17 +62,79 @@ import { useClassesRole } from "./classesRole";
 
 const LIMIT = 15;
 
-const emptyForm = (): CreateEventInput => ({
+// The form keeps numeric fields (capacity, price) as raw strings so the inputs
+// can be plain text fields. They are validated and typecast to numbers on
+// submit — see `validateForm` / `handleSubmit`. The persisted datatype stays
+// `number` (CreateEventInput); only the editing draft uses strings.
+type EventFormDraft = {
+  title: string;
+  description: string;
+  date: string;
+  duration: string;
+  location: string;
+  capacity: string;
+  price: string;
+  thumbnail: string;
+  featured: boolean;
+};
+
+type FieldErrors = Partial<Record<keyof EventFormDraft, string>>;
+
+const emptyForm = (): EventFormDraft => ({
   title: "",
   description: "",
   date: "",
   duration: "",
   location: "",
-  capacity: 1,
-  price: 0,
+  capacity: "1",
+  price: "0",
   thumbnail: "",
   featured: false,
 });
+
+// Validates the draft and, when valid, returns the typecast payload. Numeric
+// fields are only coerced after their string values pass validation, so a bad
+// price/capacity stops the submit before any typecasting happens.
+function validateForm(
+  draft: EventFormDraft,
+): { errors: FieldErrors; payload?: CreateEventInput } {
+  const errors: FieldErrors = {};
+
+  if (!draft.title.trim()) errors.title = "Title is required.";
+  if (!draft.description.trim()) errors.description = "Description is required.";
+  if (!draft.date) errors.date = "Date & time is required.";
+  if (!draft.duration.trim()) errors.duration = "Duration is required.";
+  if (!draft.location.trim()) errors.location = "Location is required.";
+
+  const capacityRaw = draft.capacity.trim();
+  const capacityNum = Number(capacityRaw);
+  if (!capacityRaw) errors.capacity = "Capacity is required.";
+  else if (!Number.isInteger(capacityNum) || capacityNum < 1)
+    errors.capacity = "Capacity must be a whole number of at least 1.";
+
+  const priceRaw = draft.price.trim();
+  const priceNum = Number(priceRaw);
+  if (!priceRaw) errors.price = "Price is required.";
+  else if (!Number.isFinite(priceNum) || priceNum < 0)
+    errors.price = "Price must be a number of 0 or more.";
+
+  if (Object.keys(errors).length > 0) return { errors };
+
+  return {
+    errors,
+    payload: {
+      title: draft.title.trim(),
+      description: draft.description.trim(),
+      date: new Date(draft.date).toISOString(),
+      duration: draft.duration.trim(),
+      location: draft.location.trim(),
+      capacity: capacityNum,
+      price: priceNum,
+      thumbnail: draft.thumbnail.trim() || undefined,
+      featured: draft.featured,
+    },
+  };
+}
 
 function toDatetimeLocal(iso: string) {
   if (!iso) return "";
@@ -129,7 +191,8 @@ export function ClassesEvents() {
   const [dialogMode, setDialogMode] = useState<FormMode>("create");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<CreateEventInput>(emptyForm());
+  const [form, setForm] = useState<EventFormDraft>(emptyForm());
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailFileUrl, setThumbnailFileUrl] = useState<string | null>(null);
@@ -254,10 +317,18 @@ export function ClassesEvents() {
     setEnrollmentsDebouncedSearch("");
   };
 
+  // Updates a single form field and clears any standing error for it, so the
+  // inline validation message disappears as the user fixes the field.
+  const setField = <K extends keyof EventFormDraft>(key: K, value: EventFormDraft[K]) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    setErrors((e) => (e[key] ? { ...e, [key]: undefined } : e));
+  };
+
   const openCreate = () => {
     setDialogMode("create");
     setEditingId(null);
     setForm(emptyForm());
+    setErrors({});
     setThumbnailFile(null);
     setDialogOpen(true);
   };
@@ -271,11 +342,12 @@ export function ClassesEvents() {
       date: toDatetimeLocal(event.date),
       duration: event.duration,
       location: event.location,
-      capacity: event.capacity,
-      price: parseFloat(event.price),
+      capacity: String(event.capacity),
+      price: String(parseFloat(event.price)),
       thumbnail: event.thumbnail ?? "",
       featured: event.featured,
     });
+    setErrors({});
     setThumbnailFile(null);
     setDialogOpen(true);
   };
@@ -297,14 +369,18 @@ export function ClassesEvents() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+
+    // Validate on submit. Numeric fields are typecast only after passing
+    // validation, so a bad price/capacity halts here before any conversion.
+    const { errors: fieldErrors, payload: basePayload } = validateForm(form);
+    setErrors(fieldErrors);
+    if (!basePayload) {
+      toast.error("Please fix the highlighted fields before saving.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const basePayload: CreateEventInput = {
-        ...form,
-        date: new Date(form.date).toISOString(),
-        thumbnail: form.thumbnail?.trim() || undefined,
-      };
-
       if (dialogMode === "create") {
         // Create first to obtain the event ID, then upload thumbnail (S3 key requires the ID).
         const created = await createEvent(role, {
@@ -736,12 +812,15 @@ export function ClassesEvents() {
                 <Input
                   id="ev-title"
                   value={form.title}
-                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                  onChange={(e) => setField("title", e.target.value)}
                   placeholder="e.g. Morning Vinyasa Intensive"
-                  required
                   maxLength={60}
                   autoFocus
+                  aria-invalid={!!errors.title}
                 />
+                {errors.title && (
+                  <p className="text-xs text-destructive">{errors.title}</p>
+                )}
               </div>
 
               <div className="grid gap-1.5">
@@ -751,13 +830,16 @@ export function ClassesEvents() {
                 <Textarea
                   id="ev-description"
                   value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  onChange={(e) => setField("description", e.target.value)}
                   placeholder="Describe the event..."
-                  required
                   maxLength={300}
                   rows={3}
                   className="resize-none"
+                  aria-invalid={!!errors.description}
                 />
+                {errors.description && (
+                  <p className="text-xs text-destructive">{errors.description}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -769,9 +851,12 @@ export function ClassesEvents() {
                     id="ev-date"
                     type="datetime-local"
                     value={form.date}
-                    onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                    required
+                    onChange={(e) => setField("date", e.target.value)}
+                    aria-invalid={!!errors.date}
                   />
+                  {errors.date && (
+                    <p className="text-xs text-destructive">{errors.date}</p>
+                  )}
                 </div>
                 <div className="grid gap-1.5">
                   <Label htmlFor="ev-duration">
@@ -780,11 +865,14 @@ export function ClassesEvents() {
                   <Input
                     id="ev-duration"
                     value={form.duration}
-                    onChange={(e) => setForm((f) => ({ ...f, duration: e.target.value }))}
+                    onChange={(e) => setField("duration", e.target.value)}
                     placeholder="e.g. 2 hours"
-                    required
                     maxLength={50}
+                    aria-invalid={!!errors.duration}
                   />
+                  {errors.duration && (
+                    <p className="text-xs text-destructive">{errors.duration}</p>
+                  )}
                 </div>
               </div>
 
@@ -795,11 +883,14 @@ export function ClassesEvents() {
                 <Input
                   id="ev-location"
                   value={form.location}
-                  onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+                  onChange={(e) => setField("location", e.target.value)}
                   placeholder="e.g. Main Hall, Rishikesh"
-                  required
                   maxLength={200}
+                  aria-invalid={!!errors.location}
                 />
+                {errors.location && (
+                  <p className="text-xs text-destructive">{errors.location}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -809,14 +900,16 @@ export function ClassesEvents() {
                   </Label>
                   <Input
                     id="ev-capacity"
-                    type="number"
-                    min={1}
+                    type="text"
+                    inputMode="numeric"
                     value={form.capacity}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, capacity: Math.max(1, parseInt(e.target.value) || 1) }))
-                    }
-                    required
+                    onChange={(e) => setField("capacity", e.target.value)}
+                    placeholder="e.g. 30"
+                    aria-invalid={!!errors.capacity}
                   />
+                  {errors.capacity && (
+                    <p className="text-xs text-destructive">{errors.capacity}</p>
+                  )}
                 </div>
                 <div className="grid gap-1.5">
                   <Label htmlFor="ev-price">
@@ -824,15 +917,16 @@ export function ClassesEvents() {
                   </Label>
                   <Input
                     id="ev-price"
-                    type="number"
-                    min={0}
-                    step={0.01}
+                    type="text"
+                    inputMode="decimal"
                     value={form.price}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, price: Math.max(0, parseFloat(e.target.value) || 0) }))
-                    }
-                    required
+                    onChange={(e) => setField("price", e.target.value)}
+                    placeholder="e.g. 1499"
+                    aria-invalid={!!errors.price}
                   />
+                  {errors.price && (
+                    <p className="text-xs text-destructive">{errors.price}</p>
+                  )}
                 </div>
               </div>
 
@@ -936,7 +1030,7 @@ export function ClassesEvents() {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !form.title.trim() || !form.description.trim() || !form.date || !form.duration.trim() || !form.location.trim()}
+                disabled={isSubmitting}
                 className="bg-[#610981] hover:bg-[#4a0663] text-white"
               >
                 {isSubmitting
