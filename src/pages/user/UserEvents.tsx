@@ -97,6 +97,20 @@ function mapAppEvent(e: AppEvent, isPast = false): Event {
   };
 }
 
+// An event is "ended" once its scheduled end time has passed. The backend's
+// `date` is the precise start (UTC); `duration` is hours as a string ("1",
+// "1.5"). We add the duration so an event in progress isn't prematurely marked
+// ended. `isPast` (event came from the past-events list) always wins. Falls
+// back gracefully if either field is unparseable.
+function hasEventEnded(event: Pick<Event, "date" | "duration" | "isPast">): boolean {
+  if (event.isPast) return true;
+  const start = new Date(event.date).getTime();
+  if (Number.isNaN(start)) return false;
+  const hours = Number.parseFloat(event.duration);
+  const durationMs = Number.isFinite(hours) ? hours * 60 * 60 * 1000 : 0;
+  return Date.now() > start + durationMs;
+}
+
 export function UserEvents() {
   const [searchTerm] = useState("");
   const [selectedCategory] = useState("All");
@@ -528,7 +542,7 @@ export function UserEvents() {
                           className="group relative overflow-hidden rounded-2xl border-2 border-gray-100 hover:border-purple-200 transition-all duration-300 cursor-pointer bg-white hover:shadow-xl"
                           onClick={() => openEventDetails(event)}
                         >
-                          <div className="relative h-48 overflow-hidden">
+                          <div className="relative aspect-square overflow-hidden">
                             <img
                               src={event.image}
                               alt={event.title}
@@ -648,7 +662,7 @@ export function UserEvents() {
                         className="group flex flex-col md:flex-row gap-4 p-4 rounded-2xl border-2 border-gray-100 hover:border-purple-200 transition-all duration-300 cursor-pointer bg-white hover:shadow-lg"
                         onClick={() => openEventDetails(event)}
                       >
-                        <div className="relative w-full md:w-48 h-40 rounded-xl overflow-hidden shrink-0">
+                        <div className="relative w-full md:w-48 md:aspect-square h-40 md:h-auto rounded-xl overflow-hidden shrink-0">
                           <img
                             src={event.image}
                             alt={event.title}
@@ -790,7 +804,7 @@ export function UserEvents() {
                           className="group flex flex-col md:flex-row gap-4 p-4 rounded-2xl border-2 border-gray-100 hover:border-gray-200 transition-all duration-300 cursor-pointer bg-white hover:shadow-lg"
                           onClick={() => openEventDetails(event)}
                         >
-                          <div className="relative w-full md:w-48 h-40 rounded-xl overflow-hidden shrink-0">
+                          <div className="relative w-full md:w-48 md:aspect-square h-40 md:h-auto rounded-xl overflow-hidden shrink-0">
                             <img
                               src={event.image}
                               alt={event.title}
@@ -857,7 +871,7 @@ export function UserEvents() {
       </div>
 
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl! max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl" style={{ color: "#ff691d" }}>
               {selectedEvent?.title}
@@ -987,7 +1001,7 @@ export function UserEvents() {
               )}
 
               <div className="pt-4 border-t space-y-3">
-                {!selectedEvent.isPast &&
+                {!hasEventEnded(selectedEvent) &&
                   selectedEvent.price > 0 &&
                   !enrolledIds.has(selectedEvent.id) &&
                   selectedEvent.registered < selectedEvent.capacity && (
@@ -1007,11 +1021,12 @@ export function UserEvents() {
                     : selectedEvent.price;
                   const breakup = computeGstAddOn(discountedBase, gstPercentage);
                   const isFree = selectedEvent.price === 0;
+                  const ended = hasEventEnded(selectedEvent);
                   return (
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">
-                      {selectedEvent.isPast ? "Price" : "Total payable"}
+                      {ended ? "Price" : "Total payable"}
                     </p>
                     <div className="flex items-baseline gap-2">
                       {appliedCoupon && (
@@ -1047,13 +1062,13 @@ export function UserEvents() {
                     onClick={() => handleRegister(selectedEvent)}
                     className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca] text-white shadow-lg gap-2"
                     disabled={
-                      selectedEvent.isPast ||
+                      ended ||
                       isRegistering ||
                       enrolledIds.has(selectedEvent.id) ||
                       selectedEvent.registered >= selectedEvent.capacity
                     }
                   >
-                    {selectedEvent.isPast ? (
+                    {ended ? (
                       "Event Ended"
                     ) : enrolledIds.has(selectedEvent.id) ? (
                       <>

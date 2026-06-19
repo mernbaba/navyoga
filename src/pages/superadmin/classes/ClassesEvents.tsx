@@ -654,10 +654,7 @@ export function ClassesEvents() {
                                   </Badge>
                                 )}
                                 {isPast && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-[10px] px-1.5 py-0 h-4 bg-muted/60"
-                                  >
+                                  <Badge className="bg-[#610981]/10 text-[#610981] border-[#610981]/20 text-[10px] px-1.5 py-0 h-4">
                                     Past
                                   </Badge>
                                 )}
