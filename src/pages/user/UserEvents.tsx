@@ -97,18 +97,16 @@ function mapAppEvent(e: AppEvent, isPast = false): Event {
   };
 }
 
-// An event is "ended" once its scheduled end time has passed. The backend's
-// `date` is the precise start (UTC); `duration` is hours as a string ("1",
-// "1.5"). We add the duration so an event in progress isn't prematurely marked
-// ended. `isPast` (event came from the past-events list) always wins. Falls
-// back gracefully if either field is unparseable.
-function hasEventEnded(event: Pick<Event, "date" | "duration" | "isPast">): boolean {
-  if (event.isPast) return true;
-  const start = new Date(event.date).getTime();
-  if (Number.isNaN(start)) return false;
-  const hours = Number.parseFloat(event.duration);
-  const durationMs = Number.isFinite(hours) ? hours * 60 * 60 * 1000 : 0;
-  return Date.now() > start + durationMs;
+// Whether an event has ended is decided authoritatively by the backend: events
+// it serves from `/api/events/past` are stamped `isPast: true` (see
+// mapAppEvent), everything from `/api/events/upcoming` is still open. We trust
+// that verdict rather than re-deriving it from `date`/`duration` on the client.
+// A client-side clock comparison was unreliable — a viewer whose device clock
+// ran ahead (e.g. over the LAN-exposed dev server) would mark a still-upcoming
+// event as ended, and `parseFloat` mis-read non-hour durations ("30 minutes" →
+// 30h). The server's classification has neither problem.
+function hasEventEnded(event: Pick<Event, "isPast">): boolean {
+  return event.isPast === true;
 }
 
 export function UserEvents() {
@@ -871,7 +869,7 @@ export function UserEvents() {
       </div>
 
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-4xl! max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl! max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl" style={{ color: "#ff691d" }}>
               {selectedEvent?.title}
