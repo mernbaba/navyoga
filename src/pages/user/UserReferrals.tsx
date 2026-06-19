@@ -30,12 +30,14 @@ import {
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { getMyStudentReferrals } from "../../api/referrals";
+import { StudentAvatar } from "../../components/student/StudentAvatar";
 import type { MyReferralStudentItem, ReferralStatus } from "../../api/types";
 
 interface ReferredUser {
   id: string;
   name: string;
   email: string;
+  avatar: string | null;
   status: 'pending' | 'active' | 'completed';
   joinedDate: string;
   reward: number;
@@ -61,6 +63,7 @@ const mapReferred = (item: MyReferralStudentItem): ReferredUser => ({
   id: item.id,
   name: item.name,
   email: item.email,
+  avatar: item.avatar,
   status: statusFromApi(item.status),
   joinedDate: formatJoinedDate(item.date),
   reward: Number(item.reward) || 0,
@@ -613,9 +616,7 @@ export function UserReferrals() {
                         className="flex items-center justify-between p-4 rounded-lg border bg-white hover:shadow-md transition-shadow"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-linear-to-br from-[#610981] to-[#ff691d] flex items-center justify-center text-white font-semibold">
-                            {user.name.charAt(0)}
-                          </div>
+                          <StudentAvatar avatar={user.avatar} name={user.name} className="size-10" />
                           <div>
                             <p className="font-medium">{user.name}</p>
                             <p className="text-xs text-muted-foreground">{user.email}</p>

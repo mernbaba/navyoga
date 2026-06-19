@@ -23,6 +23,16 @@ export function extractRelativePath(path: string | null | undefined): string {
   return path.startsWith("/") ? path.slice(1) : path;
 }
 
+// Stored path of the shared default avatar. A student with no avatar has
+// `avatar: null` in the DB — the default is never persisted, only resolved here.
+export const DEFAULT_AVATAR_PATH = "/avatars/default.webp";
+
+// Resolve a student/staff avatar path to a displayable URL, falling back to the
+// shared default avatar (BASEURL/PREFIX/avatars/default.webp) when none is set.
+export function resolveAvatarUrl(path: string | null | undefined): string {
+  return resolveMediaUrl(path) ?? resolveMediaUrl(DEFAULT_AVATAR_PATH)!;
+}
+
 export function resolveMediaUrl(path: string | null | undefined): string | undefined {
   if (!path) return undefined;
   if (/^(data:|blob:)/i.test(path)) return path;

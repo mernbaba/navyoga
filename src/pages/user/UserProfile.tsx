@@ -1,15 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
-import { User, Mail, Phone, MapPin, Calendar } from "lucide-react";
+import { Mail, Phone, MapPin, Calendar, Camera, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { getMe, patchMe } from "../../api/auth";
+import { getMe, patchMe, uploadStudentAvatar, removeStudentAvatar } from "../../api/auth";
 import { setCachedUser } from "../../lib/session";
+import { resolveAvatarUrl } from "../../lib/media";
 import type { StudentUser } from "../../api/types";
+
+const ACCEPTED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 MB
 
 export function UserProfile() {
   const [profile, setProfile] = useState<StudentUser | null>(null);
@@ -29,6 +33,8 @@ export function UserProfile() {
   const [isSavingPersonal, setIsSavingPersonal] = useState(false);
   const [isSavingMedical, setIsSavingMedical] = useState(false);
   const [isSavingPrefs, setIsSavingPrefs] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,6 +79,51 @@ export function UserProfile() {
       toast.error(error instanceof Error ? error.message : "Failed to update profile.");
     } finally {
       onDone(false);
+    }
+  };
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    // Reset the input so re-selecting the same file fires onChange again.
+    event.target.value = "";
+    if (!file) return;
+    if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
+      toast.error("Avatar must be a JPG, PNG, or WEBP image.");
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      toast.error("Avatar must be 5 MB or smaller.");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const storePath = await uploadStudentAvatar(file);
+      // Persist the new path; the BE deletes the previously stored avatar.
+      const updated = await patchMe("STUDENT", { avatar: storePath });
+      setProfile(updated);
+      setCachedUser("STUDENT", updated);
+      toast.success("Profile photo updated.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to upload photo.");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (isUploadingAvatar || !profile?.avatar) return;
+    setIsUploadingAvatar(true);
+    try {
+      await removeStudentAvatar();
+      const updated = { ...profile, avatar: null };
+      setProfile(updated);
+      setCachedUser("STUDENT", updated);
+      toast.success("Profile photo removed.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to remove photo.");
+    } finally {
+      setIsUploadingAvatar(false);
     }
   };
 
@@ -148,9 +199,61 @@ export function UserProfile() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSavePersonal} className="space-y-4">
-                <div className="flex items-center justify-center mb-6">
-                  <div className="w-24 h-24 rounded-full flex items-center justify-center" style={{ backgroundColor: "#61098120" }}>
-                    <User className="w-12 h-12" style={{ color: "#610981" }} />
+                <div className="flex flex-col items-center justify-center mb-6 gap-3">
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                    disabled={isLoading || isUploadingAvatar}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={isLoading || isUploadingAvatar}
+                    className="group relative w-24 h-24 rounded-full overflow-hidden border-2 disabled:cursor-not-allowed"
+                    style={{ borderColor: "#61098130" }}
+                    aria-label="Change profile photo"
+                  >
+                    <img
+                      src={resolveAvatarUrl(profile?.avatar)}
+                      alt={profile?.name ? `${profile.name}'s avatar` : "Profile photo"}
+                      className="w-full h-full object-cover"
+                    />
+                    <span
+                      className={`absolute inset-0 flex items-center justify-center bg-black/45 transition-opacity ${
+                        isUploadingAvatar ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      }`}
+                    >
+                      {isUploadingAvatar ? (
+                        <Loader2 className="w-6 h-6 text-white animate-spin" />
+                      ) : (
+                        <Camera className="w-6 h-6 text-white" />
+                      )}
+                    </span>
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={isLoading || isUploadingAvatar}
+                      className="text-xs font-medium disabled:opacity-50"
+                      style={{ color: "#610981" }}
+                    >
+                      {isUploadingAvatar ? "Uploading…" : profile?.avatar ? "Change photo" : "Upload photo"}
+                    </button>
+                    {profile?.avatar ? (
+                      <button
+                        type="button"
+                        onClick={handleRemoveAvatar}
+                        disabled={isLoading || isUploadingAvatar}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-red-500 disabled:opacity-50"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Remove
+                      </button>
+                    ) : null}
                   </div>
                 </div>
                 <div className="space-y-2">

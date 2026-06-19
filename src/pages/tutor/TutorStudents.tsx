@@ -8,6 +8,7 @@ import { Search, Info, ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { toast } from "sonner";
 import { getTutorStudents } from "../../api/tutorStudents";
+import { StudentAvatar } from "../../components/student/StudentAvatar";
 import type { TutorStudentItem } from "../../api/types";
 
 const PAGE_SIZE = 20;
@@ -114,9 +115,7 @@ export function TutorStudents() {
                       <TableRow key={student.id}>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#610981] to-[#ff691d] flex items-center justify-center text-white text-sm font-semibold shrink-0">
-                              {student.name.charAt(0)}
-                            </div>
+                            <StudentAvatar avatar={student.avatar} name={student.name} className="size-8 shrink-0" />
                             <span>{student.name}</span>
                           </div>
                         </TableCell>
@@ -188,9 +187,11 @@ export function TutorStudents() {
               <div className="space-y-4 py-4">
                 <div className="p-4 rounded-lg bg-linear-to-br from-[#610981]/10 to-[#ff691d]/5 border border-[#ffac96]/20">
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-16 h-16 rounded-full bg-linear-to-br from-[#610981] to-[#ff691d] flex items-center justify-center text-white text-2xl font-semibold">
-                      {selectedStudent.name.charAt(0)}
-                    </div>
+                    <StudentAvatar
+                      avatar={selectedStudent.avatar}
+                      name={selectedStudent.name}
+                      className="size-16 text-2xl"
+                    />
                     <div>
                       <h3 className="text-lg font-semibold">{selectedStudent.name}</h3>
                       <Badge

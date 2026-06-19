@@ -1,5 +1,6 @@
-import { createBrowserRouter, Navigate } from "react-router";
+import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import { isRoleAuthenticated, ROLE_LOGIN_PATHS } from "./lib/auth";
+import { ScrollToTop } from "./components/ScrollToTop";
 import type { LoginRole } from "./components/auth/RoleLoginPage";
 import { AdminLayout } from "./components/AdminLayout";
 import { TutorLayout } from "./components/TutorLayout";
@@ -80,7 +81,19 @@ const ProtectedRoute = ({ role, children }: { role: LoginRole; children: React.R
   return <>{children}</>;
 };
 
+// Pathless root layout: mounts ScrollToTop once so every route change resets
+// scroll to the top. Children keep their absolute paths.
+const RootLayout = () => (
+  <>
+    <ScrollToTop />
+    <Outlet />
+  </>
+);
+
 export const router = createBrowserRouter([
+  {
+    element: <RootLayout />,
+    children: [
   {
     path: "/login",
     element: <UserLogin />,
@@ -265,5 +278,7 @@ export const router = createBrowserRouter([
   {
     path: "*",
     element: <NotFound />,
+  },
+    ],
   },
 ]);

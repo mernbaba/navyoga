@@ -118,6 +118,51 @@ export async function registerStudent(body: StudentRegisterBody) {
   );
 }
 
+export type StudentAvatarPresign = {
+  url: string;
+  storePath: string;
+  expiresIn: number;
+};
+
+// Step 1 of avatar upload: ask the BE for a presigned S3 PUT URL. Returns the
+// `storePath` (e.g. /avatars/<UUID>.jpg) to persist via patchMe once the PUT succeeds.
+export function requestStudentAvatarPresign(body: { filename: string; contentType: string }) {
+  return unwrap<StudentAvatarPresign>(
+    authedRequest<ApiSuccess<StudentAvatarPresign>>("STUDENT", {
+      method: "POST",
+      url: "/api/auth/student/me/avatar-presign",
+      data: body,
+    }),
+  );
+}
+
+// Full client-side avatar upload flow: presign → PUT file to S3 → return the
+// storePath. Caller persists it by PATCHing /me with { avatar: storePath }.
+export async function uploadStudentAvatar(file: File): Promise<string> {
+  const contentType = file.type || "image/jpeg";
+  const presign = await requestStudentAvatarPresign({
+    filename: file.name,
+    contentType,
+  });
+  const putRes = await fetch(presign.url, {
+    method: "PUT",
+    headers: { "Content-Type": contentType },
+    body: file,
+  });
+  if (!putRes.ok) throw new Error("Avatar upload failed");
+  return presign.storePath;
+}
+
+// Clear the student's avatar on the server (best-effort deletes the S3 object too).
+export function removeStudentAvatar() {
+  return unwrap<null>(
+    authedRequest<ApiSuccess<null>>("STUDENT", {
+      method: "DELETE",
+      url: "/api/auth/student/me/avatar",
+    }),
+  );
+}
+
 export function acceptStudentTerms() {
   return unwrap<StudentUser>(
     authedRequest<ApiSuccess<StudentUser>>("STUDENT", {
