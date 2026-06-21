@@ -1083,17 +1083,6 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                     </p>
                   )}
                 </div>
-                <div className="pt-3">
-                  <p className="text-sm font-medium mb-2">Key Features:</p>
-                  <ul className="space-y-1">
-                    {selectedPlan.features.slice(0, 4).map((feature: string, index: number) => (
-                      <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: selectedPlan.color }} />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
               </div>
 
               {selectedPlan.category === "live" && (
