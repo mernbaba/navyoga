@@ -7,10 +7,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Badge } from "../../components/ui/badge";
-import { Plus, Search, Edit, Trash2, Mail, Phone } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Mail, Phone, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
-import { listStudents, createStudent, updateStudent, deleteStudent } from "../../api/students";
-import type { Student } from "../../api/types";
+import {
+  listStudents,
+  createStudent,
+  updateStudent,
+  deleteStudent,
+  listStudentEnrollments,
+  updateStudentEnrollment,
+  type StudentEnrollments,
+  type EnrollmentType,
+  type EnrollmentStatus,
+} from "../../api/students";
+import { listBatches } from "../../api/batches";
+import type { Student, Batch } from "../../api/types";
 
 type ActiveFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
@@ -41,6 +52,13 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
 
   const [editing, setEditing] = useState<Student | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Subscriptions (enrollments) dialog
+  const [subStudent, setSubStudent] = useState<Student | null>(null);
+  const [enrollments, setEnrollments] = useState<StudentEnrollments | null>(null);
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [isLoadingSubs, setIsLoadingSubs] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   useEffect(() => {
     const handle = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
@@ -131,6 +149,43 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
       refetch();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete sādhaka.");
+    }
+  };
+
+  const openSubscriptions = async (student: Student) => {
+    setSubStudent(student);
+    setEnrollments(null);
+    setIsLoadingSubs(true);
+    try {
+      const [subs, batchPage] = await Promise.all([
+        listStudentEnrollments(role, student.id),
+        batches.length ? Promise.resolve(null) : listBatches(role, { limit: 100 }),
+      ]);
+      setEnrollments(subs);
+      if (batchPage) setBatches(batchPage.items);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load subscriptions.");
+    } finally {
+      setIsLoadingSubs(false);
+    }
+  };
+
+  const handleEnrollmentUpdate = async (
+    type: EnrollmentType,
+    enrollmentId: string,
+    body: { endDate?: string; batchId?: string; status?: EnrollmentStatus },
+  ) => {
+    if (!subStudent) return;
+    setSavingId(enrollmentId);
+    try {
+      await updateStudentEnrollment(role, subStudent.id, type, enrollmentId, body);
+      toast.success("Subscription updated");
+      const subs = await listStudentEnrollments(role, subStudent.id);
+      setEnrollments(subs);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update subscription.");
+    } finally {
+      setSavingId(null);
     }
   };
 
@@ -286,8 +341,9 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => setEditing(student)}><Edit className="w-4 h-4" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(student)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                          <Button variant="ghost" size="icon" title="Subscriptions" onClick={() => openSubscriptions(student)}><CalendarClock className="w-4 h-4" /></Button>
+                          <Button variant="ghost" size="icon" title="Edit" onClick={() => setEditing(student)}><Edit className="w-4 h-4" /></Button>
+                          <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDelete(student)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -366,6 +422,199 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!subStudent} onOpenChange={(open) => { if (!open) { setSubStudent(null); setEnrollments(null); } }}>
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Subscriptions</DialogTitle>
+            <DialogDescription>
+              {subStudent ? `View and manage ${subStudent.name}'s active and past subscriptions` : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          {isLoadingSubs ? (
+            <div className="py-10 text-center text-muted-foreground">Loading subscriptions…</div>
+          ) : !enrollments ? null : (
+            <div className="space-y-6 py-2">
+              <EnrollmentGroup
+                title="Live"
+                rows={enrollments.live}
+                type="live"
+                batches={batches}
+                savingId={savingId}
+                onUpdate={handleEnrollmentUpdate}
+              />
+              <EnrollmentGroup
+                title="Self-paced"
+                rows={enrollments.selfPaced}
+                type="self-paced"
+                savingId={savingId}
+                onUpdate={handleEnrollmentUpdate}
+              />
+              <EnrollmentGroup
+                title="YTT Live"
+                rows={enrollments.yttLive}
+                type="ytt-live"
+                savingId={savingId}
+                onUpdate={handleEnrollmentUpdate}
+              />
+              <EnrollmentGroup
+                title="YTT Recorded"
+                rows={enrollments.yttRecorded}
+                type="ytt-recorded"
+                savingId={savingId}
+                onUpdate={handleEnrollmentUpdate}
+              />
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => { setSubStudent(null); setEnrollments(null); }}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+type EnrollmentRowLike = {
+  id: string;
+  startDate: string;
+  endDate: string;
+  status: EnrollmentStatus;
+  plan: { id: string; name: string } | null;
+  batchId?: string;
+  batch?: { id: string; name: string } | null;
+  course?: { id: string; title: string } | null;
+};
+
+function EnrollmentGroup({
+  title,
+  rows,
+  type,
+  batches,
+  savingId,
+  onUpdate,
+}: {
+  title: string;
+  rows: EnrollmentRowLike[];
+  type: EnrollmentType;
+  batches?: Batch[];
+  savingId: string | null;
+  onUpdate: (
+    type: EnrollmentType,
+    enrollmentId: string,
+    body: { endDate?: string; batchId?: string; status?: EnrollmentStatus },
+  ) => void;
+}) {
+  return (
+    <div>
+      <h3 className="font-medium mb-2">{title}</h3>
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No {title.toLowerCase()} subscriptions.</p>
+      ) : (
+        <div className="space-y-3">
+          {rows.map((row) => (
+            <EnrollmentRow
+              key={row.id}
+              row={row}
+              type={type}
+              batches={batches}
+              saving={savingId === row.id}
+              onUpdate={onUpdate}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EnrollmentRow({
+  row,
+  type,
+  batches,
+  saving,
+  onUpdate,
+}: {
+  row: EnrollmentRowLike;
+  type: EnrollmentType;
+  batches?: Batch[];
+  saving: boolean;
+  onUpdate: (
+    type: EnrollmentType,
+    enrollmentId: string,
+    body: { endDate?: string; batchId?: string; status?: EnrollmentStatus },
+  ) => void;
+}) {
+  // <input type="date"> wants yyyy-MM-dd; the API returns ISO timestamps.
+  const toDateInput = (iso: string) => iso.slice(0, 10);
+  const [endDate, setEndDate] = useState(toDateInput(row.endDate));
+  const [batchId, setBatchId] = useState(row.batchId ?? "");
+
+  // Keep local edits in sync when the parent reloads after a save.
+  useEffect(() => {
+    setEndDate(toDateInput(row.endDate));
+    setBatchId(row.batchId ?? "");
+  }, [row.endDate, row.batchId]);
+
+  const isLive = type === "live";
+  const endChanged = endDate !== toDateInput(row.endDate);
+  const batchChanged = isLive && batchId !== (row.batchId ?? "");
+  const dirty = endChanged || batchChanged;
+
+  const expired = new Date(row.endDate).getTime() < Date.now();
+
+  const save = () => {
+    const body: { endDate?: string; batchId?: string } = {};
+    if (endChanged) body.endDate = new Date(`${endDate}T23:59:59`).toISOString();
+    if (batchChanged) body.batchId = batchId;
+    onUpdate(type, row.id, body);
+  };
+
+  return (
+    <div className="rounded-lg border p-3">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div>
+          <div className="font-medium">{row.plan?.name ?? "—"}</div>
+          {row.course && <div className="text-xs text-muted-foreground">{row.course.title}</div>}
+        </div>
+        <Badge variant={row.status === "ACTIVE" && !expired ? "default" : "secondary"}>
+          {row.status === "ACTIVE" && expired ? "EXPIRED" : row.status}
+        </Badge>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-1.5">
+          <Label className="text-xs">Start date</Label>
+          <Input type="date" value={toDateInput(row.startDate)} disabled />
+        </div>
+        <div className="grid gap-1.5">
+          <Label className="text-xs">Ending date</Label>
+          <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        </div>
+        {isLive && (
+          <div className="grid gap-1.5 sm:col-span-2">
+            <Label className="text-xs">Batch</Label>
+            <Select value={batchId} onValueChange={setBatchId}>
+              <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
+                <SelectValue placeholder="Select batch" />
+              </SelectTrigger>
+              <SelectContent>
+                {(batches ?? []).map((b) => (
+                  <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 flex justify-end">
+        <Button size="sm" disabled={!dirty || saving} onClick={save}>
+          {saving ? "Saving…" : "Save"}
+        </Button>
+      </div>
     </div>
   );
 }

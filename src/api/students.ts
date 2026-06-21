@@ -78,3 +78,73 @@ export function deleteStudent(role: Role, id: string) {
     }),
   );
 }
+
+// ─── ENROLLMENTS (SUBSCRIPTIONS) ─────────────────────────────────────────────
+
+export type EnrollmentStatus = "ACTIVE" | "EXPIRED" | "CANCELLED";
+
+export type EnrollmentType = "live" | "self-paced" | "ytt-live" | "ytt-recorded";
+
+export type EnrollmentPlanLite = {
+  id: string;
+  name: string;
+  validity: number;
+  price: string;
+};
+
+type EnrollmentBase = {
+  id: string;
+  planId: string;
+  startDate: string;
+  endDate: string;
+  status: EnrollmentStatus;
+  createdAt: string;
+  plan: EnrollmentPlanLite | null;
+};
+
+export type LiveEnrollmentRow = EnrollmentBase & {
+  batchId: string;
+  batch: { id: string; name: string } | null;
+};
+
+export type CourseEnrollmentRow = EnrollmentBase & {
+  course: { id: string; title: string } | null;
+};
+
+export type StudentEnrollments = {
+  live: LiveEnrollmentRow[];
+  selfPaced: EnrollmentBase[];
+  yttLive: CourseEnrollmentRow[];
+  yttRecorded: CourseEnrollmentRow[];
+};
+
+export type EnrollmentUpdateBody = {
+  endDate?: string;
+  batchId?: string;
+  status?: EnrollmentStatus;
+};
+
+export function listStudentEnrollments(role: Role, studentId: string) {
+  return unwrap<StudentEnrollments>(
+    authedRequest<ApiSuccess<StudentEnrollments>>(role, {
+      method: "GET",
+      url: `/api/students/${studentId}/enrollments`,
+    }),
+  );
+}
+
+export function updateStudentEnrollment(
+  role: Role,
+  studentId: string,
+  type: EnrollmentType,
+  enrollmentId: string,
+  body: EnrollmentUpdateBody,
+) {
+  return unwrap(
+    authedRequest<ApiSuccess<unknown>>(role, {
+      method: "PATCH",
+      url: `/api/students/${studentId}/enrollments/${type}/${enrollmentId}`,
+      data: body,
+    }),
+  );
+}
