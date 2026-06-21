@@ -278,6 +278,15 @@ export function UserEvents() {
         ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}),
       });
 
+      // Free order: a 100%-off coupon dropped the charge below Razorpay's ₹1
+      // minimum, so the backend already fulfilled the enrollment and returned no
+      // gateway key/order. Opening Razorpay here would throw "No key passed".
+      if (paymentData.free) {
+        toast.success(`Successfully registered for ${event.title}!`);
+        markEnrolled(event.id);
+        return;
+      }
+
       document.body.style.overflow = "hidden";
       try {
         await new Promise<void>((resolve, reject) => {
@@ -546,7 +555,7 @@ export function UserEvents() {
                               alt={event.title}
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                             />
-                            <div className="absolute top-3 left-3 flex gap-2">
+                            <div className="absolute top-3 left-3 flex flex-wrap gap-2">
                               {event.type && (
                                 <Badge
                                   className="text-xs font-semibold"
@@ -563,6 +572,12 @@ export function UserEvents() {
                               <Badge className="bg-white/90 text-gray-900 text-xs font-semibold">
                                 Featured
                               </Badge>
+                              {enrolledIds.has(event.id) && (
+                                <Badge className="bg-green-600 text-white text-xs font-semibold gap-1">
+                                  <Star className="w-3 h-3" />
+                                  Registered
+                                </Badge>
+                              )}
                             </div>
                             {event.price === 0 && (
                               <div className="absolute top-3 right-3">
@@ -666,19 +681,27 @@ export function UserEvents() {
                             alt={event.title}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                           />
-                          {event.type && (
-                            <div className="absolute top-2 left-2">
-                              <Badge
-                                className="text-xs font-semibold"
-                                style={{
-                                  backgroundColor: getEventTypeColor(
-                                    event.type,
-                                  ),
-                                  color: "white",
-                                }}
-                              >
-                                {event.type}
-                              </Badge>
+                          {(event.type || enrolledIds.has(event.id)) && (
+                            <div className="absolute top-2 left-2 flex flex-col items-start gap-2">
+                              {event.type && (
+                                <Badge
+                                  className="text-xs font-semibold"
+                                  style={{
+                                    backgroundColor: getEventTypeColor(
+                                      event.type,
+                                    ),
+                                    color: "white",
+                                  }}
+                                >
+                                  {event.type}
+                                </Badge>
+                              )}
+                              {enrolledIds.has(event.id) && (
+                                <Badge className="bg-green-600 text-white text-xs font-semibold gap-1">
+                                  <Star className="w-3 h-3" />
+                                  Registered
+                                </Badge>
+                              )}
                             </div>
                           )}
                         </div>

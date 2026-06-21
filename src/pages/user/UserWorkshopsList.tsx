@@ -266,6 +266,15 @@ export function UserWorkshopsList() {
         ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}),
       });
 
+      // Free order: a 100%-off coupon dropped the charge below Razorpay's ₹1
+      // minimum, so the backend already fulfilled the enrollment and returned no
+      // gateway key/order. Opening Razorpay here would throw "No key passed".
+      if (paymentData.free) {
+        toast.success(`Enrolled in ${workshop.title}!`);
+        markEnrolled(workshop.id);
+        return;
+      }
+
       document.body.style.overflow = "hidden";
       try {
         await new Promise<void>((resolve, reject) => {

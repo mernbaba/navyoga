@@ -15,10 +15,16 @@ export type InitiatePaymentInput =
   | WithExtras<{ type: "WORKSHOP"; entityId: string }>;
 
 export type InitiatePaymentResponse = {
-  orderId: string;
-  amount: number;
-  currency: string;
-  key: string;
+  // When a 100%-off coupon (or a flat discount ≥ the price) drops the charge
+  // below Razorpay's ₹1 minimum, the backend skips the gateway entirely: it
+  // fulfils the enrollment inline and returns `free: true` with NO orderId,
+  // amount, currency, or key. The frontend MUST detect this and skip checkout —
+  // passing the (undefined) key into Razorpay throws "No key passed".
+  free?: boolean;
+  orderId?: string;
+  amount?: number;
+  currency?: string;
+  key?: string;
   paymentRecordId: string;
   // GST breakup returned by the backend. baseAmount + gstAmount === the charged
   // amount (amountCharged, in rupees). For an upgrade, baseAmount already has

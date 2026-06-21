@@ -192,8 +192,7 @@ export function UserProfile() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#ff691d]/5 rounded-full blur-3xl" />
+          <Card>
             <CardHeader>
               <CardTitle style={{ color: "#ff691d" }}>Personal Information</CardTitle>
             </CardHeader>
@@ -326,8 +325,7 @@ export function UserProfile() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#10b981]/5 rounded-full blur-3xl" />
+          <Card>
             <CardHeader>
               <CardTitle style={{ color: "#ff691d" }}>Medical Information</CardTitle>
             </CardHeader>
@@ -356,8 +354,7 @@ export function UserProfile() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#f59e0b]/5 rounded-full blur-3xl" />
+          <Card>
             <CardHeader>
               <CardTitle style={{ color: "#ff691d" }}>Preferences</CardTitle>
             </CardHeader>
@@ -365,7 +362,16 @@ export function UserProfile() {
               <form onSubmit={handleSavePreferences} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="level">Current Level</Label>
-                  <Input id="level" value={currentLevel} onChange={(e) => setCurrentLevel(e.target.value)} disabled={isLoading} maxLength={20} />
+                  <Select value={currentLevel} onValueChange={setCurrentLevel} disabled={isLoading}>
+                    <SelectTrigger id="level" className="w-full">
+                      <SelectValue placeholder="Select level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Beginner">Beginner</SelectItem>
+                      <SelectItem value="Intermediate">Intermediate</SelectItem>
+                      <SelectItem value="Advanced">Advanced</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="interests">Areas of Interest</Label>

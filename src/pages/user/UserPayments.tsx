@@ -444,6 +444,21 @@ const [isEnrolling, setIsEnrolling] = useState(false);
 
       const paymentData = await initiatePayment("STUDENT", paymentInput);
 
+      // Free order: a 100%-off coupon dropped the charge below Razorpay's ₹1
+      // minimum, so the backend already fulfilled the enrollment and returned no
+      // gateway key/order. Opening Razorpay here would throw "No key passed".
+      // Skip checkout and treat it as an immediate success.
+      if (paymentData.free) {
+        toast.success(
+          upgrading
+            ? `Successfully upgraded to ${selectedPlan.name}!`
+            : `Successfully subscribed to ${selectedPlan.name}!`,
+        );
+        setAppliedCoupon(null);
+        void fetchSubscriptions();
+        return;
+      }
+
       document.body.style.overflow = "hidden";
       try {
         await new Promise<void>((resolve, reject) => {
