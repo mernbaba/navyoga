@@ -1,9 +1,16 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { BookOpen, Video, Calendar, Award, Clock, TrendingUp, Sparkles, GraduationCap, Gift, Users, Copy, Share2, Star, Crown, IndianRupee } from "lucide-react";
+import { BookOpen, Video, Calendar, Award, Clock, TrendingUp, Sparkles, GraduationCap, Gift, Users, Copy, Share2, Star, Crown, IndianRupee, Radio, CalendarDays, ChevronRight } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import { Link } from "react-router";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
+import { Link, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { ImageWithFallback } from "../../components/Fallback/ImageWithFallback";
@@ -41,6 +48,8 @@ const formatScheduled = (iso: string | null): { date: string; time: string } => 
 
 export function UserDashboard() {
   const [data, setData] = useState<StudentDashboard | null>(null);
+  const [enrolledModalOpen, setEnrolledModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let cancelled = false;
@@ -64,7 +73,7 @@ export function UserDashboard() {
     return [
       {
         title: "Enrolled Classes",
-        to: "/user/classes",
+        onClick: () => setEnrolledModalOpen(true),
         value: (m?.enrolledClasses ?? 0).toLocaleString(),
         icon: BookOpen,
         color: "#ff691d",
@@ -99,6 +108,19 @@ export function UserDashboard() {
         gradient: "from-yellow-500 to-orange-500",
       },
     ];
+  }, [data]);
+
+  const enrolledBreakdown = useMemo(() => {
+    const b = data?.metrics.enrolledBreakdown;
+    const rows = [
+      { key: "live", label: "Yoga Live", to: "/user/classes", icon: BookOpen, color: "#ff691d", gradient: "from-orange-500 to-red-500", count: b?.live ?? 0 },
+      { key: "selfPaced", label: "Yoga Self-Paced", to: "/user/self-paced", icon: GraduationCap, color: "#8b0fa8", gradient: "from-purple-500 to-purple-700", count: b?.selfPaced ?? 0 },
+      { key: "yttLive", label: "YTT Live", to: "/user/ytt-live", icon: Radio, color: "#610981", gradient: "from-purple-600 to-pink-600", count: b?.yttLive ?? 0 },
+      { key: "yttRecorded", label: "YTT Recorded", to: "/user/ytt-recorded", icon: Video, color: "#10b981", gradient: "from-green-500 to-teal-500", count: b?.yttRecorded ?? 0 },
+      { key: "workshops", label: "Workshops", to: "/user/events", icon: Award, color: "#f59e0b", gradient: "from-yellow-500 to-orange-500", count: b?.workshops ?? 0 },
+      { key: "events", label: "Events", to: "/user/events", icon: CalendarDays, color: "#0ea5e9", gradient: "from-sky-500 to-blue-600", count: b?.events ?? 0 },
+    ];
+    return rows.filter((r) => r.count > 0);
   }, [data]);
 
   const upcomingClasses = useMemo(
@@ -174,15 +196,7 @@ export function UserDashboard() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {metrics.map((metric, index) => {
             const Icon = metric.icon;
-            return (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -5, transition: { duration: 0.2 } }}
-              >
-                <Link to={metric.to}>
+            const card = (
                 <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer">
                   <div
                     className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-20"
@@ -203,7 +217,26 @@ export function UserDashboard() {
                     <p className="text-xs font-medium mt-1" style={{ color: metric.color }}>{metric.change}</p>
                   </CardContent>
                 </Card>
-                </Link>
+            );
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ y: -5, transition: { duration: 0.2 } }}
+              >
+                {metric.onClick ? (
+                  <button
+                    type="button"
+                    onClick={metric.onClick}
+                    className="block w-full text-left"
+                  >
+                    {card}
+                  </button>
+                ) : (
+                  <Link to={metric.to}>{card}</Link>
+                )}
               </motion.div>
             );
           })}
@@ -475,6 +508,56 @@ export function UserDashboard() {
           </Card>
         </motion.div>
       </div>
+
+      <Dialog open={enrolledModalOpen} onOpenChange={setEnrolledModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle style={{ color: "#ff691d" }}>Enrolled Classes</DialogTitle>
+            <DialogDescription>
+              A breakdown of what you're currently enrolled in. Tap a category to view it.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {enrolledBreakdown.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                You're not enrolled in anything yet.
+              </div>
+            ) : (
+              enrolledBreakdown.map((row) => {
+                const Icon = row.icon;
+                return (
+                  <button
+                    key={row.key}
+                    type="button"
+                    onClick={() => {
+                      setEnrolledModalOpen(false);
+                      navigate(row.to);
+                    }}
+                    className="group flex w-full items-center justify-between rounded-2xl border-2 border-gray-100 p-4 text-left transition-all duration-200 hover:border-purple-200 hover:shadow-md"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2.5 rounded-xl bg-linear-to-br ${row.gradient} shadow-lg`}>
+                        <Icon className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="font-semibold">{row.label}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="secondary"
+                        className="text-sm font-bold"
+                        style={{ backgroundColor: `${row.color}20`, color: row.color }}
+                      >
+                        {row.count}
+                      </Badge>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

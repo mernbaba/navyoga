@@ -30,6 +30,14 @@ export type StudentDashboard = {
   metrics: {
     enrolledClasses: number;
     enrolledChangeMonth: number;
+    enrolledBreakdown: {
+      live: number;
+      selfPaced: number;
+      yttLive: number;
+      yttRecorded: number;
+      workshops: number;
+      events: number;
+    };
     hoursCompleted: number;
     hoursChangeWeek: number;
     recordingsWatched: number;
