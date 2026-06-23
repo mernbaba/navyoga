@@ -822,7 +822,7 @@ export type BusinessSettings = {
 // ─── TUTOR PANEL ──────────────────────────────────────────────────────────────
 
 export type TutorDashboardStats = {
-  totalClasses: number;
+  upcomingClasses: number;
   completedClasses: number;
   classesThisMonth: number;
   totalStudents: number;

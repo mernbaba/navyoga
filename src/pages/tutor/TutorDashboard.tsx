@@ -77,7 +77,7 @@ export function TutorDashboard() {
 
   const statCards = [
     { name: "Total Sādhakas", value: isLoading ? "—" : (stats?.totalStudents ?? 0), icon: Users, color: "#ff691d", href: "/tutor/students" },
-    { name: "Upcoming Classes", value: isLoading ? "—" : Math.max(0, (stats?.totalClasses ?? 0) - (stats?.completedClasses ?? 0)), icon: Calendar, color: "#610981", href: "/tutor/classes" },
+    { name: "Upcoming Classes", value: isLoading ? "—" : (stats?.upcomingClasses ?? 0), icon: Calendar, color: "#610981", href: "/tutor/classes" },
     { name: "Completed", value: isLoading ? "—" : (stats?.completedClasses ?? 0), icon: CheckCircle, color: "#10b981", href: "/tutor/attendance" },
     { name: "Avg. Attendance", value: isLoading ? "—" : `${stats?.avgAttendanceRate ?? 0}%`, icon: TrendingUp, color: "#3b82f6", href: "/tutor/attendance" },
   ];
