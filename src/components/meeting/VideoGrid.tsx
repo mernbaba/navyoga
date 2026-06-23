@@ -11,6 +11,7 @@ type Tile = {
   isMuted: boolean;
   isVideoOff: boolean;
   isActiveSpeaker: boolean;
+  isHost: boolean;
 };
 
 const getGridClass = (count: number): string => {
@@ -22,7 +23,7 @@ const getGridClass = (count: number): string => {
 };
 
 export const VideoGrid = () => {
-  const { localStream, self, isMuted, isVideoOff, peers, activeSpeaker } =
+  const { localStream, self, hostUserId, isMuted, isVideoOff, peers, activeSpeaker } =
     useMeeting();
   const [viewMode, setViewMode] = useState<"gallery" | "speaker">("gallery");
 
@@ -34,6 +35,7 @@ export const VideoGrid = () => {
     isMuted,
     isVideoOff,
     isActiveSpeaker: activeSpeaker === "local",
+    isHost: !!self && !!hostUserId && self.userId === hostUserId,
   };
 
   const remoteTiles: Tile[] = Object.entries(peers).map(([sid, peer]) => ({
@@ -44,11 +46,16 @@ export const VideoGrid = () => {
     isMuted: peer.participant.isMuted,
     isVideoOff: peer.participant.isVideoOff,
     isActiveSpeaker: activeSpeaker === sid,
+    isHost: !!hostUserId && peer.participant.userId === hostUserId,
   }));
 
   const allTiles = [localTile, ...remoteTiles];
 
-  let speakerTile = allTiles.find((t) => t.isActiveSpeaker);
+  // Speaker view always highlights the host (yoga teacher), even when the
+  // teacher is muted or a student is the loudest. Fall back to the active
+  // speaker only when no host is present in the room.
+  let speakerTile = allTiles.find((t) => t.isHost);
+  if (!speakerTile) speakerTile = allTiles.find((t) => t.isActiveSpeaker);
   if (!speakerTile) speakerTile = remoteTiles[0] ?? localTile;
   const thumbnails = allTiles.filter((t) => t.id !== speakerTile.id);
 

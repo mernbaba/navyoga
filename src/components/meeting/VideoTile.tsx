@@ -9,6 +9,7 @@ type Props = {
   isMuted: boolean;
   isVideoOff: boolean;
   isActiveSpeaker: boolean;
+  isHost?: boolean;
 };
 
 export const VideoTile = ({
@@ -18,6 +19,7 @@ export const VideoTile = ({
   isMuted,
   isVideoOff,
   isActiveSpeaker,
+  isHost = false,
 }: Props) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -61,7 +63,7 @@ export const VideoTile = ({
   return (
     <div
       className={`relative h-full w-full overflow-hidden rounded-xl border-2 bg-zinc-900 transition-all duration-300 ${
-        isActiveSpeaker
+        isHost || isActiveSpeaker
           ? "border-[var(--primary)] shadow-[0_0_18px_rgba(97,9,129,0.45)] scale-[1.01]"
           : "border-zinc-800 hover:border-zinc-700"
       }`}
@@ -89,9 +91,16 @@ export const VideoTile = ({
       )}
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex h-12 items-center justify-between bg-gradient-to-t from-black/80 to-transparent px-4">
-        <span className="max-w-[70%] select-none truncate text-sm font-semibold text-white">
-          {name}
-          {isLocal && " (You)"}
+        <span className="flex max-w-[70%] items-center gap-1.5 text-sm font-semibold text-white">
+          <span className="select-none truncate">
+            {name}
+            {isLocal && " (You)"}
+          </span>
+          {isHost && (
+            <span className="select-none rounded bg-[var(--primary)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+              Host
+            </span>
+          )}
         </span>
         <div className="flex items-center gap-1.5 rounded-md border border-zinc-800/40 bg-black/40 px-2 py-1 backdrop-blur-md">
           {isMuted ? (
