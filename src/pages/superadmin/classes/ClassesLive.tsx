@@ -17,6 +17,10 @@ import {
   Copy,
   CheckCheck,
   RefreshCw,
+  LayoutGrid,
+  Table as TableIcon,
+  Check,
+  Minus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -48,6 +52,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { cn } from "@/components/ui/utils";
 import {
   listLiveClasses,
@@ -119,6 +131,7 @@ export function ClassesLive() {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<"card" | "table">("card");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<LiveClass | null>(null);
@@ -323,6 +336,36 @@ export function ClassesLive() {
             </button>
           )}
         </div>
+
+        {/* View toggle */}
+        <div className="ml-auto inline-flex items-center rounded-xl border bg-white/60 p-0.5">
+          <button
+            type="button"
+            onClick={() => setView("card")}
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+              view === "card"
+                ? "bg-[#610981] text-white shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            Cards
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("table")}
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+              view === "table"
+                ? "bg-[#610981] text-white shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <TableIcon className="w-3.5 h-3.5" />
+            Table
+          </button>
+        </div>
       </div>
 
       {/* Content */}
@@ -351,7 +394,7 @@ export function ClassesLive() {
             </Button>
           )}
         </div>
-      ) : (
+      ) : view === "card" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((cls) => (
             <LiveClassCard
@@ -362,6 +405,12 @@ export function ClassesLive() {
             />
           ))}
         </div>
+      ) : (
+        <LiveClassTable
+          classes={filtered}
+          onEdit={openEdit}
+          onDelete={setDeleteTarget}
+        />
       )}
 
       {/* Create / Edit Dialog */}
@@ -794,6 +843,126 @@ function LiveClassCard({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function LiveClassTable({
+  classes,
+  onEdit,
+  onDelete,
+}: {
+  classes: LiveClass[];
+  onEdit: (cls: LiveClass) => void;
+  onDelete: (cls: LiveClass) => void;
+}) {
+  return (
+    <div className="rounded-2xl border bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-[#610981]/5 hover:bg-[#610981]/5">
+            <TableHead className="text-[#610981] font-semibold">Class</TableHead>
+            <TableHead className="text-[#610981] font-semibold">Level</TableHead>
+            <TableHead className="text-[#610981] font-semibold">Yoga Shikshak</TableHead>
+            <TableHead className="text-[#610981] font-semibold">Duration</TableHead>
+            <TableHead className="text-[#610981] font-semibold">Scheduled</TableHead>
+            <TableHead className="text-[#610981] font-semibold">Batch</TableHead>
+            <TableHead className="text-[#610981] font-semibold text-center">Recording added</TableHead>
+            <TableHead className="text-[#610981] font-semibold text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {classes.map((cls) => {
+            const diffCfg = DIFFICULTY_CONFIG[cls.difficulty];
+            return (
+              <TableRow key={cls.id} className="group">
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium text-foreground leading-snug flex items-center gap-1.5">
+                      {cls.title}
+                      {cls.recurringId && (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] text-blue-600">
+                          <RefreshCw className="w-2.5 h-2.5" />
+                          {cls.dayOfWeek ? DAY_FULL[cls.dayOfWeek] ?? cls.dayOfWeek : "Recurring"}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{cls.yogaType}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span
+                    className={cn(
+                      "inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium",
+                      diffCfg.color,
+                    )}
+                  >
+                    {diffCfg.label}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  {cls.tutor ? (
+                    <div className="flex items-center gap-2">
+                      <Avatar className="w-6 h-6 shrink-0">
+                        <AvatarImage src={cls.tutor.avatar ?? undefined} />
+                        <AvatarFallback
+                          className="text-[9px] font-bold text-white"
+                          style={{ background: "#610981" }}
+                        >
+                          {initials(cls.tutor.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm text-foreground truncate max-w-[140px]">
+                        {cls.tutor.name}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                  {cls.duration} min
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                  {formatSchedule(cls.scheduledAt) ?? "—"}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {cls.batch?.name ?? "—"}
+                </TableCell>
+                <TableCell className="text-center">
+                  {cls.recording ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium bg-emerald-50 text-emerald-700 border-emerald-200">
+                      <Check className="w-3 h-3" />
+                      Added
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium bg-muted/40 text-muted-foreground border-border/60">
+                      <Minus className="w-3 h-3" />
+                      None
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => onEdit(cls)}
+                      className="p-1.5 rounded-lg hover:bg-[#610981]/10 text-[#610981] transition-colors"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(cls)}
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
     </div>
   );
 }
