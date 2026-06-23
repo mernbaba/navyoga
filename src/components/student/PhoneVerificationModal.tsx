@@ -165,7 +165,7 @@ export function PhoneVerificationModal({ user, setUser }: Props) {
           aria-describedby="phone-verify-description"
         >
           <div className="flex flex-col items-center gap-5 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#ff691d] to-[#ffac96] shadow-lg">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-[#ff691d] to-[#ffac96] shadow-lg">
               <Phone className="h-8 w-8 text-white" />
             </div>
 

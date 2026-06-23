@@ -644,7 +644,7 @@ export function ClassesEvents() {
                             )}
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-medium text-sm truncate max-w-[180px]">
+                                <span className="font-medium text-sm truncate max-w-45">
                                   {event.title}
                                 </span>
                                 {event.featured && (
@@ -659,7 +659,7 @@ export function ClassesEvents() {
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-xs text-muted-foreground truncate max-w-[200px] mt-0.5">
+                              <p className="text-xs text-muted-foreground truncate max-w-50 mt-0.5">
                                 {event.description}
                               </p>
                             </div>
@@ -672,7 +672,7 @@ export function ClassesEvents() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1 text-sm max-w-[140px]">
+                          <div className="flex items-center gap-1 text-sm max-w-35">
                             <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
                             <span className="truncate">{event.location}</span>
                           </div>
@@ -684,7 +684,7 @@ export function ClassesEvents() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="min-w-[100px]">
+                          <div className="min-w-25">
                             <div className="flex justify-between text-xs mb-1">
                               <span className={`font-medium ${capacityColor(event.occupancy, event.capacity)}`}>
                                 {capacityLabel(event.occupancy, event.capacity)}
