@@ -254,7 +254,7 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
       } else {
         const created = await createRecurringLiveClass(role, payload);
         setTemplates((prev) => [created, ...prev]);
-        toast.success("Recurring template created — classes will be generated at midnight");
+        toast.success("Recurring template created - classes will be generated at midnight");
       }
       setTemplateDialogOpen(false);
       // Reload generated classes after a short delay to catch any immediate generation
@@ -395,7 +395,7 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
               <div className="flex flex-col items-center justify-center py-12 rounded-2xl border border-dashed border-border/60">
                 <Radio className="w-10 h-10 mb-3 text-[#610981]/20" />
                 <p className="text-sm text-muted-foreground">
-                  No generated classes yet — they appear here after the cron runs at midnight
+                  No generated classes yet - they appear here after the cron runs at midnight
                 </p>
               </div>
             ) : (

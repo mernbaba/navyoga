@@ -101,7 +101,7 @@ function mapAppEvent(e: AppEvent, isPast = false): Event {
 // it serves from `/api/events/past` are stamped `isPast: true` (see
 // mapAppEvent), everything from `/api/events/upcoming` is still open. We trust
 // that verdict rather than re-deriving it from `date`/`duration` on the client.
-// A client-side clock comparison was unreliable — a viewer whose device clock
+// A client-side clock comparison was unreliable - a viewer whose device clock
 // ran ahead (e.g. over the LAN-exposed dev server) would mark a still-upcoming
 // event as ended, and `parseFloat` mis-read non-hour durations ("30 minutes" →
 // 30h). The server's classification has neither problem.
@@ -134,7 +134,7 @@ export function UserEvents() {
         if (!cancelled) setEventStats(res);
       })
       .catch(() => {
-        // best-effort — cards fall back to page-derived counts
+        // best-effort - cards fall back to page-derived counts
       });
     return () => {
       cancelled = true;
@@ -143,7 +143,7 @@ export function UserEvents() {
 
   useEffect(() => {
     let cancelled = false;
-    // TODO: paginate — currently capped at 20 events.
+    // TODO: paginate - currently capped at 20 events.
     listUpcomingEvents("STUDENT", { limit: 20 })
       .then(async (page) => {
         if (cancelled) return;
@@ -193,7 +193,7 @@ export function UserEvents() {
     };
   }, []);
 
-  // Past events are view-only — the last 10 held events, newest first.
+  // Past events are view-only - the last 10 held events, newest first.
   useEffect(() => {
     let cancelled = false;
     listPastEvents("STUDENT", { limit: 10 })
@@ -201,7 +201,7 @@ export function UserEvents() {
         if (!cancelled) setPastEvents(res.items.map((e) => mapAppEvent(e, true)));
       })
       .catch(() => {
-        // best-effort — section simply hides if it fails to load
+        // best-effort - section simply hides if it fails to load
       });
     return () => {
       cancelled = true;
@@ -268,7 +268,7 @@ export function UserEvents() {
     }
 
     setIsRegistering(true);
-    // Close the shadcn Dialog before Razorpay opens — its overlay blocks
+    // Close the shadcn Dialog before Razorpay opens - its overlay blocks
     // pointer-events on the Razorpay iframe if left mounted.
     setIsDetailsOpen(false);
     try {
@@ -342,7 +342,7 @@ export function UserEvents() {
     setSelectedEvent(event);
     setIsDetailsOpen(true);
     setAppliedCoupon(null);
-    // Lazily check enrollment for just this event — only if we don't already know.
+    // Lazily check enrollment for just this event - only if we don't already know.
     if (enrolledIds.has(event.id)) return;
     getMyEventEnrollment("STUDENT", event.id)
       .then((res) => {
@@ -753,7 +753,7 @@ export function UserEvents() {
                                 className="w-4 h-4"
                                 style={{ color: "#610981" }}
                               />
-                              <span>{event.time || "—"}</span>
+                              <span>{event.time || "-"}</span>
                             </div>
                             <div className="flex items-center gap-2 text-muted-foreground">
                               <CalendarDays
@@ -862,7 +862,7 @@ export function UserEvents() {
                               </div>
                               <div className="flex items-center gap-2 text-muted-foreground">
                                 <Clock className="w-4 h-4 text-gray-500" />
-                                <span>{event.time || "—"}</span>
+                                <span>{event.time || "-"}</span>
                               </div>
                               <div className="flex items-center gap-2 text-muted-foreground">
                                 <CalendarDays className="w-4 h-4 text-gray-500" />
@@ -950,7 +950,7 @@ export function UserEvents() {
                     style={{ color: "#ff691d" }}
                   />
                   <p className="text-xs text-muted-foreground mb-1">Time</p>
-                  <p className="font-semibold">{selectedEvent.time || "—"}</p>
+                  <p className="font-semibold">{selectedEvent.time || "-"}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-linear-to-br from-green-50 to-white border-2 border-green-100">
                   <CalendarDays className="w-6 h-6 mb-2 text-green-600" />

@@ -25,7 +25,7 @@ const timeFormatter = new Intl.DateTimeFormat(undefined, {
 });
 
 function formatClassTime(scheduledAt: string | null, duration: number): string {
-  if (!scheduledAt) return "—";
+  if (!scheduledAt) return "-";
   const start = new Date(scheduledAt);
   const end = new Date(start.getTime() + duration * 60 * 1000);
   return `${timeFormatter.format(start)} – ${timeFormatter.format(end)}`;
@@ -76,10 +76,10 @@ export function TutorDashboard() {
   };
 
   const statCards = [
-    { name: "Total Sādhakas", value: isLoading ? "—" : (stats?.totalStudents ?? 0), icon: Users, color: "#ff691d", href: "/tutor/students" },
-    { name: "Upcoming Classes", value: isLoading ? "—" : (stats?.upcomingClasses ?? 0), icon: Calendar, color: "#610981", href: "/tutor/classes" },
-    { name: "Completed", value: isLoading ? "—" : (stats?.completedClasses ?? 0), icon: CheckCircle, color: "#10b981", href: "/tutor/attendance" },
-    { name: "Avg. Attendance", value: isLoading ? "—" : `${stats?.avgAttendanceRate ?? 0}%`, icon: TrendingUp, color: "#3b82f6", href: "/tutor/attendance" },
+    { name: "Total Sādhakas", value: isLoading ? "-" : (stats?.totalStudents ?? 0), icon: Users, color: "#ff691d", href: "/tutor/students" },
+    { name: "Upcoming Classes", value: isLoading ? "-" : (stats?.upcomingClasses ?? 0), icon: Calendar, color: "#610981", href: "/tutor/classes" },
+    { name: "Completed", value: isLoading ? "-" : (stats?.completedClasses ?? 0), icon: CheckCircle, color: "#10b981", href: "/tutor/attendance" },
+    { name: "Avg. Attendance", value: isLoading ? "-" : `${stats?.avgAttendanceRate ?? 0}%`, icon: TrendingUp, color: "#3b82f6", href: "/tutor/attendance" },
   ];
 
   return (
@@ -156,7 +156,7 @@ export function TutorDashboard() {
             <div className="flex items-center justify-between pt-4 border-t border-border/50">
               <span className="text-sm text-muted-foreground">Classes This Month</span>
               <span className="text-lg font-bold" style={{ color: "#ff691d" }}>
-                {isLoading ? "—" : (stats?.classesThisMonth ?? 0)}
+                {isLoading ? "-" : (stats?.classesThisMonth ?? 0)}
               </span>
             </div>
           </button>
@@ -303,7 +303,7 @@ export function TutorDashboard() {
                         )}
                       </div>
                       <div>
-                        <h4 className="font-semibold text-sm">{ref.name ?? "—"}</h4>
+                        <h4 className="font-semibold text-sm">{ref.name ?? "-"}</h4>
                         <p className="text-xs text-muted-foreground">
                           {ref.isTutor ? "Yoga Shikshak" : "Sādhaka"} • {new Date(ref.date).toLocaleDateString()}
                         </p>
@@ -345,7 +345,7 @@ export function TutorDashboard() {
                 </div>
                 <div className="flex-1">
                   <h4 className="font-bold text-base mb-1.5">
-                    {isLoading ? "—" : `${stats?.classesThisMonth ?? 0} Classes This Month`}
+                    {isLoading ? "-" : `${stats?.classesThisMonth ?? 0} Classes This Month`}
                   </h4>
                   <p className="text-xs text-muted-foreground">
                     {isLoading ? "" : `${stats?.completedClasses ?? 0} completed total`}
@@ -359,7 +359,7 @@ export function TutorDashboard() {
                 </div>
                 <div className="flex-1">
                   <h4 className="font-bold text-base">
-                    {isLoading ? "—" : `${stats?.teachingHoursThisMonth ?? 0} Teaching Hours`}
+                    {isLoading ? "-" : `${stats?.teachingHoursThisMonth ?? 0} Teaching Hours`}
                   </h4>
                   <p className="text-xs text-muted-foreground">This month</p>
                 </div>
@@ -371,7 +371,7 @@ export function TutorDashboard() {
                 </div>
                 <div className="flex-1">
                   <h4 className="font-bold text-base">
-                    {isLoading ? "—" : `${stats?.totalStudents ?? 0} Sādhakas`}
+                    {isLoading ? "-" : `${stats?.totalStudents ?? 0} Sādhakas`}
                   </h4>
                   <p className="text-xs text-muted-foreground">Across all classes</p>
                 </div>

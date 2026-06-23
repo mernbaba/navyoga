@@ -576,7 +576,7 @@ function EnrollmentRow({
     <div className="rounded-lg border p-3">
       <div className="flex items-center justify-between gap-2 mb-3">
         <div>
-          <div className="font-medium">{row.plan?.name ?? "—"}</div>
+          <div className="font-medium">{row.plan?.name ?? "-"}</div>
           {row.course && <div className="text-xs text-muted-foreground">{row.course.title}</div>}
         </div>
         <Badge variant={row.status === "ACTIVE" && !expired ? "default" : "secondary"}>

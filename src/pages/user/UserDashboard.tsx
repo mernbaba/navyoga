@@ -468,7 +468,7 @@ export function UserDashboard() {
                         Copy
                       </Button>
                     </div>
-                    <h4 className="font-bold text-lg mb-1 font-mono">{referralStats.referralCode || "—"}</h4>
+                    <h4 className="font-bold text-lg mb-1 font-mono">{referralStats.referralCode || "-"}</h4>
                     <p className="text-sm text-white/80">Your Referral Code</p>
                   </div>
                 </motion.div>

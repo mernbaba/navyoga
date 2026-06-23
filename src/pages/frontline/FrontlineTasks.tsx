@@ -34,7 +34,7 @@ const PRIORITY_LABELS: Record<TaskPriority, string> = {
 };
 
 const fmtDate = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  iso ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "-";
 
 // `@db.Date` values arrive as ISO at UTC midnight; slice the date part for the
 // <input type="date"> without a timezone shift.

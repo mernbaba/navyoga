@@ -641,7 +641,7 @@ function ClassFormView({
           id="cf-title"
           value={form.title}
           onChange={(e) => onChange({ title: e.target.value })}
-          placeholder="e.g. Sun Salutation — Part 1"
+          placeholder="e.g. Sun Salutation - Part 1"
         />
       </div>
       <div className={showThumbnail ? "grid grid-cols-2 gap-3" : ""}>
@@ -721,7 +721,7 @@ function isClassFormValid(form: ClassFormFields): boolean {
 // ─── ADD CLASS DIALOG ─────────────────────────────────────────────────────────
 
 function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "—";
+  if (!Number.isFinite(bytes) || bytes <= 0) return "-";
   const mb = bytes / (1024 * 1024);
   if (mb < 1024) return `${mb.toFixed(mb < 10 ? 1 : 0)} MB`;
   return `${(mb / 1024).toFixed(2)} GB`;
@@ -863,7 +863,7 @@ function AddClassDialog({
       const minutes = Math.max(1, Math.round(durationSec / 60));
       setDetectedDurationMin(minutes);
       setForm((f) => ({ ...f, duration: String(minutes) }));
-      // Keep the captured frame around even if a URL was given — user might clear the URL.
+      // Keep the captured frame around even if a URL was given - user might clear the URL.
       setAutoThumb(thumbnail);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't read the video");
@@ -893,7 +893,7 @@ function AddClassDialog({
         });
         updated = await updateClass(role, mod.id, cls.id, { video: videoPresign.storePath });
       } else {
-        // Reuse an existing path directly — no upload needed.
+        // Reuse an existing path directly - no upload needed.
         updated = await updateClass(role, mod.id, cls.id, { video: pastedVideoPath.trim() });
       }
 
@@ -966,7 +966,7 @@ function AddClassDialog({
             </div>
           ) : (
             <div className="space-y-3">
-              {/* Class preview header — 16:9 banner */}
+              {/* Class preview header - 16:9 banner */}
               <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
                 {previewImageUrl ? (
                   <img
@@ -987,13 +987,13 @@ function AddClassDialog({
                       {form.title.trim() || "Untitled class"}
                     </p>
                     <p className="text-white/70 text-xs mt-0.5 truncate">
-                      {mod.title} · {displayDuration ? `${displayDuration} min` : "—"} · MP4
+                      {mod.title} · {displayDuration ? `${displayDuration} min` : "-"} · MP4
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Thumbnail upload — optional, .jpg/.png only */}
+              {/* Thumbnail upload - optional, .jpg/.png only */}
               <div className="space-y-2">
                 <Label htmlFor="sp-thumb-pick">
                   Thumbnail <span className="text-xs text-muted-foreground font-normal">· optional · .jpg or .png</span>
@@ -1099,7 +1099,7 @@ function AddClassDialog({
                 )}
               </div>
 
-              {/* Metadata grid — only after video is picked */}
+              {/* Metadata grid - only after video is picked */}
               {videoFile && (
                 <div className="grid grid-cols-2 gap-3 p-3 bg-muted/40 rounded-lg">
                   <div>
@@ -1109,7 +1109,7 @@ function AddClassDialog({
                   <div>
                     <p className="text-xs text-muted-foreground">Duration</p>
                     <p className="font-medium text-sm mt-0.5">
-                      {displayDuration ? `${displayDuration} min` : extracting ? "reading…" : "—"}
+                      {displayDuration ? `${displayDuration} min` : extracting ? "reading…" : "-"}
                     </p>
                   </div>
                 </div>
@@ -1397,7 +1397,7 @@ function EditClassDialog({
                 showThumbnail={false}
               />
 
-              {/* Thumbnail upload — from device, .jpg/.png only */}
+              {/* Thumbnail upload - from device, .jpg/.png only */}
               <div className="space-y-2">
                 <Label htmlFor="ec-thumb-pick">
                   Thumbnail <span className="text-xs text-muted-foreground font-normal">· optional · .jpg or .png</span>
@@ -1459,7 +1459,7 @@ function EditClassDialog({
             </div>
           ) : (
             <div className="space-y-3">
-              {/* Class preview header — 16:9 banner */}
+              {/* Class preview header - 16:9 banner */}
               <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
                 {previewImageUrl ? (
                   <img
@@ -1480,7 +1480,7 @@ function EditClassDialog({
                       {form.title.trim() || "Untitled class"}
                     </p>
                     <p className="text-white/70 text-xs mt-0.5 truncate">
-                      {mod.title} · {displayDuration ? `${displayDuration} min` : "—"} · MP4
+                      {mod.title} · {displayDuration ? `${displayDuration} min` : "-"} · MP4
                     </p>
                   </div>
                 </div>
@@ -1644,7 +1644,7 @@ function EditClassDialog({
                 )}
               </div>
 
-              {/* Metadata grid — only after a new video is picked */}
+              {/* Metadata grid - only after a new video is picked */}
               {videoFile && (
                 <div className="grid grid-cols-2 gap-3 p-3 bg-muted/40 rounded-lg">
                   <div>
@@ -1654,7 +1654,7 @@ function EditClassDialog({
                   <div>
                     <p className="text-xs text-muted-foreground">Duration</p>
                     <p className="font-medium text-sm mt-0.5">
-                      {displayDuration ? `${displayDuration} min` : extracting ? "reading…" : "—"}
+                      {displayDuration ? `${displayDuration} min` : extracting ? "reading…" : "-"}
                     </p>
                   </div>
                 </div>
@@ -1665,7 +1665,7 @@ function EditClassDialog({
                 </p>
               )}
 
-              {/* Upload action — only after a new video is picked */}
+              {/* Upload action - only after a new video is picked */}
               {videoFile && (
                 <div className="flex justify-end">
                   <Button

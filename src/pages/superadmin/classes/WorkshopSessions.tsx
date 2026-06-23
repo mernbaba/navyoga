@@ -212,7 +212,7 @@ export function WorkshopSessions() {
       }
       if (form.link.trim()) body.link = form.link.trim();
       // When a file is selected we upload it after the session exists and patch
-      // the resulting storePath in — so don't send the (empty) URL field here.
+      // the resulting storePath in - so don't send the (empty) URL field here.
       if (!videoFile && form.video.trim()) body.video = form.video.trim();
 
       let saved =
@@ -341,7 +341,7 @@ export function WorkshopSessions() {
                 id="ses-title"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="e.g. Track 1 — Sound Bath Journey"
+                placeholder="e.g. Track 1 - Sound Bath Journey"
                 autoFocus
               />
             </div>
@@ -591,10 +591,10 @@ export function WorkshopSessions() {
                           <Badge style={{ background: modeBadgeColor(s.mode), color: "white" }}>{s.mode}</Badge>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                          {s.scheduledAt ? new Date(s.scheduledAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}
+                          {s.scheduledAt ? new Date(s.scheduledAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "-"}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {s.duration != null ? `${s.duration} min` : "—"}
+                          {s.duration != null ? `${s.duration} min` : "-"}
                         </TableCell>
                         <TableCell className="pr-4 text-right">
                           <div className="inline-flex items-center gap-1">

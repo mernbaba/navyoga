@@ -35,7 +35,7 @@ type ModuleCard = YTTModule & {
 };
 
 const formatDuration = (minutes: number) => {
-  if (minutes <= 0) return "—";
+  if (minutes <= 0) return "-";
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
   if (hours === 0) return `${mins} min`;
@@ -216,7 +216,7 @@ export function UserYTTRecorded() {
             <div>
               <h1 className="text-4xl font-bold">YTT Recorded</h1>
               <p className="text-white/90 mt-1">
-                Self-paced Yoga Teacher Training — your enrolled cohorts
+                Self-paced Yoga Teacher Training - your enrolled cohorts
               </p>
             </div>
           </motion.div>

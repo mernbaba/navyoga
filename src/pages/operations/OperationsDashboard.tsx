@@ -62,30 +62,30 @@ export function OperationsDashboard() {
 
   const dotColor = attendance?.checkOut ? "#10b981" : attendance?.checkIn ? "#f59e0b" : "#94a3b8";
   const borderColor = attendance?.checkOut ? "#10b98140" : attendance?.checkIn ? "#f59e0b40" : "#e2e8f0";
-  const fmtDiff = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `${n}` : "—");
+  const fmtDiff = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `${n}` : "-");
 
   const metrics = [
     {
       title: 'Total Employees',
-      value: dashboardData ? dashboardData.cards.employees.total.toLocaleString() : '—',
+      value: dashboardData ? dashboardData.cards.employees.total.toLocaleString() : '-',
       change: dashboardData ? fmtDiff(dashboardData.cards.employees.diff) : null,
       icon: Users, color: '#ff691d', href: '/operations/employees',
     },
     {
       title: 'Active Yoga Shikshaks',
-      value: dashboardData ? dashboardData.cards.tutors.total.toLocaleString() : '—',
+      value: dashboardData ? dashboardData.cards.tutors.total.toLocaleString() : '-',
       change: dashboardData ? fmtDiff(dashboardData.cards.tutors.diff) : null,
       icon: GraduationCap, color: '#610981', href: '/operations/tutors',
     },
     {
       title: 'Frontline Team',
-      value: dashboardData ? dashboardData.cards.frontline.total.toLocaleString() : '—',
+      value: dashboardData ? dashboardData.cards.frontline.total.toLocaleString() : '-',
       change: dashboardData ? fmtDiff(dashboardData.cards.frontline.diff) : null,
       icon: Phone, color: '#10b981', href: '/operations/frontline-team',
     },
     {
       title: 'Active Sādhakas',
-      value: dashboardData ? dashboardData.cards.students.total.toLocaleString() : '—',
+      value: dashboardData ? dashboardData.cards.students.total.toLocaleString() : '-',
       change: dashboardData ? fmtDiff(dashboardData.cards.students.diff) : null,
       icon: UserPlus, color: '#f59e0b', href: '/operations/users',
     },
@@ -204,21 +204,21 @@ export function OperationsDashboard() {
                     <UserCog className="w-5 h-5" style={{ color: '#610981' }} />
                     <span className="font-medium">Employees</span>
                   </div>
-                  <span className="text-sm font-semibold">{dashboardData ? dashboardData.team.employees : '—'}</span>
+                  <span className="text-sm font-semibold">{dashboardData ? dashboardData.team.employees : '-'}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                   <div className="flex items-center gap-3">
                     <GraduationCap className="w-5 h-5" style={{ color: '#ff691d' }} />
                     <span className="font-medium">Yoga Shikshaks</span>
                   </div>
-                  <span className="text-sm font-semibold">{dashboardData ? dashboardData.team.tutors : '—'}</span>
+                  <span className="text-sm font-semibold">{dashboardData ? dashboardData.team.tutors : '-'}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                   <div className="flex items-center gap-3">
                     <Phone className="w-5 h-5" style={{ color: '#10b981' }} />
                     <span className="font-medium">Frontline Team</span>
                   </div>
-                  <span className="text-sm font-semibold">{dashboardData ? dashboardData.team.frontline : '—'}</span>
+                  <span className="text-sm font-semibold">{dashboardData ? dashboardData.team.frontline : '-'}</span>
                 </div>
               </div>
             </CardContent>
@@ -236,14 +236,14 @@ export function OperationsDashboard() {
                     <Ticket className="w-5 h-5" style={{ color: '#f59e0b' }} />
                     <span className="font-medium">Active Coupons</span>
                   </div>
-                  <span className="text-sm font-semibold">{dashboardData ? dashboardData.system.coupons : '—'}</span>
+                  <span className="text-sm font-semibold">{dashboardData ? dashboardData.system.coupons : '-'}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                   <div className="flex items-center gap-3">
                     <Bell className="w-5 h-5" style={{ color: '#8b5cf6' }} />
                     <span className="font-medium">Notifications Sent</span>
                   </div>
-                  <span className="text-sm font-semibold">{dashboardData ? dashboardData.system.notifications : '—'}</span>
+                  <span className="text-sm font-semibold">{dashboardData ? dashboardData.system.notifications : '-'}</span>
                 </div>
               </div>
             </CardContent>

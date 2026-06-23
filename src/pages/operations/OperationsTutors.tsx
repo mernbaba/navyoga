@@ -76,7 +76,7 @@ export function OperationsTutors() {
   const metrics = [
     { title: "Total Yoga Shikshaks", value: String(total), icon: GraduationCap, color: "#ff691d" },
     { title: "Active (page)", value: String(activeCount), icon: GraduationCap, color: "#10b981" },
-    { title: "Avg Experience", value: tutors.length ? `${Math.round(tutors.reduce((s, t) => s + t.experience, 0) / tutors.length)} yr` : "—", icon: Award, color: "#f59e0b" },
+    { title: "Avg Experience", value: tutors.length ? `${Math.round(tutors.reduce((s, t) => s + t.experience, 0) / tutors.length)} yr` : "-", icon: Award, color: "#f59e0b" },
   ];
 
   const handleAdd = async (event: React.FormEvent) => {

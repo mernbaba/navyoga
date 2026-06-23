@@ -221,7 +221,7 @@ export function OperationsNotifications() {
                         <td className="py-3 px-4 text-sm">{audienceLabel(notification.targetAudience)}</td>
                         <td className="py-3 px-4 text-sm">{notification.recipientCount}</td>
                         <td className="py-3 px-4 text-sm">
-                          {notification.scheduledDate ? new Date(notification.scheduledDate).toLocaleString() : "—"}
+                          {notification.scheduledDate ? new Date(notification.scheduledDate).toLocaleString() : "-"}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">

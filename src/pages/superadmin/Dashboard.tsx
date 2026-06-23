@@ -306,7 +306,7 @@ export function Dashboard() {
                   <p className="text-xs" style={{ color: '#ffac96' }}>All-time referral count</p>
                 </div>
               </div>
-              <span className="text-2xl font-bold">{referralsCount != null ? referralsCount.toLocaleString() : "—"}</span>
+              <span className="text-2xl font-bold">{referralsCount != null ? referralsCount.toLocaleString() : "-"}</span>
             </div>
 
             <div className="group relative flex items-center justify-between p-4 border border-border/50 rounded-xl hover:shadow-lg hover:shadow-[#ffac96]/20 transition-all duration-300 hover:border-[#ffac96]/50">
@@ -319,7 +319,7 @@ export function Dashboard() {
                   <p className="text-xs" style={{ color: '#ffac96' }}>Total enrollments</p>
                 </div>
               </div>
-              <span className="text-2xl font-bold">{eventsAndWorkshops != null ? eventsAndWorkshops.toLocaleString() : "—"}</span>
+              <span className="text-2xl font-bold">{eventsAndWorkshops != null ? eventsAndWorkshops.toLocaleString() : "-"}</span>
             </div>
 
             <div className="group relative flex items-center justify-between p-4 border border-border/50 rounded-xl hover:shadow-lg hover:shadow-[#ffac96]/20 transition-all duration-300 hover:border-[#ffac96]/50">
@@ -332,7 +332,7 @@ export function Dashboard() {
                   <p className="text-xs" style={{ color: '#ffac96' }}>Self-Paced, Live &amp; YTT</p>
                 </div>
               </div>
-              <span className="text-2xl font-bold">{subscriptionsCount != null ? subscriptionsCount.toLocaleString() : "—"}</span>
+              <span className="text-2xl font-bold">{subscriptionsCount != null ? subscriptionsCount.toLocaleString() : "-"}</span>
             </div>
           </CardContent>
         </Card>
@@ -408,17 +408,17 @@ export function Dashboard() {
           <CardContent className="space-y-4">
             <div className="p-3 rounded-xl bg-linear-to-br from-[#610981]/10 to-[#ff691d]/5">
               <p className="text-xs font-medium" style={{ color: '#ffac96' }}>Today's Classes</p>
-              <p className="text-2xl font-bold mt-1">—</p>
+              <p className="text-2xl font-bold mt-1">-</p>
             </div>
 
             <div className="p-3 rounded-xl bg-linear-to-br from-[#ff691d]/10 to-[#ffac96]/10">
               <p className="text-xs font-medium" style={{ color: '#ffac96' }}>Pending Payments</p>
-              <p className="text-2xl font-bold mt-1">—</p>
+              <p className="text-2xl font-bold mt-1">-</p>
             </div>
 
             <div className="p-3 rounded-xl bg-linear-to-br from-[#ffac96]/20 to-[#610981]/5">
               <p className="text-xs font-medium" style={{ color: '#ffac96' }}>New Leads</p>
-              <p className="text-2xl font-bold mt-1">—</p>
+              <p className="text-2xl font-bold mt-1">-</p>
             </div>
           </CardContent>
         </Card>

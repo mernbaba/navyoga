@@ -369,7 +369,7 @@ export function FinancialsPayments() {
                     <TableRow key={payment.id}>
                       <TableCell className="font-mono text-xs">{payment.id}</TableCell>
                       <TableCell>
-                        <div className="font-medium">{payment.student?.name ?? "—"}</div>
+                        <div className="font-medium">{payment.student?.name ?? "-"}</div>
                         {payment.student?.email && (
                           <div className="text-xs text-muted-foreground">
                             {payment.student.email}
@@ -389,7 +389,7 @@ export function FinancialsPayments() {
                       <TableCell>
                         <div className="flex items-center gap-2 capitalize">
                           {getMethodIcon(payment.method)}
-                          {payment.method ?? "—"}
+                          {payment.method ?? "-"}
                         </div>
                       </TableCell>
                       <TableCell>

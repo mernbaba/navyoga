@@ -64,7 +64,7 @@ const LIMIT = 15;
 
 // The form keeps numeric fields (capacity, price) as raw strings so the inputs
 // can be plain text fields. They are validated and typecast to numbers on
-// submit — see `validateForm` / `handleSubmit`. The persisted datatype stays
+// submit - see `validateForm` / `handleSubmit`. The persisted datatype stays
 // `number` (CreateEventInput); only the editing draft uses strings.
 type EventFormDraft = {
   title: string;
@@ -274,7 +274,7 @@ export function ClassesEvents() {
         if (!cancelled) setStats(res);
       })
       .catch(() => {
-        // best-effort — cards fall back to page-derived counts
+        // best-effort - cards fall back to page-derived counts
       });
     return () => {
       cancelled = true;

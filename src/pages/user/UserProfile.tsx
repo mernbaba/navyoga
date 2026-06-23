@@ -172,7 +172,7 @@ export function UserProfile() {
     );
   };
 
-  const memberSince = profile ? new Date(profile.createdAt).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : "—";
+  const memberSince = profile ? new Date(profile.createdAt).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : "-";
 
   return (
     <div className="p-6 lg:p-8">
@@ -287,7 +287,7 @@ export function UserProfile() {
                   </div>
                   {profile?.phoneVerified === false ? (
                     <p className="text-xs text-amber-600">
-                      Phone not verified — a verification prompt will appear shortly.
+                      Phone not verified - a verification prompt will appear shortly.
                     </p>
                   ) : null}
                 </div>

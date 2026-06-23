@@ -106,7 +106,7 @@ const mapUserItem = (item: MyReferralStudentItem): ReferredItem => ({
   id: item.id,
   name: item.name,
   email: item.email,
-  tag: "—", // not from API: backend `/me/users` item has no subscription period field
+  tag: "-", // not from API: backend `/me/users` item has no subscription period field
   date: formatDate(item.date),
   amount: Number(item.reward) || 0,
   status: statusFromApi(item.status),
@@ -116,7 +116,7 @@ const mapTutorItem = (item: MyReferralTutorItem): ReferredItem => ({
   id: item.id,
   name: item.name,
   email: item.email,
-  tag: item.specializations?.[0] ?? "—",
+  tag: item.specializations?.[0] ?? "-",
   date: formatDate(item.date),
   classes: item.classes,
   amount: Number(item.reward) || 0,

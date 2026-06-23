@@ -63,7 +63,7 @@ export function TutorStudents() {
               <CardTitle>Total Students</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold">{isLoading ? "—" : total}</div>
+              <div className="text-3xl font-semibold">{isLoading ? "-" : total}</div>
             </CardContent>
           </Card>
         </div> */}

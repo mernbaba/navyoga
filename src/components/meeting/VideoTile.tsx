@@ -26,7 +26,7 @@ export const VideoTile = ({
 
   // Bind the stream to the <video> element whenever it (re)mounts. The element
   // is conditionally rendered (only while video is on), so this must also run
-  // when isVideoOff flips — otherwise a freshly mounted element with the same
+  // when isVideoOff flips - otherwise a freshly mounted element with the same
   // stream reference never gets its srcObject set.
   useEffect(() => {
     if (videoRef.current && stream) {
@@ -40,7 +40,7 @@ export const VideoTile = ({
   // silence the participant. Local audio is never played back to avoid echo.)
   //
   // The element is registered with audioUnlock so .play() is called explicitly
-  // and retried on the first user gesture — mobile browsers block autoplay of
+  // and retried on the first user gesture - mobile browsers block autoplay of
   // audio until the user interacts, which otherwise silences this device's
   // outgoing audio on the remote phone (a phone never starts the playback).
   useEffect(() => {

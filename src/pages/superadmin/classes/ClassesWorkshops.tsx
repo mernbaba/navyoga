@@ -120,7 +120,7 @@ function fromDatetimeLocal(value: string): string | undefined {
 }
 
 function formatDate(iso: string | null) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   return new Date(iso).toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -302,7 +302,7 @@ export function ClassesWorkshops() {
         if (!cancelled) setStats(res);
       })
       .catch(() => {
-        // best-effort — cards fall back to page-derived counts
+        // best-effort - cards fall back to page-derived counts
       });
     return () => {
       cancelled = true;
@@ -613,7 +613,7 @@ export function ClassesWorkshops() {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{levelLabel(w.level)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {w.startDate ? formatDate(w.startDate) : "—"}
+                        {w.startDate ? formatDate(w.startDate) : "-"}
                         {w.endDate && (<><span className="mx-1">→</span>{formatDate(w.endDate)}</>)}
                       </TableCell>
                       <TableCell className="text-right text-sm">
@@ -914,7 +914,7 @@ export function ClassesWorkshops() {
                       <TableCell className="text-sm text-muted-foreground">
                         <div className="flex flex-col leading-tight">
                           <span>{row.student.email}</span>
-                          <span className="text-xs">{row.student.phone ?? "—"}</span>
+                          <span className="text-xs">{row.student.phone ?? "-"}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">

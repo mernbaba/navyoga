@@ -192,7 +192,7 @@ export function UserReferrals() {
           activeReferrals: res.overview.active,
           pendingReferrals: res.overview.pending,
           totalEarned,
-          // not from API: derived placeholder — backend has no available/redeemed split
+          // not from API: derived placeholder - backend has no available/redeemed split
           availableBalance: totalEarned,
           redeemedBalance: 0,
         });
@@ -386,7 +386,7 @@ export function UserReferrals() {
           </Card>
         </motion.div>
 
-        {/* Frontend-only: backend has no available-balance field — mirrors totalEarned */}
+        {/* Frontend-only: backend has no available-balance field - mirrors totalEarned */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -758,7 +758,7 @@ export function UserReferrals() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Frontend-only: backend has no available-balance field — mirrors totalEarned */}
+                {/* Frontend-only: backend has no available-balance field - mirrors totalEarned */}
                 <div className="p-4 rounded-lg bg-linear-to-br from-[#610981]/10 to-[#ff691d]/10">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium">Available Balance</span>

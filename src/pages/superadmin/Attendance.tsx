@@ -86,9 +86,9 @@ const statusPill: Record<AttendanceStatus, string> = {
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString();
 
 const formatTime = (iso: string | null | undefined) => {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 };
 
@@ -154,31 +154,31 @@ export function Attendance() {
     switch (category) {
       case "users":
         return [
-          { label: "Sādhaka Name", getValue: (r) => (r as StudentAttendance).student?.name ?? "—" },
-          { label: "Class", getValue: (r) => (r as StudentAttendance).subscriptionClass?.title ?? "—" },
+          { label: "Sādhaka Name", getValue: (r) => (r as StudentAttendance).student?.name ?? "-" },
+          { label: "Class", getValue: (r) => (r as StudentAttendance).subscriptionClass?.title ?? "-" },
           { label: "Date", getValue: (r) => formatDate(r.date) },
           { label: "Time", getValue: (r) => formatTime((r as StudentAttendance).subscriptionClass?.scheduledAt) },
         ];
       case "tutors":
         return [
-          { label: "Yoga Shikshak Name", getValue: (r) => (r as TutorAttendance).tutor?.name ?? "—" },
+          { label: "Yoga Shikshak Name", getValue: (r) => (r as TutorAttendance).tutor?.name ?? "-" },
           { label: "Classes Conducted", getValue: (r) => {
             const v = (r as TutorAttendance).classesConducted;
-            return v == null ? "—" : String(v);
+            return v == null ? "-" : String(v);
           } },
           { label: "Date", getValue: (r) => formatDate(r.date) },
           { label: "Teaching Hours", getValue: (r) => {
             const v = (r as TutorAttendance).teachingHours;
-            return v == null ? "—" : `${v}h`;
+            return v == null ? "-" : `${v}h`;
           } },
         ];
       case "frontline":
         return [
           { label: "Name", getValue: (r) => {
             const s = (r as FrontlineAttendance).staff;
-            return s ? `${s.firstName} ${s.lastName}` : "—";
+            return s ? `${s.firstName} ${s.lastName}` : "-";
           } },
-          { label: "Role", getValue: (r) => (r as FrontlineAttendance).staff?.designation ?? "—" },
+          { label: "Role", getValue: (r) => (r as FrontlineAttendance).staff?.designation ?? "-" },
           { label: "Date", getValue: (r) => formatDate(r.date) },
           { label: "Check In", getValue: (r) => formatTime((r as FrontlineAttendance).checkIn) },
           { label: "Check Out", getValue: (r) => formatTime((r as FrontlineAttendance).checkOut) },
@@ -187,9 +187,9 @@ export function Attendance() {
         return [
           { label: "Name", getValue: (r) => {
             const s = (r as OperationsAttendance).staff;
-            return s ? `${s.firstName} ${s.lastName}` : "—";
+            return s ? `${s.firstName} ${s.lastName}` : "-";
           } },
-          { label: "Role", getValue: (r) => (r as OperationsAttendance).staff?.department ?? "—" },
+          { label: "Role", getValue: (r) => (r as OperationsAttendance).staff?.department ?? "-" },
           { label: "Date", getValue: (r) => formatDate(r.date) },
           { label: "Check In", getValue: (r) => formatTime((r as OperationsAttendance).checkIn) },
           { label: "Check Out", getValue: (r) => formatTime((r as OperationsAttendance).checkOut) },
@@ -198,9 +198,9 @@ export function Attendance() {
   }, [category]);
 
   const getDisplayId = (r: AnyAttendance): string => {
-    if (category === "users") return (r as StudentAttendance).student?.id ?? "—";
-    if (category === "tutors") return (r as TutorAttendance).tutor?.tutorId ?? "—";
-    return (r as FrontlineAttendance | OperationsAttendance).staff?.employeeId ?? "—";
+    if (category === "users") return (r as StudentAttendance).student?.id ?? "-";
+    if (category === "tutors") return (r as TutorAttendance).tutor?.tutorId ?? "-";
+    return (r as FrontlineAttendance | OperationsAttendance).staff?.employeeId ?? "-";
   };
 
   const stats = [

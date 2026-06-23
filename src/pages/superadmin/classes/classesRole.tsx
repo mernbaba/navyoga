@@ -1,9 +1,9 @@
 import { createContext, useContext, type ReactNode } from "react";
 
 /**
- * The classes module is rendered under two surfaces — the superadmin panel
+ * The classes module is rendered under two surfaces - the superadmin panel
  * (`/superadmin/classes/*`) and the operations panel (`/operations/classes/*`)
- * — using the exact same page components. The only per-surface differences are
+ * - using the exact same page components. The only per-surface differences are
  * (a) which auth token the API calls use and (b) the base path for in-module
  * navigation. Both are derived from this context so the pages themselves stay
  * identical.

@@ -28,7 +28,7 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
-      <span className="text-sm font-medium">{value || <span className="text-muted-foreground italic">—</span>}</span>
+      <span className="text-sm font-medium">{value || <span className="text-muted-foreground italic">-</span>}</span>
     </div>
   );
 }
@@ -252,19 +252,19 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader><CardTitle>Total Leads</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-semibold">{stats?.total ?? "—"}</div></CardContent>
+          <CardContent><div className="text-3xl font-semibold">{stats?.total ?? "-"}</div></CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle>New</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-semibold text-blue-500">{stats?.new ?? "—"}</div></CardContent>
+          <CardContent><div className="text-3xl font-semibold text-blue-500">{stats?.new ?? "-"}</div></CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle>Interested</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-semibold text-yellow-500">{stats?.interested ?? "—"}</div></CardContent>
+          <CardContent><div className="text-3xl font-semibold text-yellow-500">{stats?.interested ?? "-"}</div></CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle>Converted</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-semibold text-green-500">{stats?.converted ?? "—"}</div></CardContent>
+          <CardContent><div className="text-3xl font-semibold text-green-500">{stats?.converted ?? "-"}</div></CardContent>
         </Card>
       </div>
 

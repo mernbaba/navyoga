@@ -47,7 +47,7 @@ type UiPlan = {
   id: string;
   name: string;
   duration: string;
-  validity: number; // raw plan validity in days — used for upgrade proration
+  validity: number; // raw plan validity in days - used for upgrade proration
   price: number;
   originalPrice?: number;
   monthlyPrice?: number;
@@ -236,7 +236,7 @@ export function UserPayments() {
       for (const e of yttRecordedData) expiry[`${e.planId}:${e.courseId}`] = e.expiresAt;
       setActiveExpiry(expiry);
     } catch {
-      // silently ignore — plan cards render without subscription highlights
+      // silently ignore - plan cards render without subscription highlights
     }
   }, []);
 
@@ -272,7 +272,7 @@ const isSubscribed = (plan: UiPlan): boolean => {
   };
 
   // The student's current active plan in the same category (and course, for
-  // YTT) as `plan` — the one being replaced on an upgrade. Returns the matching
+  // YTT) as `plan` - the one being replaced on an upgrade. Returns the matching
   // UiPlan (for old price + validity) and its enrollment expiry, or null when
   // the category isn't locked. For YTT, only an enrollment on the *same course*
   // counts (a different course is a fresh purchase, not an upgrade).
@@ -306,7 +306,7 @@ const isSubscribed = (plan: UiPlan): boolean => {
     isCategoryLocked(plan.category) && !isSubscribed(plan) && currentActiveFor(plan) !== null;
 
   // Rupee credit for the unused time on the current plan, prorated over its
-  // validity — mirrors the backend computeUpgradeBase. remainingDays uses ceil
+  // validity - mirrors the backend computeUpgradeBase. remainingDays uses ceil
   // and is clamped to [0, oldValidity].
   const upgradeCreditFor = (plan: UiPlan): number => {
     const current = currentActiveFor(plan);
@@ -402,7 +402,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
     }
   })();
 
-  // Clear an applied coupon if the batch selection changes (LIVE only) — the
+  // Clear an applied coupon if the batch selection changes (LIVE only) - the
   // validated price is tied to the previous context.
   useEffect(() => {
     if (selectedPlan?.category === "live" && appliedCoupon) {
@@ -1015,7 +1015,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
           {selectedPlan && (() => {
             // Listed prices are GST-exclusive base values. On an upgrade the
             // unused-time credit is subtracted from the base first; then the
-            // coupon discounts the remaining base; then GST is added on top —
+            // coupon discounts the remaining base; then GST is added on top -
             // matching the backend's charged amount.
             const upgrading = isUpgradeTarget(selectedPlan);
             const credit = upgrading ? upgradeCreditFor(selectedPlan) : 0;

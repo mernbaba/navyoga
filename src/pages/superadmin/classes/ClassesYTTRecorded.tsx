@@ -82,7 +82,7 @@ function formatDuration(minutes: number) {
 }
 
 function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "—";
+  if (!Number.isFinite(bytes) || bytes <= 0) return "-";
   const mb = bytes / (1024 * 1024);
   if (mb < 1024) return `${mb.toFixed(mb < 10 ? 1 : 0)} MB`;
   return `${(mb / 1024).toFixed(2)} GB`;
@@ -553,7 +553,7 @@ function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreat
         });
         await updateYTTRecordedClass(courseId, moduleId, created.id, { video: videoPresign.storePath }, role);
 
-        // 3. Upload thumbnail — prefer user-picked file, fall back to auto-captured frame.
+        // 3. Upload thumbnail - prefer user-picked file, fall back to auto-captured frame.
         const thumbBlob: Blob | null = thumbnailFile ?? autoThumb;
         if (thumbBlob) {
           const thumbName = thumbnailFile?.name ?? "thumbnail.jpg";
@@ -579,7 +579,7 @@ function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreat
           }
         }
       } else {
-        // 2b. Reuse an existing path directly — no upload needed.
+        // 2b. Reuse an existing path directly - no upload needed.
         await updateYTTRecordedClass(courseId, moduleId, created.id, { video: pastedVideoPath.trim() }, role);
       }
 
@@ -657,7 +657,7 @@ function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreat
             </div>
           ) : (
             <div className="space-y-3">
-              {/* Class preview header — 16:9 banner */}
+              {/* Class preview header - 16:9 banner */}
               <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
                 {previewImageUrl ? (
                   <img
@@ -678,13 +678,13 @@ function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreat
                       {title.trim() || "Untitled class"}
                     </p>
                     <p className="text-white/70 text-xs mt-0.5 truncate">
-                      {moduleName} · {displayDuration ? `${displayDuration} min` : "—"} · MP4
+                      {moduleName} · {displayDuration ? `${displayDuration} min` : "-"} · MP4
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Thumbnail upload — optional, .jpg/.png only */}
+              {/* Thumbnail upload - optional, .jpg/.png only */}
               <div className="space-y-2">
                 <Label htmlFor="cls-thumb-pick">
                   Thumbnail <span className="text-xs text-muted-foreground font-normal">· optional · .jpg or .png</span>
@@ -790,7 +790,7 @@ function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreat
                 )}
               </div>
 
-              {/* Metadata grid — only after video is picked */}
+              {/* Metadata grid - only after video is picked */}
               {videoFile && (
                 <div className="grid grid-cols-2 gap-3 p-3 bg-muted/40 rounded-lg">
                   <div>
@@ -800,7 +800,7 @@ function AddClassDialog({ open, courseId, moduleId, moduleName, onClose, onCreat
                   <div>
                     <p className="text-xs text-muted-foreground">Duration</p>
                     <p className="font-medium text-sm mt-0.5">
-                      {displayDuration ? `${displayDuration} min` : extracting ? "reading…" : "—"}
+                      {displayDuration ? `${displayDuration} min` : extracting ? "reading…" : "-"}
                     </p>
                   </div>
                 </div>
@@ -1094,7 +1094,7 @@ function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, o
             </div>
           ) : (
             <div className="space-y-3">
-              {/* Class preview header — 16:9 banner */}
+              {/* Class preview header - 16:9 banner */}
               <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
                 {previewImageUrl ? (
                   <img
@@ -1115,7 +1115,7 @@ function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, o
                       {title.trim() || "Untitled class"}
                     </p>
                     <p className="text-white/70 text-xs mt-0.5 truncate">
-                      {moduleName} · {displayDuration ? `${displayDuration} min` : "—"} · MP4
+                      {moduleName} · {displayDuration ? `${displayDuration} min` : "-"} · MP4
                     </p>
                   </div>
                 </div>
@@ -1280,7 +1280,7 @@ function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, o
                 )}
               </div>
 
-              {/* Metadata grid — only after a new video is picked */}
+              {/* Metadata grid - only after a new video is picked */}
               {videoFile && (
                 <div className="grid grid-cols-2 gap-3 p-3 bg-muted/40 rounded-lg">
                   <div>
@@ -1290,7 +1290,7 @@ function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, o
                   <div>
                     <p className="text-xs text-muted-foreground">Duration</p>
                     <p className="font-medium text-sm mt-0.5">
-                      {displayDuration ? `${displayDuration} min` : extracting ? "reading…" : "—"}
+                      {displayDuration ? `${displayDuration} min` : extracting ? "reading…" : "-"}
                     </p>
                   </div>
                 </div>
@@ -1301,7 +1301,7 @@ function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, o
                 </p>
               )}
 
-              {/* Upload action — only after a new video is picked */}
+              {/* Upload action - only after a new video is picked */}
               {videoFile && (
                 <div className="flex justify-end">
                   <Button
@@ -1866,7 +1866,7 @@ export function ClassesYTTRecorded() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: BRAND }}>YTT Recorded</h1>
-          <p className="text-muted-foreground text-sm mt-1">Yoga Teacher Training — recorded sessions</p>
+          <p className="text-muted-foreground text-sm mt-1">Yoga Teacher Training - recorded sessions</p>
         </div>
         {/* <Button onClick={openCreateCourse} style={{ background: BRAND }}>
           <Plus className="w-4 h-4 mr-1" /> Add Course

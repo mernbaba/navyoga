@@ -118,25 +118,25 @@ export function TutorAttendance() {
   const primaryStats = [
     {
       title: "Classes Conducted",
-      value: isLoadingDashboard ? "—" : String(dashboard?.completedClasses ?? 0),
+      value: isLoadingDashboard ? "-" : String(dashboard?.completedClasses ?? 0),
       icon: Calendar,
       color: "#ff691d",
     },
     {
       title: "Total Sādhakas Taught",
-      value: isLoadingDashboard ? "—" : String(dashboard?.totalStudents ?? 0),
+      value: isLoadingDashboard ? "-" : String(dashboard?.totalStudents ?? 0),
       icon: Users,
       color: "#10b981",
     },
     {
       title: "Teaching Hours (Month)",
-      value: isLoadingDashboard ? "—" : formatHours(dashboard?.teachingHoursThisMonth ?? 0),
+      value: isLoadingDashboard ? "-" : formatHours(dashboard?.teachingHoursThisMonth ?? 0),
       icon: Clock,
       color: "#a855f7",
     },
     {
       title: "Avg Attendance Rate",
-      value: isLoadingDashboard ? "—" : `${dashboard?.avgAttendanceRate ?? 0}%`,
+      value: isLoadingDashboard ? "-" : `${dashboard?.avgAttendanceRate ?? 0}%`,
       icon: TrendingUp,
       color: "#ff691d",
     },

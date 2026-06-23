@@ -524,7 +524,7 @@ export function FinancialsCoupons() {
                       </TableCell>
                       <TableCell className="max-w-[220px]">
                         <span className="text-sm text-muted-foreground line-clamp-2">
-                          {coupon.description ?? "—"}
+                          {coupon.description ?? "-"}
                         </span>
                       </TableCell>
                       <TableCell>

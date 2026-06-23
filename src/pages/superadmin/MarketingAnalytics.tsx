@@ -72,7 +72,7 @@ const buildStats = (
   },
   {
     name: "Avg. Age",
-    value: s.avgAge ? s.avgAge.toFixed(1) : "—",
+    value: s.avgAge ? s.avgAge.toFixed(1) : "-",
     change: "Years",
     changeNeutral: true,
     icon: TrendingUp,

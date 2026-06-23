@@ -5,7 +5,7 @@ import { cn } from "../ui/utils";
 type StudentAvatarProps = {
   /** Stored avatar path (e.g. /avatars/<UUID>.jpg). null/undefined → default avatar. */
   avatar?: string | null;
-  /** Student name — used for the alt text and the initials fallback. */
+  /** Student name - used for the alt text and the initials fallback. */
   name: string;
   /** Extra classes for sizing (defaults to size-10). */
   className?: string;

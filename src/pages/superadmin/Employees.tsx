@@ -188,7 +188,7 @@ function OperationsTab() {
       <div className="flex items-center justify-between">
         <div>
           <CardTitle>Operations Staff</CardTitle>
-          <CardDescription className="mt-1">Login accounts for the Operations panel — created and managed by SuperAdmin</CardDescription>
+          <CardDescription className="mt-1">Login accounts for the Operations panel - created and managed by SuperAdmin</CardDescription>
         </div>
         <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) setAddForm(EMPTY_OPS_FORM); }}>
           <DialogTrigger asChild>
@@ -548,7 +548,7 @@ function FrontlineTab() {
       <div className="flex items-center justify-between">
         <div>
           <CardTitle>Frontline Staff</CardTitle>
-          <CardDescription className="mt-1">Login accounts for the Frontline panel — lead generation & front desk</CardDescription>
+          <CardDescription className="mt-1">Login accounts for the Frontline panel - lead generation & front desk</CardDescription>
         </div>
         <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) setAddForm(EMPTY_FL_FORM); }}>
           <DialogTrigger asChild>

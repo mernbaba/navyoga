@@ -64,7 +64,7 @@ function levelLabel(level: string) {
 }
 
 function formatDate(iso: string | null) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   return new Date(iso).toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
@@ -73,7 +73,7 @@ function formatDate(iso: string | null) {
 }
 
 function formatDateTime(iso: string | null) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   return new Date(iso).toLocaleString("en-IN", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -104,7 +104,7 @@ export function UserWorkshopsList() {
         if (!cancelled) setStatsData(res);
       })
       .catch(() => {
-        // best-effort — cards fall back to page-derived counts
+        // best-effort - cards fall back to page-derived counts
       });
     return () => {
       cancelled = true;
@@ -487,10 +487,10 @@ export function UserWorkshopsList() {
             <div className="py-12 text-center text-muted-foreground">Loading…</div>
           ) : (
             <>
-              {/* Single scroll region — two columns side-by-side, content flows naturally */}
+              {/* Single scroll region - two columns side-by-side, content flows naturally */}
               <div className="flex-1 min-h-0 overflow-y-auto">
                 <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-6 p-6">
-                  {/* LEFT — image + key facts */}
+                  {/* LEFT - image + key facts */}
                   <div className="space-y-4">
                     <div className="relative aspect-video rounded-2xl overflow-hidden">
                       <img
@@ -513,7 +513,7 @@ export function UserWorkshopsList() {
                       <InfoTile
                         icon={Clock}
                         label="Duration"
-                        value={detail.totalDuration != null ? `${detail.totalDuration} min` : "—"}
+                        value={detail.totalDuration != null ? `${detail.totalDuration} min` : "-"}
                       />
                       <InfoTile
                         icon={Users}
@@ -523,7 +523,7 @@ export function UserWorkshopsList() {
                     </div>
                   </div>
 
-                  {/* RIGHT — about + sessions */}
+                  {/* RIGHT - about + sessions */}
                   <div className="space-y-5 md:border-l md:pl-6">
                     <div>
                       <h4 className="font-semibold mb-2" style={{ color: "#ff691d" }}>About</h4>
@@ -548,7 +548,7 @@ export function UserWorkshopsList() {
                 </div>
               </div>
 
-              {/* Sticky footer — Price + coupon + CTA always visible, single scrollbar above */}
+              {/* Sticky footer - Price + coupon + CTA always visible, single scrollbar above */}
               <div className="shrink-0 border-t px-6 py-4 bg-background space-y-3">
                 {Number(detail.price) > 0 && !enrolledIds.has(detail.id) && !isFull(detail) && (
                   <CouponInput

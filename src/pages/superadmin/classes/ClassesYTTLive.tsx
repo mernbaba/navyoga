@@ -84,7 +84,7 @@ const DIFFICULTIES: { value: ClassDifficulty; label: string }[] = [
 ];
 
 function formatDuration(minutes: number) {
-  if (!minutes) return "—";
+  if (!minutes) return "-";
   if (minutes < 60) return `${minutes}m`;
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
@@ -498,7 +498,7 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
             <Label htmlFor="cls-title">Title *</Label>
             <Input
               id="cls-title"
-              placeholder="e.g. Week 1 — Sun Salutations Lab"
+              placeholder="e.g. Week 1 - Sun Salutations Lab"
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
             />
@@ -925,7 +925,7 @@ export function ClassesYTTLive() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: BRAND }}>YTT Live</h1>
-          <p className="text-muted-foreground text-sm mt-1">Yoga Teacher Training — live batch courses</p>
+          <p className="text-muted-foreground text-sm mt-1">Yoga Teacher Training - live batch courses</p>
         </div>
         {/* {!selected && (
           <Button onClick={openCreate} className="gap-2 shrink-0" style={{ background: BRAND }}>

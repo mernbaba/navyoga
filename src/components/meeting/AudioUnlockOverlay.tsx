@@ -9,7 +9,7 @@ import {
 // Touch-capable devices are the ones whose browsers block autoplay of audio
 // until a gesture (phones/tablets). Desktop autoplays remote audio fine, so we
 // don't want to nag desktop users with a prompt they don't need. Evaluated once
-// at module load — form factor doesn't change mid-session.
+// at module load - form factor doesn't change mid-session.
 const needsUnlockPrompt =
   typeof window !== "undefined" &&
   (("ontouchstart" in window) || navigator.maxTouchPoints > 0);

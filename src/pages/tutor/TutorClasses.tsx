@@ -32,9 +32,9 @@ function isJoinable(cls: TutorAssignedClass): boolean {
 }
 
 function formatSchedule(value: string | null): string {
-  if (!value) return "—";
+  if (!value) return "-";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "-";
   return dateTimeFormatter.format(date);
 }
 
@@ -183,7 +183,7 @@ export function TutorClasses() {
             </CardHeader>
             <CardContent>
               <div className="text-base font-semibold truncate" style={{ color: "#ff691d" }}>
-                {nextClass?.title ?? "—"}
+                {nextClass?.title ?? "-"}
               </div>
               <p className="text-xs text-muted-foreground mt-1 truncate">
                 {nextClass ? formatSchedule(nextClass.scheduledAt) : "No upcoming class"}
@@ -286,7 +286,7 @@ export function TutorClasses() {
                               </div>
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {cls.batch?.name ?? "—"}
+                              {cls.batch?.name ?? "-"}
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2 text-sm">

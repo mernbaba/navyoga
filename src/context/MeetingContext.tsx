@@ -191,7 +191,7 @@ export const MeetingProvider = ({
   );
 
   // Turning the camera OFF must release the device (track.stop()), not just
-  // disable it — otherwise the OS keeps the camera "in use" and the LED stays
+  // disable it - otherwise the OS keeps the camera "in use" and the LED stays
   // on. Turning it back ON re-acquires a fresh track via getUserMedia.
   // Returns the resulting isVideoOff value (may differ from `off` if
   // getUserMedia fails when turning on).
@@ -212,7 +212,7 @@ export const MeetingProvider = ({
             track.stop();
             stream.removeTrack(track);
           }
-          // Don't yank the camera track out of peers while screen sharing —
+          // Don't yank the camera track out of peers while screen sharing -
           // the video sender is carrying the screen track in that case.
           if (!isScreenSharingRef.current) {
             replaceVideoTrackOnPeers(null);
@@ -226,7 +226,7 @@ export const MeetingProvider = ({
           return true;
         }
 
-        // Camera ON — acquire a fresh video track and graft it into the stream.
+        // Camera ON - acquire a fresh video track and graft it into the stream.
         let camStream: MediaStream;
         try {
           camStream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -466,7 +466,7 @@ export const MeetingProvider = ({
         screenStreamRef.current = null;
       }
       setIsScreenSharing(false);
-      // Restore the camera track to peers — or null it out if the camera is
+      // Restore the camera track to peers - or null it out if the camera is
       // currently off (no live video track), so peers stop seeing the screen.
       const cam = localStreamRef.current?.getVideoTracks()[0] ?? null;
       replaceVideoTrackOnPeers(cam);
@@ -517,7 +517,7 @@ export const MeetingProvider = ({
   }, []);
 
   // Build the stream MediaRecorder captures: the currently active video track
-  // (camera or, while sharing, the screen) plus the tutor's mic — regardless of
+  // (camera or, while sharing, the screen) plus the tutor's mic - regardless of
   // its muted state, so the recording mirrors what the tutor is presenting.
   const buildRecordingStream = useCallback((): MediaStream | null => {
     const videoTrack =
@@ -567,7 +567,7 @@ export const MeetingProvider = ({
 
     const stream = buildRecordingStream();
     if (!stream) {
-      toast.error("Nothing to record — turn on your camera, screen, or mic");
+      toast.error("Nothing to record - turn on your camera, screen, or mic");
       return;
     }
 
@@ -633,7 +633,7 @@ export const MeetingProvider = ({
     try {
       if (recorder.state !== "inactive") recorder.stop();
     } catch {
-      // ignore — onstop handles cleanup
+      // ignore - onstop handles cleanup
     }
   }, []);
 
@@ -686,7 +686,7 @@ export const MeetingProvider = ({
         try {
           stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           setIsVideoOff(true);
-          toast.message("Camera unavailable — joined audio-only");
+          toast.message("Camera unavailable - joined audio-only");
         } catch {
           toast.error("Camera and microphone blocked. You can't join.");
           onLeaveRef.current();
@@ -702,7 +702,7 @@ export const MeetingProvider = ({
       // via track.enabled = false. For the camera we stop() the video track to
       // release the device (OS shows the camera as free, LED off), but keep the
       // (now-ended) track on the stream so that when peers are created a video
-      // transceiver/sender still exists — that lets replaceTrack swap in a live
+      // transceiver/sender still exists - that lets replaceTrack swap in a live
       // camera track later, when the user turns the camera on.
       const audioTrack = stream.getAudioTracks()[0];
       if (audioTrack) audioTrack.enabled = false;
