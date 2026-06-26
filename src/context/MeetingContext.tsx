@@ -110,6 +110,19 @@ export const MeetingProvider = ({
   const recordedChunksRef = useRef<Blob[]>([]);
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const recordingMimeRef = useRef<string>("video/webm");
+  // Canvas compositor backing the recording. MediaRecorder captures a fixed
+  // stream and does NOT follow replaceTrack/track add-remove, so we draw the
+  // currently active video source onto a canvas, capture THAT as a stable video
+  // track, and just re-point the compositor when the source changes (camera
+  // on/off, screen share). The recording therefore mirrors whatever the tutor
+  // is presenting without ever restarting MediaRecorder.
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const compositorVideoRef = useRef<HTMLVideoElement | null>(null);
+  const compositorRafRef = useRef<number | null>(null);
+  const compositorTrackIdRef = useRef<string | null>(null);
+  // Lets toggleScreenShare nudge the recorder to re-point at the active video
+  // source without creating a hook-ordering dependency on startRecording.
+  const syncRecordingSourcesRef = useRef<(() => void) | null>(null);
   const activePanelRef = useRef<ActivePanel>(null);
   const selfRef = useRef<MeetingParticipant | null>(null);
   const seenMessageIdsRef = useRef<Set<string>>(new Set());
@@ -173,6 +186,28 @@ export const MeetingProvider = ({
     if (track) track.enabled = !muted;
   }, []);
 
+  // The local tile shows the screen track while sharing, otherwise the camera
+  // track from localStreamRef (the source of truth for camera/mic). Kept as a
+  // separate MediaStream so screen sharing never has to mutate - and risk
+  // losing - the camera track held on localStreamRef.
+  const refreshDisplayedLocalStream = useCallback(() => {
+    const local = localStreamRef.current;
+    if (!local) {
+      setLocalStream(null);
+      return;
+    }
+    const audio = local.getAudioTracks();
+    const screenTrack = isScreenSharingRef.current
+      ? screenStreamRef.current?.getVideoTracks()[0]
+      : null;
+    if (screenTrack) {
+      setLocalStream(new MediaStream([screenTrack, ...audio]));
+    } else {
+      // Camera path: a fresh reference so VideoTile re-binds srcObject.
+      setLocalStream(new MediaStream(local.getTracks()));
+    }
+  }, []);
+
   const replaceVideoTrackOnPeers = useCallback(
     (track: MediaStreamTrack | null) => {
       Object.values(peersRef.current).forEach((entry) => {
@@ -217,12 +252,17 @@ export const MeetingProvider = ({
           if (!isScreenSharingRef.current) {
             replaceVideoTrackOnPeers(null);
           }
-          setIsVideoOff(true);
-          // New MediaStream reference so consumers (VideoTile) re-render and
-          // drop the now-stopped track from the <video> element.
           const next = new MediaStream(stream.getTracks());
           localStreamRef.current = next;
-          setLocalStream(next);
+          // While screen sharing, the local tile shows the screen, so leave
+          // isVideoOff/the displayed stream alone - just update the source ref.
+          if (!isScreenSharingRef.current) {
+            setIsVideoOff(true);
+            refreshDisplayedLocalStream();
+            // Recording follows the camera when not sharing; the camera just
+            // went off, so re-point the compositor (it'll draw the placeholder).
+            syncRecordingSourcesRef.current?.();
+          }
           return true;
         }
 
@@ -253,16 +293,23 @@ export const MeetingProvider = ({
         if (!isScreenSharingRef.current) {
           replaceVideoTrackOnPeers(newTrack);
         }
-        setIsVideoOff(false);
         const next = new MediaStream(current.getTracks());
         localStreamRef.current = next;
-        setLocalStream(next);
+        // While screen sharing, the local tile keeps showing the screen; only
+        // the source ref changes so the camera is ready when sharing stops.
+        if (!isScreenSharingRef.current) {
+          setIsVideoOff(false);
+          refreshDisplayedLocalStream();
+          // Recording follows the camera when not sharing; point the compositor
+          // at the freshly acquired camera track.
+          syncRecordingSourcesRef.current?.();
+        }
         return false;
       } finally {
         videoBusyRef.current = false;
       }
     },
-    [replaceVideoTrackOnPeers],
+    [replaceVideoTrackOnPeers, refreshDisplayedLocalStream],
   );
 
   const destroyPeer = useCallback((socketId: string) => {
@@ -466,10 +513,18 @@ export const MeetingProvider = ({
         screenStreamRef.current = null;
       }
       setIsScreenSharing(false);
+      isScreenSharingRef.current = false;
       // Restore the camera track to peers - or null it out if the camera is
       // currently off (no live video track), so peers stop seeing the screen.
       const cam = localStreamRef.current?.getVideoTracks()[0] ?? null;
       replaceVideoTrackOnPeers(cam);
+      // Local preview: if the camera is off there's no live video track, so the
+      // tile falls back to the avatar. isVideoOff reflects the camera state.
+      setIsVideoOff(!cam);
+      refreshDisplayedLocalStream();
+      // The recording follows the active video source; re-point it at the camera
+      // (or nothing) now that the screen track has stopped.
+      syncRecordingSourcesRef.current?.();
       sock.emit("screen-share-stop");
       return;
     }
@@ -487,6 +542,14 @@ export const MeetingProvider = ({
       }
       replaceVideoTrackOnPeers(screenTrack);
       setIsScreenSharing(true);
+      isScreenSharingRef.current = true;
+      // Local preview: show the screen track to the tutor and flag video "on" so
+      // VideoTile renders the <video>. The camera track (if any) stays untouched
+      // on localStreamRef so it can be restored when sharing stops.
+      setIsVideoOff(false);
+      refreshDisplayedLocalStream();
+      // Recording (if running) should now capture the screen, not the camera.
+      syncRecordingSourcesRef.current?.();
       sock.emit("screen-share-start");
       screenTrack.onended = () => {
         toggleScreenShare();
@@ -494,7 +557,7 @@ export const MeetingProvider = ({
     } catch {
       toast.error("Screen share canceled");
     }
-  }, [isScreenSharing, replaceVideoTrackOnPeers]);
+  }, [isScreenSharing, replaceVideoTrackOnPeers, refreshDisplayedLocalStream]);
 
   // Pick a container/codec the browser can actually produce. Order matters:
   // mp4 first (broadest playback), then webm variants.
@@ -516,22 +579,120 @@ export const MeetingProvider = ({
     return "video/webm";
   }, []);
 
-  // Build the stream MediaRecorder captures: the currently active video track
-  // (camera or, while sharing, the screen) plus the tutor's mic - regardless of
-  // its muted state, so the recording mirrors what the tutor is presenting.
+  // The video track currently being presented: the screen while sharing,
+  // otherwise the live camera track (null when the camera is off).
+  const getActiveVideoTrack = useCallback((): MediaStreamTrack | null => {
+    if (isScreenSharingRef.current) {
+      return screenStreamRef.current?.getVideoTracks()[0] ?? null;
+    }
+    return localStreamRef.current?.getVideoTracks()[0] ?? null;
+  }, []);
+
+  // Point the compositor's hidden <video> at the active source track. Switching
+  // the track keeps the canvas - and therefore the captured recording track -
+  // identical, so MediaRecorder never has to restart.
+  const setCompositorSource = useCallback(
+    (track: MediaStreamTrack | null) => {
+      const id = track?.id ?? null;
+      if (compositorTrackIdRef.current === id) return;
+      compositorTrackIdRef.current = id;
+      const videoEl = compositorVideoRef.current;
+      if (!videoEl) return;
+      if (track) {
+        videoEl.srcObject = new MediaStream([track]);
+        videoEl.play().catch(() => undefined);
+      } else {
+        videoEl.srcObject = null;
+      }
+    },
+    [],
+  );
+
+  const syncRecordingSources = useCallback(() => {
+    if (!recorderRef.current) return;
+    setCompositorSource(getActiveVideoTrack());
+  }, [getActiveVideoTrack, setCompositorSource]);
+
+  useEffect(() => {
+    syncRecordingSourcesRef.current = syncRecordingSources;
+  }, [syncRecordingSources]);
+
+  // Build the stream MediaRecorder captures: a stable canvas video track (driven
+  // by the compositor) plus the tutor's mic - kept regardless of mute state, so
+  // the recording mirrors exactly what the tutor presents over the whole class.
   const buildRecordingStream = useCallback((): MediaStream | null => {
-    const videoTrack =
-      (isScreenSharingRef.current
-        ? screenStreamRef.current?.getVideoTracks()[0]
-        : null) ?? localStreamRef.current?.getVideoTracks()[0] ?? null;
     const audioTrack = localStreamRef.current?.getAudioTracks()[0] ?? null;
 
-    if (!videoTrack && !audioTrack) return null;
+    const canvas =
+      canvasRef.current ??
+      (canvasRef.current = document.createElement("canvas"));
+    canvas.width = 1280;
+    canvas.height = 720;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      // Canvas unavailable - fall back to recording the raw active track.
+      const raw = getActiveVideoTrack();
+      const tracks: MediaStreamTrack[] = [];
+      if (raw) tracks.push(raw);
+      if (audioTrack) tracks.push(audioTrack);
+      return tracks.length ? new MediaStream(tracks) : null;
+    }
+
+    // Hidden <video> the compositor reads frames from.
+    const videoEl =
+      compositorVideoRef.current ??
+      (compositorVideoRef.current = document.createElement("video"));
+    videoEl.muted = true;
+    videoEl.playsInline = true;
+    compositorTrackIdRef.current = null;
+    setCompositorSource(getActiveVideoTrack());
+
+    const draw = () => {
+      ctx.fillStyle = "#09090b"; // zinc-950, matches the meeting shell
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const v = compositorVideoRef.current;
+      if (v && v.videoWidth > 0 && v.videoHeight > 0) {
+        // Contain the source inside 1280x720 without stretching.
+        const scale = Math.min(
+          canvas.width / v.videoWidth,
+          canvas.height / v.videoHeight,
+        );
+        const w = v.videoWidth * scale;
+        const h = v.videoHeight * scale;
+        ctx.drawImage(v, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+      } else {
+        // No live video (camera off, not sharing): keep the dark frame so the
+        // recording stays valid and the audio keeps flowing.
+        ctx.fillStyle = "#52525b"; // zinc-600
+        ctx.font = "600 36px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Navyoga", canvas.width / 2, canvas.height / 2);
+      }
+      compositorRafRef.current = requestAnimationFrame(draw);
+    };
+    if (compositorRafRef.current === null) {
+      compositorRafRef.current = requestAnimationFrame(draw);
+    }
+
+    const canvasStream = canvas.captureStream(30);
+    const videoTrack = canvasStream.getVideoTracks()[0] ?? null;
 
     const tracks: MediaStreamTrack[] = [];
     if (videoTrack) tracks.push(videoTrack);
     if (audioTrack) tracks.push(audioTrack);
-    return new MediaStream(tracks);
+    return tracks.length ? new MediaStream(tracks) : null;
+  }, [getActiveVideoTrack, setCompositorSource]);
+
+  // Tear down the compositor (RAF loop, hidden video, captured canvas track).
+  const stopCompositor = useCallback(() => {
+    if (compositorRafRef.current !== null) {
+      cancelAnimationFrame(compositorRafRef.current);
+      compositorRafRef.current = null;
+    }
+    if (compositorVideoRef.current) {
+      compositorVideoRef.current.srcObject = null;
+    }
+    compositorTrackIdRef.current = null;
   }, []);
 
   const uploadRecording = useCallback(
@@ -558,16 +719,18 @@ export const MeetingProvider = ({
     [classId],
   );
 
-  const startRecording = useCallback(() => {
+  const startRecording = useCallback(
+    (auto = false) => {
     if (recorderRef.current) return;
     if (typeof MediaRecorder === "undefined") {
-      toast.error("Recording is not supported in this browser");
+      if (!auto) toast.error("Recording is not supported in this browser");
       return;
     }
 
     const stream = buildRecordingStream();
     if (!stream) {
-      toast.error("Nothing to record - turn on your camera, screen, or mic");
+      if (!auto)
+        toast.error("Nothing to record - turn on your camera, screen, or mic");
       return;
     }
 
@@ -579,7 +742,8 @@ export const MeetingProvider = ({
       try {
         recorder = new MediaRecorder(stream);
       } catch {
-        toast.error("Couldn't start recording");
+        stopCompositor();
+        if (!auto) toast.error("Couldn't start recording");
         return;
       }
     }
@@ -595,6 +759,7 @@ export const MeetingProvider = ({
     };
 
     recorder.onstop = () => {
+      stopCompositor();
       const mimeUsed = recordingMimeRef.current;
       const blob = new Blob(recordedChunksRef.current, { type: mimeUsed });
       recordedChunksRef.current = [];
@@ -624,8 +789,12 @@ export const MeetingProvider = ({
     recorder.start(4000);
     recorderRef.current = recorder;
     setIsRecording(true);
-    toast("Recording started", { icon: "🔴" });
-  }, [buildRecordingStream, pickRecordingMime, uploadRecording]);
+    toast(auto ? "Class recording started" : "Recording started", {
+      icon: "🔴",
+    });
+    },
+    [buildRecordingStream, pickRecordingMime, stopCompositor, uploadRecording],
+  );
 
   const stopRecording = useCallback(() => {
     const recorder = recorderRef.current;
@@ -636,6 +805,13 @@ export const MeetingProvider = ({
       // ignore - onstop handles cleanup
     }
   }, []);
+
+  // Mirror startRecording into a ref so the meeting effect's socket handlers
+  // (registered once) can auto-start recording for the host without going stale.
+  const startRecordingRef = useRef(startRecording);
+  useEffect(() => {
+    startRecordingRef.current = startRecording;
+  }, [startRecording]);
 
   const toggleRecording = useCallback(() => {
     const isHost =
@@ -746,6 +922,14 @@ export const MeetingProvider = ({
           data.participants.forEach((p) => {
             createOutgoingPeer(p.socketId, currentStream, p);
           });
+        }
+        // Auto-start recording from the tutor's end the moment the host joins.
+        // The compositor records the dark "Navyoga" frame + (muted) mic until
+        // the tutor turns on the camera/screen, then follows whatever they
+        // present - so the whole class is captured without a manual tap.
+        const isHost = !!data.self && data.self.userId === data.hostUserId;
+        if (isHost && !recorderRef.current) {
+          startRecordingRef.current?.(true);
         }
       });
 

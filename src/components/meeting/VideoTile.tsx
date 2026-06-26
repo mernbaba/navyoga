@@ -10,6 +10,7 @@ type Props = {
   isVideoOff: boolean;
   isActiveSpeaker: boolean;
   isHost?: boolean;
+  isScreenShare?: boolean;
 };
 
 export const VideoTile = ({
@@ -20,6 +21,7 @@ export const VideoTile = ({
   isVideoOff,
   isActiveSpeaker,
   isHost = false,
+  isScreenShare = false,
 }: Props) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -32,7 +34,7 @@ export const VideoTile = ({
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
     }
-  }, [stream, isVideoOff]);
+  }, [stream, isVideoOff, isScreenShare]);
 
   // Remote audio plays through a dedicated, always-mounted <audio> element so
   // it is NOT coupled to whether the remote camera is on. (The <video> element
@@ -72,13 +74,17 @@ export const VideoTile = ({
         <audio ref={audioRef} autoPlay playsInline className="hidden" />
       )}
 
-      {stream && !isVideoOff ? (
+      {stream && (!isVideoOff || isScreenShare) ? (
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted
-          className={`h-full w-full object-cover ${isLocal ? "scale-x-[-1]" : ""}`}
+          className={`h-full w-full ${
+            isScreenShare
+              ? "bg-black object-contain"
+              : `object-cover ${isLocal ? "scale-x-[-1]" : ""}`
+          }`}
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-900 to-zinc-950">

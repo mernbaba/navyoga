@@ -12,6 +12,7 @@ type Tile = {
   isVideoOff: boolean;
   isActiveSpeaker: boolean;
   isHost: boolean;
+  isScreenShare: boolean;
 };
 
 const getGridClass = (count: number): string => {
@@ -23,8 +24,16 @@ const getGridClass = (count: number): string => {
 };
 
 export const VideoGrid = () => {
-  const { localStream, self, hostUserId, isMuted, isVideoOff, peers, activeSpeaker } =
-    useMeeting();
+  const {
+    localStream,
+    self,
+    hostUserId,
+    isMuted,
+    isVideoOff,
+    isScreenSharing,
+    peers,
+    activeSpeaker,
+  } = useMeeting();
   const [viewMode, setViewMode] = useState<"gallery" | "speaker">("gallery");
 
   const localTile: Tile = {
@@ -36,6 +45,7 @@ export const VideoGrid = () => {
     isVideoOff,
     isActiveSpeaker: activeSpeaker === "local",
     isHost: !!self && !!hostUserId && self.userId === hostUserId,
+    isScreenShare: isScreenSharing,
   };
 
   const remoteTiles: Tile[] = Object.entries(peers).map(([sid, peer]) => ({
@@ -47,6 +57,7 @@ export const VideoGrid = () => {
     isVideoOff: peer.participant.isVideoOff,
     isActiveSpeaker: activeSpeaker === sid,
     isHost: !!hostUserId && peer.participant.userId === hostUserId,
+    isScreenShare: peer.participant.isScreenSharing,
   }));
 
   const allTiles = [localTile, ...remoteTiles];
