@@ -70,7 +70,7 @@ import {
 } from "@/api/live";
 import { listTutors } from "@/api/tutors";
 import { extractRelativePath } from "@/lib/media";
-import { toDatetimeLocalValue } from "@/lib/datetime";
+import { toDatetimeLocalValue, formatISTDateTimeYear } from "@/lib/datetime";
 import { listBatches } from "@/api/batches";
 import type { LiveClass, ClassDifficulty, Tutor, Batch } from "@/api/types";
 import { BatchesDialog } from "./BatchesDialog";
@@ -98,14 +98,7 @@ type FormState = typeof BLANK_FORM;
 
 function formatSchedule(iso: string | null) {
   if (!iso) return null;
-  const d = new Date(iso);
-  return d.toLocaleString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatISTDateTimeYear(iso);
 }
 
 function initials(name: string) {

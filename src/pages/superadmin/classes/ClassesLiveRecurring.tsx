@@ -55,7 +55,7 @@ import {
 } from "@/api/live";
 import { listTutors } from "@/api/tutors";
 import { listBatches } from "@/api/batches";
-import { toDatetimeLocalValue } from "@/lib/datetime";
+import { toDatetimeLocalValue, formatISTDateTimeYear } from "@/lib/datetime";
 import type {
   LiveClass,
   ClassDifficulty,
@@ -107,13 +107,7 @@ type RecurringFormState = typeof BLANK_RECURRING_FORM;
 
 function formatSchedule(iso: string | null) {
   if (!iso) return null;
-  return new Date(iso).toLocaleString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatISTDateTimeYear(iso);
 }
 
 function initials(name: string) {

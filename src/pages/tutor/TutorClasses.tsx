@@ -11,18 +11,11 @@ import { Search, Play, Clock, Calendar, RefreshCw, AlertCircle } from "lucide-re
 import { toast } from "sonner";
 import { listTutorClasses, type TutorClassesStatusFilter } from "../../api/classes";
 import type { TutorAssignedClass } from "../../api/types";
+import { formatISTDateTime } from "../../lib/datetime";
 
 type StatusTab = "all" | "live" | "upcoming";
 
 const PAGE_SIZE = 20;
-
-const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
-  weekday: "short",
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-});
 
 function isJoinable(cls: TutorAssignedClass): boolean {
   if (cls.state === "LIVE") return true;
@@ -32,10 +25,7 @@ function isJoinable(cls: TutorAssignedClass): boolean {
 }
 
 function formatSchedule(value: string | null): string {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return dateTimeFormatter.format(date);
+  return formatISTDateTime(value, "-");
 }
 
 function difficultyTone(difficulty: TutorAssignedClass["difficulty"]) {

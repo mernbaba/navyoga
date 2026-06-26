@@ -16,3 +16,89 @@ export function toDatetimeLocalValue(iso: string | null | undefined): string {
   const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 16);
 }
+
+// ---------------------------------------------------------------------------
+// IST display formatting
+//
+// Class schedules and sessions are stored as absolute timestamps. Comparisons
+// against "now" are timezone-independent, but *display* must always show IST
+// wall-clock so every user — student, tutor, operations, or superadmin — sees
+// the same India time regardless of their device timezone.
+// ---------------------------------------------------------------------------
+
+export const IST_TIME_ZONE = "Asia/Kolkata";
+
+const IST_DATE_TIME = new Intl.DateTimeFormat("en-IN", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: IST_TIME_ZONE,
+});
+
+const IST_DATE_TIME_YEAR = new Intl.DateTimeFormat("en-IN", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: IST_TIME_ZONE,
+});
+
+const IST_DATE_ONLY = new Intl.DateTimeFormat("en-IN", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: IST_TIME_ZONE,
+});
+
+const IST_TIME_ONLY = new Intl.DateTimeFormat("en-IN", {
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: IST_TIME_ZONE,
+});
+
+function toValidDate(
+  value: string | number | Date | null | undefined,
+): Date | null {
+  if (value === null || value === undefined) return null;
+  const d = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** "Mon, Jun 27, 5:30 PM" in IST. */
+export function formatISTDateTime(
+  value: string | number | Date | null | undefined,
+  fallback = "—",
+): string {
+  const d = toValidDate(value);
+  return d ? IST_DATE_TIME.format(d) : fallback;
+}
+
+/** "27 Jun 2026, 05:30 PM" in IST. */
+export function formatISTDateTimeYear(
+  value: string | number | Date | null | undefined,
+  fallback = "—",
+): string {
+  const d = toValidDate(value);
+  return d ? IST_DATE_TIME_YEAR.format(d) : fallback;
+}
+
+/** "27 Jun 2026" in IST. */
+export function formatISTDate(
+  value: string | number | Date | null | undefined,
+  fallback = "—",
+): string {
+  const d = toValidDate(value);
+  return d ? IST_DATE_ONLY.format(d) : fallback;
+}
+
+/** "5:30 PM" in IST. */
+export function formatISTTime(
+  value: string | number | Date | null | undefined,
+  fallback = "—",
+): string {
+  const d = toValidDate(value);
+  return d ? IST_TIME_ONLY.format(d) : fallback;
+}

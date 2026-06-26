@@ -26,6 +26,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { motion } from "motion/react";
 import { getMyLiveEnrollment, listMyLiveClasses } from "../../api/plans";
+import { formatISTDateTime } from "../../lib/datetime";
 import type {
   ClassDifficulty,
   LiveClass,
@@ -71,23 +72,11 @@ const DIFFICULTY_GRADIENT: Record<ClassDifficulty, string> = {
 
 const SCHEDULED_JOIN_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-const IST_TIME_ZONE = "Asia/Kolkata";
-
 // Render in India time so every user sees the same IST wall-clock regardless
 // of their device timezone.
 function formatScheduledAt(iso: string | null): string {
   if (!iso) return "Unscheduled";
-  const d = new Date(iso);
-  return (
-    d.toLocaleString("en-IN", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      timeZone: IST_TIME_ZONE,
-    }) + " IST"
-  );
+  return formatISTDateTime(iso, "Unscheduled") + " IST";
 }
 
 function daysRemaining(endDateIso: string): number {
