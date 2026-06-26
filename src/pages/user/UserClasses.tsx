@@ -41,6 +41,22 @@ function deriveStatus(c: LiveClass): DerivedStatus {
   return "UNSCHEDULED";
 }
 
+// Sort by scheduled date ascending (soonest first); unscheduled classes last.
+function byScheduledAsc(a: LiveClass, b: LiveClass): number {
+  const ta = a.scheduledAt ? new Date(a.scheduledAt).getTime() : Infinity;
+  const tb = b.scheduledAt ? new Date(b.scheduledAt).getTime() : Infinity;
+  return ta - tb;
+}
+
+// Which of two classes in the same batch is the one to surface: a LIVE class
+// always wins; otherwise the one scheduled sooner.
+function isMoreActive(candidate: LiveClass, current: LiveClass): boolean {
+  const candLive = deriveStatus(candidate) === "LIVE";
+  const currLive = deriveStatus(current) === "LIVE";
+  if (candLive !== currLive) return candLive;
+  return byScheduledAsc(candidate, current) < 0;
+}
+
 const DIFFICULTY_COLOR: Record<ClassDifficulty, string> = {
   EASY: "#10b981",
   MEDIUM: "#f59e0b",
@@ -121,11 +137,32 @@ export function UserClasses() {
         filterDifficulty === "all" || c.difficulty === filterDifficulty;
       return matchesSearch && matchesDifficulty;
     };
+
+    const live = classes.filter((c) => {
+      const s = deriveStatus(c);
+      return (s === "LIVE" || s === "SCHEDULED") && matchesShared(c);
+    });
+
+    // Show only one class per batch — the active one (LIVE wins, otherwise
+    // the soonest upcoming scheduled class). Classes without a batch are
+    // each kept on their own.
+    const byBatch = new Map<string, LiveClass>();
+    const noBatch: LiveClass[] = [];
+    for (const c of live) {
+      if (!c.batch) {
+        noBatch.push(c);
+        continue;
+      }
+      const current = byBatch.get(c.batch.id);
+      if (!current || isMoreActive(c, current)) {
+        byBatch.set(c.batch.id, c);
+      }
+    }
+
+    const upcoming = [...byBatch.values(), ...noBatch].sort(byScheduledAsc);
+
     return {
-      upcomingClasses: classes.filter((c) => {
-        const s = deriveStatus(c);
-        return (s === "LIVE" || s === "SCHEDULED") && matchesShared(c);
-      }),
+      upcomingClasses: upcoming,
       recordingClasses: classes.filter((c) => {
         const s = deriveStatus(c);
         return s === "COMPLETED" && c.recording !== null && matchesShared(c);

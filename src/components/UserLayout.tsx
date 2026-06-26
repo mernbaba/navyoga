@@ -18,6 +18,8 @@ import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { useState } from "react";
 import { Badge } from "./ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { resolveAvatarUrl } from "../lib/media";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -149,7 +151,24 @@ export function UserLayout() {
             </div>
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-3">
+            {user?.name && (
+              <div className="hidden lg:flex items-center gap-2 pl-1">
+                <Avatar className="size-8">
+                  <AvatarImage
+                    src={resolveAvatarUrl(user.avatar)}
+                    alt={user.name}
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="bg-linear-to-br from-[#610981] to-[#ff691d] text-white text-xs font-semibold">
+                    {user.name.trim().charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium text-foreground max-w-[160px] truncate">
+                  {user.name}
+                </span>
+              </div>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -157,7 +176,7 @@ export function UserLayout() {
               onClick={requestLogout}
             >
               <LogOut className="w-4 h-4" />
-              Logout
+              <span>Logout</span>
             </Button>
           </div>
         </div>
