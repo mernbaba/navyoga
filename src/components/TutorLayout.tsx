@@ -12,7 +12,8 @@ import {
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { useState } from "react";
-import { Badge } from "./ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { resolveAvatarUrl } from "../lib/media";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -117,36 +118,43 @@ export function TutorLayout() {
           <div className="flex items-center gap-3">
             <div className="relative w-10 h-10 rounded-xl bg-linear-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-lg shadow-[#ffac96]/40">
               <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="Navyoga" className="w-full h-full object-contain" />
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse" />
             </div>
             <div className="hidden lg:block">
               <h1 className="text-lg font-semibold" style={{ color: '#ff691d' }}>
                 Navyoga Wellness
               </h1>
-              <p className="text-xs flex items-center gap-1" style={{ color: '#ffac96' }}>
-                <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              <p className="text-xs" style={{ color: '#ffac96' }}>
                 Yoga Shikshak Portal
               </p>
             </div>
           </div>
           
-          <div className="ml-auto flex items-center gap-4">
+          <div className="ml-auto flex items-center gap-3">
             {user?.name && (
-              <div className="hidden md:flex items-center gap-2">
-                <Badge variant="outline" className="border-[#610981] text-[#610981]">
+              <div className="hidden sm:flex items-center gap-2 pl-1">
+                <Avatar className="size-8">
+                  <AvatarImage
+                    src={resolveAvatarUrl(user.avatar)}
+                    alt={user.name}
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="bg-linear-to-br from-[#610981] to-[#ff691d] text-white text-xs font-semibold">
+                    {user.name.trim().charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium text-foreground max-w-[160px] truncate">
                   {user.name}
-                </Badge>
+                </span>
               </div>
             )}
             <Button
               variant="ghost"
               size="sm"
               onClick={requestLogout}
-              className="relative group overflow-hidden"
+              className="gap-2 text-muted-foreground hover:text-red-600 hover:bg-red-50"
             >
-              <LogOut className="w-4 h-4 mr-2" />
-              <span className="relative z-10">Logout</span>
-              <div className="absolute inset-0 bg-[#610981]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
             </Button>
           </div>
         </div>

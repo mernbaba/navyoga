@@ -37,6 +37,8 @@ import type {
   TutorAttendance,
 } from "../../api/types";
 
+import { formatISTDate, formatISTTime } from "../../lib/datetime";
+
 type AttendanceCategory = "users" | "tutors" | "frontline" | "operations";
 
 type AnyAttendance =
@@ -83,14 +85,9 @@ const statusPill: Record<AttendanceStatus, string> = {
   LATE: "bg-gray-200 text-gray-700",
 };
 
-const formatDate = (iso: string) => new Date(iso).toLocaleDateString();
+const formatDate = (iso: string) => formatISTDate(iso, "-");
 
-const formatTime = (iso: string | null | undefined) => {
-  if (!iso) return "-";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "-";
-  return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-};
+const formatTime = (iso: string | null | undefined) => formatISTTime(iso, "-");
 
 const emptySummary: AttendanceSummary = {
   total: 0,

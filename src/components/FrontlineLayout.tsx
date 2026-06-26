@@ -40,12 +40,10 @@ export function FrontlineLayout() {
           <div className="flex items-center gap-3">
             <div className="relative w-10 h-10 rounded-xl bg-linear-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-lg shadow-[#ffac96]/40 shrink-0">
               <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="Navyoga" className="w-10 h-10 object-contain" />
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse" />
             </div>
             <div>
               <h2 className="text-base font-semibold leading-tight" style={{ color: '#ff691d' }}>Navyoga Wellness</h2>
-              <p className="text-xs flex items-center gap-1 mt-0.5" style={{ color: '#ffac96' }}>
-                <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              <p className="text-xs mt-0.5" style={{ color: '#ffac96' }}>
                 Frontline Panel
               </p>
             </div>

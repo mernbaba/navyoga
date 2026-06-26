@@ -20,7 +20,6 @@ import {
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { useState, useEffect } from "react";
-import { Badge } from "./ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { resolveAvatarUrl } from "../lib/media";
 import {
@@ -230,14 +229,6 @@ export function AdminLayout() {
           </div>
 
           <div className="ml-auto flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2">
-              <Badge
-                variant="outline"
-                className="border-[#610981] text-[#610981]"
-              >
-                Yoga Samsthapak & Paramacharya
-              </Badge>
-            </div>
             {user?.name && (
               <div className="hidden sm:flex items-center gap-2 pl-1">
                 <Avatar className="size-8">
