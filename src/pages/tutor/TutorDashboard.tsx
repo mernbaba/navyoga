@@ -10,6 +10,7 @@ import { getTutorDashboard } from "../../api/tutorDashboard";
 import { getMyTutorUserReferrals, getMyTutorTutorReferrals } from "../../api/referrals";
 import type { TutorDashboardStats } from "../../api/types";
 import { getCachedUser } from "../../lib/session";
+import { formatISTTime } from "../../lib/datetime";
 
 type RecentReferral = {
   id: string;
@@ -19,16 +20,11 @@ type RecentReferral = {
   date: string;
 };
 
-const timeFormatter = new Intl.DateTimeFormat(undefined, {
-  hour: "numeric",
-  minute: "2-digit",
-});
-
 function formatClassTime(scheduledAt: string | null, duration: number): string {
   if (!scheduledAt) return "-";
   const start = new Date(scheduledAt);
   const end = new Date(start.getTime() + duration * 60 * 1000);
-  return `${timeFormatter.format(start)} – ${timeFormatter.format(end)}`;
+  return `${formatISTTime(start)} – ${formatISTTime(end)}`;
 }
 
 export function TutorDashboard() {
