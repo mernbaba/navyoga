@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/ta
 import { motion } from "motion/react";
 import { getMyLiveEnrollment, listMyLiveClasses } from "../../api/plans";
 import { formatISTDateTime } from "../../lib/datetime";
+import { resolveMediaUrl } from "../../lib/media";
 import type {
   ClassDifficulty,
   LiveClass,
@@ -492,7 +493,8 @@ function resolveAction(c: LiveClass): Action {
     return { kind: "scheduled" };
   }
   if (status === "COMPLETED") {
-    if (c.recording) return { kind: "watch", href: c.recording };
+    const href = resolveMediaUrl(c.recording);
+    if (href) return { kind: "watch", href };
     return { kind: "locked" };
   }
   return { kind: "unavailable" };

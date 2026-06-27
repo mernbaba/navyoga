@@ -33,6 +33,7 @@ import {
   type YTTLiveStudentClass,
 } from "../../api/yttLive";
 import type { ClassDifficulty } from "../../api/types";
+import { resolveMediaUrl } from "../../lib/media";
 
 type ClassWithCourse = YTTLiveStudentClass & {
   courseTitle: string;
@@ -526,7 +527,8 @@ function resolveAction(c: ClassWithCourse): Action {
     return { kind: "scheduled" };
   }
   if (status === "COMPLETED") {
-    if (c.recording) return { kind: "watch", href: c.recording };
+    const href = resolveMediaUrl(c.recording);
+    if (href) return { kind: "watch", href };
     return { kind: "locked" };
   }
   return { kind: "unavailable" };
