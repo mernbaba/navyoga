@@ -7,7 +7,7 @@ import {
   type TutorAssignedClass,
 } from "./types";
 
-export type TutorClassesStatusFilter = "current" | "live" | "upcoming";
+export type TutorClassesStatusFilter = "current" | "live" | "upcoming" | "past";
 
 export type TutorClassesParams = {
   page?: number;

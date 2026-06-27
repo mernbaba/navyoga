@@ -79,22 +79,22 @@ export function TutorDashboard() {
   ];
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <div className="space-y-8">
 
-        <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-[#610981] to-[#8b0fa8] p-8 text-white shadow-2xl shadow-[#ffac96]/30">
+        <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-[#610981] to-[#8b0fa8] p-6 sm:p-8 text-white shadow-2xl shadow-[#ffac96]/30">
           <div className="absolute top-0 right-0 w-64 h-64 bg-[#ff691d]/20 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#ffac96]/20 rounded-full blur-3xl" />
           <div className="relative z-10">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-3 mb-3">
 <Badge variant="secondary" className="bg-white/20 text-white border-0">
                     Yoga Shikshak
                   </Badge>
                 </div>
-                <h1 className="text-4xl font-bold mb-2">Welcome, {tutorName}! 👋</h1>
-                <p className="text-white/80 text-lg">Ready to inspire your sādhakas today?</p>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">Welcome, {tutorName}! 👋</h1>
+                <p className="text-white/80 text-base sm:text-lg">Ready to inspire your sādhakas today?</p>
               </div>
               {activeSession && (
                 <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 border-2 border-white/30">

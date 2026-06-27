@@ -480,7 +480,7 @@ export type RecurringLiveClass = {
   updatedAt: string;
 };
 
-export type TutorClassState = "LIVE" | "UPCOMING";
+export type TutorClassState = "LIVE" | "UPCOMING" | "PAST";
 
 export type TutorAssignedClass = {
   id: string;

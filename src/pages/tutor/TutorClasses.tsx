@@ -13,9 +13,9 @@ import { listTutorClasses, type TutorClassesStatusFilter } from "../../api/class
 import type { TutorAssignedClass } from "../../api/types";
 import { formatISTDateTime } from "../../lib/datetime";
 
-type StatusTab = "all" | "live" | "upcoming";
+type StatusTab = "upcoming" | "past";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 function isJoinable(cls: TutorAssignedClass): boolean {
   if (cls.state === "LIVE") return true;
@@ -42,7 +42,7 @@ function difficultyTone(difficulty: TutorAssignedClass["difficulty"]) {
 export function TutorClasses() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusTab, setStatusTab] = useState<StatusTab>("all");
+  const [statusTab, setStatusTab] = useState<StatusTab>("upcoming");
   const [items, setItems] = useState<TutorAssignedClass[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,12 +57,12 @@ export function TutorClasses() {
     setError(null);
 
     try {
-      const statusParam: TutorClassesStatusFilter | undefined =
-        statusTab === "live" ? "live" : statusTab === "upcoming" ? "upcoming" : undefined;
+      const statusParam: TutorClassesStatusFilter =
+        statusTab === "past" ? "past" : "upcoming";
       const response = await listTutorClasses("TUTOR", {
         page: 1,
         limit: PAGE_SIZE,
-        ...(statusParam ? { status: statusParam } : {}),
+        status: statusParam,
       });
       setItems(response.items);
       setTotal(response.total);
@@ -101,6 +101,7 @@ export function TutorClasses() {
       .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime());
     return upcoming[0] ?? null;
   }, [items]);
+  const lastClass = useMemo(() => items[0] ?? null, [items]);
 
   const handleStartClass = (classItem: TutorAssignedClass) => {
     toast.success("Starting live session...");
@@ -120,7 +121,7 @@ export function TutorClasses() {
   };
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -142,11 +143,13 @@ export function TutorClasses() {
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader>
-              <CardTitle>Assigned</CardTitle>
+              <CardTitle>{statusTab === "past" ? "Past" : "Assigned"}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-semibold">{total}</div>
-              <p className="text-xs text-muted-foreground mt-1">Live + upcoming</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {statusTab === "past" ? "Recently ended" : "Live + upcoming"}
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -167,17 +170,30 @@ export function TutorClasses() {
               <p className="text-xs text-muted-foreground mt-1">Scheduled ahead</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="min-w-0">
             <CardHeader>
-              <CardTitle>Next Up</CardTitle>
+              <CardTitle>{statusTab === "past" ? "Most Recent" : "Next Up"}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-base font-semibold truncate" style={{ color: "#ff691d" }}>
-                {nextClass?.title ?? "-"}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1 truncate">
-                {nextClass ? formatSchedule(nextClass.scheduledAt) : "No upcoming class"}
-              </p>
+            <CardContent className="min-w-0">
+              {statusTab === "past" ? (
+                <>
+                  <div className="text-base font-semibold truncate" style={{ color: "#ff691d" }}>
+                    {lastClass?.title ?? "-"}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 truncate">
+                    {lastClass ? formatSchedule(lastClass.scheduledAt) : "No past class"}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="text-base font-semibold truncate" style={{ color: "#ff691d" }}>
+                    {nextClass?.title ?? "-"}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 truncate">
+                    {nextClass ? formatSchedule(nextClass.scheduledAt) : "No upcoming class"}
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -200,9 +216,8 @@ export function TutorClasses() {
               </div>
               <Tabs value={statusTab} onValueChange={(v) => setStatusTab(v as StatusTab)}>
                 <TabsList>
-                  <TabsTrigger value="all">All</TabsTrigger>
-                  <TabsTrigger value="live">Live</TabsTrigger>
                   <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+                  <TabsTrigger value="past">Past</TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
@@ -216,7 +231,7 @@ export function TutorClasses() {
                 </Button>
               </div>
             ) : (
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border rounded-lg overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -245,11 +260,9 @@ export function TutorClasses() {
                         <TableCell colSpan={7} className="text-center py-10 text-sm text-muted-foreground">
                           {searchQuery
                             ? "No classes match your search."
-                            : statusTab === "live"
-                              ? "No live classes right now."
-                              : statusTab === "upcoming"
-                                ? "No upcoming classes scheduled."
-                                : "No classes assigned yet."}
+                            : statusTab === "past"
+                              ? "No past classes yet."
+                              : "No upcoming classes scheduled."}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -291,7 +304,9 @@ export function TutorClasses() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              {isLive ? (
+                              {cls.state === "PAST" ? (
+                                <Badge variant="outline">Ended</Badge>
+                              ) : isLive ? (
                                 <Badge className="bg-green-500 hover:bg-green-500/90">Live Now</Badge>
                               ) : (
                                 <Badge variant="secondary">Upcoming</Badge>
@@ -299,16 +314,20 @@ export function TutorClasses() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
-                                <Button
-                                  onClick={() => handleStartClass(cls)}
-                                  className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
-                                  size="sm"
-                                  disabled={!isJoinable(cls)}
-                                  title={!isJoinable(cls) ? "Available 10 minutes before class" : undefined}
-                                >
-                                  <Play className="w-4 h-4 mr-1" />
-                                  {cls.kind === "YTT_LIVE" ? "Join" : isLive ? "Rejoin" : "Start"}
-                                </Button>
+                                {cls.state === "PAST" ? (
+                                  <span className="text-sm text-muted-foreground">-</span>
+                                ) : (
+                                  <Button
+                                    onClick={() => handleStartClass(cls)}
+                                    className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
+                                    size="sm"
+                                    disabled={!isJoinable(cls)}
+                                    title={!isJoinable(cls) ? "Available 10 minutes before class" : undefined}
+                                  >
+                                    <Play className="w-4 h-4 mr-1" />
+                                    {cls.kind === "YTT_LIVE" ? "Join" : isLive ? "Rejoin" : "Start"}
+                                  </Button>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>

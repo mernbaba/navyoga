@@ -167,22 +167,22 @@ export function UserClasses() {
   }, [classes, searchTerm, filterDifficulty]);
 
   return (
-    <div className="p-6 lg:p-8 min-h-screen bg-linear-to-br from-gray-50 via-white to-purple-50/30">
+    <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-linear-to-br from-gray-50 via-white to-purple-50/30">
       <div className="space-y-6">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#ff691d] via-[#ff8c4d] to-[#ffac96] p-8 text-white shadow-2xl"
+          className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#ff691d] via-[#ff8c4d] to-[#ffac96] p-6 sm:p-8 text-white shadow-2xl"
         >
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
           <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <BookOpen className="w-8 h-8" />
-                <h1 className="text-4xl font-bold">My Live Classes</h1>
+                <BookOpen className="w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">My Live Classes</h1>
               </div>
-              <p className="text-white/90 text-lg">
+              <p className="text-white/90 text-base sm:text-lg">
                 Join scheduled sessions and revisit recent recordings
               </p>
             </div>
@@ -223,7 +223,7 @@ export function UserClasses() {
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <Select value={filterDifficulty} onValueChange={setFilterDifficulty}>
-                      <SelectTrigger className="w-40 h-11 border-gray-300 bg-white">
+                      <SelectTrigger className="w-full md:w-40 h-11 border-gray-300 bg-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -245,17 +245,17 @@ export function UserClasses() {
                   value={activeTab}
                   onValueChange={(v) => setActiveTab(v as "classes" | "recordings")}
                 >
-                  <TabsList className="bg-gray-100 h-11 p-1 mb-6">
+                  <TabsList className="bg-gray-100 h-11 p-1 mb-6 w-full sm:w-auto">
                     <TabsTrigger
                       value="classes"
-                      className="px-5 data-[state=active]:bg-white data-[state=active]:text-[#ff691d] data-[state=active]:shadow-sm"
+                      className="flex-1 sm:flex-none px-3 sm:px-5 data-[state=active]:bg-white data-[state=active]:text-[#ff691d] data-[state=active]:shadow-sm"
                     >
                       <BookOpen className="w-4 h-4 mr-1.5" />
                       Classes ({upcomingClasses.length})
                     </TabsTrigger>
                     <TabsTrigger
                       value="recordings"
-                      className="px-5 data-[state=active]:bg-white data-[state=active]:text-[#10b981] data-[state=active]:shadow-sm"
+                      className="flex-1 sm:flex-none px-3 sm:px-5 data-[state=active]:bg-white data-[state=active]:text-[#10b981] data-[state=active]:shadow-sm"
                     >
                       <Play className="w-4 h-4 mr-1.5" />
                       Recordings ({recordingClasses.length})
@@ -312,7 +312,7 @@ function HeroPlanInfo({
 }) {
   const remaining = daysRemaining(enrollment.endDate);
   return (
-    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 min-w-65">
+    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 w-full md:w-auto md:min-w-65">
       <div className="flex items-center gap-2 text-[#ff691d] text-xs uppercase tracking-wide font-semibold mb-1 md:justify-end">
         <Crown className="w-4 h-4" />
         Active plan
@@ -337,7 +337,7 @@ function HeroPlanInfo({
 
 function HeroNoPlan() {
   return (
-    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 min-w-65 flex flex-col gap-3 md:items-end">
+    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 w-full md:w-auto md:min-w-65 flex flex-col gap-3 md:items-end">
       <div className="flex items-center gap-2 text-gray-900">
         <Lock className="w-4 h-4" />
         <span className="font-semibold">No active plan</span>
@@ -354,7 +354,7 @@ function HeroNoPlan() {
 
 function HeroPlanSkeleton() {
   return (
-    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 min-w-65 space-y-2">
+    <div className="rounded-2xl bg-white shadow-lg px-5 py-4 w-full md:w-auto md:min-w-65 space-y-2">
       <Skeleton className="h-3 w-20" />
       <Skeleton className="h-6 w-32" />
       <Skeleton className="h-3 w-40" />
@@ -391,6 +391,7 @@ function ClassesGrid({
       {items.map((c, idx) => (
         <motion.div
           key={c.id}
+          className="min-w-0"
           initial={{ opacity: 0, scale: 0.97 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: idx * 0.03 }}
