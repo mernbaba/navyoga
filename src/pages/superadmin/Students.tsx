@@ -223,13 +223,13 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                     id="phone"
                     type="tel"
                     inputMode="numeric"
-                    pattern="\d{10}"
-                    title="Phone must be exactly 10 digits"
+                    pattern="\d{8,15}"
+                    title="Phone must be 8 to 15 digits"
                     value={addForm.phone}
-                    onChange={(e) => setAddForm({ ...addForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                    onChange={(e) => setAddForm({ ...addForm, phone: e.target.value.replace(/\D/g, "").slice(0, 15) })}
                     required
-                    minLength={10}
-                    maxLength={10}
+                    minLength={8}
+                    maxLength={15}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -389,16 +389,22 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                     name="phone"
                     type="tel"
                     inputMode="numeric"
-                    pattern="\d{10}"
-                    title="Phone must be exactly 10 digits"
+                    pattern="\d{8,15}"
+                    title="Phone must be 8 to 15 digits"
                     defaultValue={editing.phone}
                     onInput={(e) => {
                       const el = e.currentTarget;
-                      el.value = el.value.replace(/\D/g, "").slice(0, 10);
+                      const prev = el.value;
+                      const cleaned = prev.replace(/\D/g, "").slice(0, 15);
+                      if (cleaned !== prev) {
+                        const pos = (el.selectionStart ?? prev.length) - (prev.length - cleaned.length);
+                        el.value = cleaned;
+                        el.setSelectionRange(pos, pos);
+                      }
                     }}
                     required
-                    minLength={10}
-                    maxLength={10}
+                    minLength={8}
+                    maxLength={15}
                   />
                 </div>
                 <div className="grid gap-2">
