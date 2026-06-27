@@ -245,7 +245,7 @@ export function UserClasses() {
                   value={activeTab}
                   onValueChange={(v) => setActiveTab(v as "classes" | "recordings")}
                 >
-                  <TabsList className="bg-gray-100 h-11 p-1 mb-6 w-full sm:w-auto">
+                  <TabsList className="bg-gray-100 h-11 p-1 mb-6 w-full sm:w-fit">
                     <TabsTrigger
                       value="classes"
                       className="flex-1 sm:flex-none px-3 sm:px-5 data-[state=active]:bg-white data-[state=active]:text-[#ff691d] data-[state=active]:shadow-sm"
