@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Badge } from "../../components/ui/badge";
 import { Plus, Search, Edit, Trash2, Mail, Phone, Award } from "lucide-react";
 import { toast } from "sonner";
+import { PHONE_PATTERN, PHONE_TITLE, PHONE_MIN_LENGTH, PHONE_MAX_LENGTH, sanitizePhone, handlePhoneInput } from "../../lib/phone";
 import { listTutors, createTutor, updateTutor, deleteTutor } from "../../api/tutors";
 import type { StaffStatus, Tutor } from "../../api/types";
 
@@ -179,7 +180,7 @@ export function Tutors() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })} required minLength={7} maxLength={15} />
+                  <Input id="phone" type="tel" inputMode="numeric" pattern={PHONE_PATTERN} title={PHONE_TITLE} value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: sanitizePhone(e.target.value) })} required minLength={PHONE_MIN_LENGTH} maxLength={PHONE_MAX_LENGTH} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="password">Password</Label>
@@ -349,7 +350,7 @@ export function Tutors() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-phone">Phone</Label>
-                  <Input id="edit-phone" name="phone" defaultValue={editingTutor.phone} required minLength={7} maxLength={15} />
+                  <Input id="edit-phone" name="phone" type="tel" inputMode="numeric" pattern={PHONE_PATTERN} title={PHONE_TITLE} defaultValue={editingTutor.phone} onInput={handlePhoneInput} required minLength={PHONE_MIN_LENGTH} maxLength={PHONE_MAX_LENGTH} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-experience">Years of Experience</Label>

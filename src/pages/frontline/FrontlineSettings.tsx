@@ -9,6 +9,7 @@ import { PasswordChangeCard } from "../../components/settings/PasswordChangeCard
 import { getMe, patchMe } from "../../api/auth";
 import { setCachedUser } from "../../lib/session";
 import type { FrontlineUser } from "../../api/types";
+import { PHONE_PATTERN, PHONE_TITLE, PHONE_MIN_LENGTH, PHONE_MAX_LENGTH, sanitizePhone } from "../../lib/phone";
 
 export function FrontlineSettings() {
   const [user, setUser] = useState<FrontlineUser | null>(null);
@@ -117,8 +118,14 @@ export function FrontlineSettings() {
                   <Label htmlFor="phone" style={{ color: "#ffac96" }}>Phone</Label>
                   <Input
                     id="phone"
+                    type="tel"
+                    inputMode="numeric"
+                    pattern={PHONE_PATTERN}
+                    title={PHONE_TITLE}
+                    minLength={PHONE_MIN_LENGTH}
+                    maxLength={PHONE_MAX_LENGTH}
                     value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
+                    onChange={(event) => setPhone(sanitizePhone(event.target.value))}
                     disabled={isLoading}
                     className="mt-1"
                     required

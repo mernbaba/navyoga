@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { Badge } from "../../components/ui/badge";
 import { Plus, Search, Edit, Trash2, Mail, Phone, IndianRupee } from "lucide-react";
 import { toast } from "sonner";
+import { PHONE_PATTERN, PHONE_TITLE, PHONE_MIN_LENGTH, PHONE_MAX_LENGTH, sanitizePhone, handlePhoneInput, isValidPhone } from "../../lib/phone";
 import {
   listOperations,
   createOperations,
@@ -105,8 +106,8 @@ function OperationsTab() {
   const handleAdd = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isAdding) return;
-    if (!/^\d{10}$/.test(addForm.phone)) {
-      toast.error("Phone number must be exactly 10 digits.");
+    if (!isValidPhone(addForm.phone)) {
+      toast.error("Phone number must be 8 to 15 digits.");
       return;
     }
     const salaryNum = Number(addForm.salary);
@@ -144,8 +145,8 @@ function OperationsTab() {
     if (!editing || isUpdating) return;
     const fd = new FormData(event.currentTarget);
     const phone = String(fd.get("phone") || "");
-    if (!/^\d{10}$/.test(phone)) {
-      toast.error("Phone number must be exactly 10 digits.");
+    if (!isValidPhone(phone)) {
+      toast.error("Phone number must be 8 to 15 digits.");
       return;
     }
     setIsUpdating(true);
@@ -215,7 +216,7 @@ function OperationsTab() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="ops-phone">Phone</Label>
-                  <Input id="ops-phone" type="tel" inputMode="numeric" pattern="\d{10}" maxLength={10} value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} required title="Enter a 10-digit phone number" />
+                  <Input id="ops-phone" type="tel" inputMode="numeric" pattern={PHONE_PATTERN} minLength={PHONE_MIN_LENGTH} maxLength={PHONE_MAX_LENGTH} value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: sanitizePhone(e.target.value) })} required title={PHONE_TITLE} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="ops-password">Initial Password</Label>
@@ -354,7 +355,7 @@ function OperationsTab() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="eops-phone">Phone</Label>
-                  <Input id="eops-phone" name="phone" type="tel" inputMode="numeric" pattern="\d{10}" maxLength={10} defaultValue={editing.phone} onChange={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "").slice(0, 10); }} required title="Enter a 10-digit phone number" />
+                  <Input id="eops-phone" name="phone" type="tel" inputMode="numeric" pattern={PHONE_PATTERN} minLength={PHONE_MIN_LENGTH} maxLength={PHONE_MAX_LENGTH} defaultValue={editing.phone} onInput={handlePhoneInput} required title={PHONE_TITLE} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="eops-department">Department</Label>
@@ -465,8 +466,8 @@ function FrontlineTab() {
   const handleAdd = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isAdding) return;
-    if (!/^\d{10}$/.test(addForm.phone)) {
-      toast.error("Phone number must be exactly 10 digits.");
+    if (!isValidPhone(addForm.phone)) {
+      toast.error("Phone number must be 8 to 15 digits.");
       return;
     }
     const salaryNum = Number(addForm.salary);
@@ -504,8 +505,8 @@ function FrontlineTab() {
     if (!editing || isUpdating) return;
     const fd = new FormData(event.currentTarget);
     const phone = String(fd.get("phone") || "");
-    if (!/^\d{10}$/.test(phone)) {
-      toast.error("Phone number must be exactly 10 digits.");
+    if (!isValidPhone(phone)) {
+      toast.error("Phone number must be 8 to 15 digits.");
       return;
     }
     setIsUpdating(true);
@@ -575,7 +576,7 @@ function FrontlineTab() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="fl-phone">Phone</Label>
-                  <Input id="fl-phone" type="tel" inputMode="numeric" pattern="\d{10}" maxLength={10} value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} required title="Enter a 10-digit phone number" />
+                  <Input id="fl-phone" type="tel" inputMode="numeric" pattern={PHONE_PATTERN} minLength={PHONE_MIN_LENGTH} maxLength={PHONE_MAX_LENGTH} value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: sanitizePhone(e.target.value) })} required title={PHONE_TITLE} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="fl-password">Initial Password</Label>
@@ -714,7 +715,7 @@ function FrontlineTab() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="efl-phone">Phone</Label>
-                  <Input id="efl-phone" name="phone" type="tel" inputMode="numeric" pattern="\d{10}" maxLength={10} defaultValue={editing.phone} onChange={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "").slice(0, 10); }} required title="Enter a 10-digit phone number" />
+                  <Input id="efl-phone" name="phone" type="tel" inputMode="numeric" pattern={PHONE_PATTERN} minLength={PHONE_MIN_LENGTH} maxLength={PHONE_MAX_LENGTH} defaultValue={editing.phone} onInput={handlePhoneInput} required title={PHONE_TITLE} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="efl-designation">Designation</Label>

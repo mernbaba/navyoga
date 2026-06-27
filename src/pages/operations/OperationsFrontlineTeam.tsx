@@ -10,6 +10,7 @@ import { Phone, Plus, Search, Edit, Trash2, TrendingUp, Users, Eye, EyeOff } fro
 import { toast } from "sonner";
 import { listFrontline, createFrontline, updateFrontline, deleteFrontline } from "../../api/frontline";
 import type { FrontlineAgentRow, StaffStatus } from "../../api/types";
+import { PHONE_PATTERN, PHONE_TITLE, PHONE_MIN_LENGTH, PHONE_MAX_LENGTH, sanitizePhone, handlePhoneInput, isValidPhone } from "../../lib/phone";
 
 const STATUSES: StaffStatus[] = ["ACTIVE", "ON_LEAVE", "TERMINATED"];
 
@@ -98,8 +99,8 @@ export function OperationsFrontlineTeam() {
       toast.error("Password must be at least 8 characters");
       return;
     }
-    if (!/^\d{10}$/.test(addForm.phone)) {
-      toast.error("Phone number must be exactly 10 digits.");
+    if (!isValidPhone(addForm.phone)) {
+      toast.error("Phone number must be 8 to 15 digits.");
       return;
     }
     setIsAdding(true);
@@ -129,8 +130,8 @@ export function OperationsFrontlineTeam() {
     if (!editing || isUpdating) return;
     const fd = new FormData(event.currentTarget);
     const phone = String(fd.get("phone") || "");
-    if (!/^\d{10}$/.test(phone)) {
-      toast.error("Phone number must be exactly 10 digits.");
+    if (!isValidPhone(phone)) {
+      toast.error("Phone number must be 8 to 15 digits.");
       return;
     }
     setIsUpdating(true);
@@ -344,13 +345,14 @@ export function OperationsFrontlineTeam() {
                   id="phone"
                   type="tel"
                   inputMode="numeric"
-                  pattern="\d{10}"
-                  maxLength={10}
+                  pattern={PHONE_PATTERN}
+                  minLength={PHONE_MIN_LENGTH}
+                  maxLength={PHONE_MAX_LENGTH}
                   value={addForm.phone}
-                  onChange={(e) => setAddForm({ ...addForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                  onChange={(e) => setAddForm({ ...addForm, phone: sanitizePhone(e.target.value) })}
                   className="mt-1"
                   required
-                  title="Enter a 10-digit phone number"
+                  title={PHONE_TITLE}
                 />
               </div>
               <div>
@@ -426,13 +428,14 @@ export function OperationsFrontlineTeam() {
                     name="phone"
                     type="tel"
                     inputMode="numeric"
-                    pattern="\d{10}"
-                    maxLength={10}
+                    pattern={PHONE_PATTERN}
+                    minLength={PHONE_MIN_LENGTH}
+                    maxLength={PHONE_MAX_LENGTH}
                     defaultValue={editing.phone}
-                    onChange={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "").slice(0, 10); }}
+                    onInput={handlePhoneInput}
                     className="mt-1"
                     required
-                    title="Enter a 10-digit phone number"
+                    title={PHONE_TITLE}
                   />
                 </div>
                 <div>

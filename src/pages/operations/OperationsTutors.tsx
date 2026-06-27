@@ -11,6 +11,7 @@ import { GraduationCap, Plus, Search, Edit, Trash2, Award, Eye, EyeOff } from "l
 import { toast } from "sonner";
 import { listTutors, createTutor, updateTutor, deleteTutor } from "../../api/tutors";
 import type { StaffStatus, Tutor } from "../../api/types";
+import { PHONE_PATTERN, PHONE_TITLE, PHONE_MIN_LENGTH, PHONE_MAX_LENGTH, sanitizePhone, handlePhoneInput } from "../../lib/phone";
 
 const STATUSES: StaffStatus[] = ["ACTIVE", "ON_LEAVE", "TERMINATED"];
 
@@ -282,7 +283,7 @@ export function OperationsTutors() {
               </div>
               <div>
                 <Label htmlFor="phone" style={{ color: "#ffac96" }}>Phone</Label>
-                <Input id="phone" value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })} className="mt-1" required minLength={7} maxLength={15} />
+                <Input id="phone" type="tel" inputMode="numeric" pattern={PHONE_PATTERN} title={PHONE_TITLE} value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: sanitizePhone(e.target.value) })} className="mt-1" required minLength={PHONE_MIN_LENGTH} maxLength={PHONE_MAX_LENGTH} />
               </div>
               <div>
                 <Label htmlFor="password" style={{ color: "#ffac96" }}>Password</Label>
@@ -352,7 +353,7 @@ export function OperationsTutors() {
                 </div>
                 <div>
                   <Label htmlFor="editPhone" style={{ color: "#ffac96" }}>Phone</Label>
-                  <Input id="editPhone" name="phone" defaultValue={editing.phone} className="mt-1" required minLength={7} maxLength={15} />
+                  <Input id="editPhone" name="phone" type="tel" inputMode="numeric" pattern={PHONE_PATTERN} title={PHONE_TITLE} defaultValue={editing.phone} onInput={handlePhoneInput} className="mt-1" required minLength={PHONE_MIN_LENGTH} maxLength={PHONE_MAX_LENGTH} />
                 </div>
                 <div>
                   <Label htmlFor="editExperience" style={{ color: "#ffac96" }}>Experience (years)</Label>

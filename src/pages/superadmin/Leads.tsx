@@ -12,6 +12,7 @@ import { Plus, Search, Edit, Trash2, Mail, Phone, Calendar, Eye, MapPin, FileTex
 import { toast } from "sonner";
 import { listLeads, createLead, updateLead, deleteLead, getLeadStats, type LeadStats } from "../../api/leads";
 import type { Lead, LeadSource, LeadStatus, Role } from "../../api/types";
+import { PHONE_PATTERN, PHONE_TITLE, PHONE_MIN_LENGTH, PHONE_MAX_LENGTH, sanitizePhone, handlePhoneInput } from "../../lib/phone";
 
 const SOURCES: LeadSource[] = ["WEBSITE", "REFERRAL", "WALK_IN", "SOCIAL_MEDIA", "FACEBOOK", "INSTAGRAM", "GOOGLE_ADS"];
 const STATUSES: LeadStatus[] = ["NEW", "CONTACTED", "INTERESTED", "CONVERTED", "NOT_INTERESTED"];
@@ -212,7 +213,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="phone">Phone <span className="text-red-500">*</span></Label>
-                  <Input id="phone" value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })} required maxLength={15} />
+                  <Input id="phone" type="tel" inputMode="numeric" pattern={PHONE_PATTERN} title={PHONE_TITLE} value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: sanitizePhone(e.target.value) })} required minLength={PHONE_MIN_LENGTH} maxLength={PHONE_MAX_LENGTH} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="source">Source <span className="text-red-500">*</span></Label>
@@ -476,7 +477,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-phone">Phone <span className="text-red-500">*</span></Label>
-                  <Input id="edit-phone" name="phone" defaultValue={editing.phone} required maxLength={15} />
+                  <Input id="edit-phone" name="phone" type="tel" inputMode="numeric" pattern={PHONE_PATTERN} title={PHONE_TITLE} defaultValue={editing.phone} onInput={handlePhoneInput} required minLength={PHONE_MIN_LENGTH} maxLength={PHONE_MAX_LENGTH} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-source">Source <span className="text-red-500">*</span></Label>

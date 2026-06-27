@@ -12,6 +12,7 @@ import { Button } from "../../components/ui/button";
 import { Building2, User } from "lucide-react";
 import { toast } from "sonner";
 import { PasswordChangeCard } from "../../components/settings/PasswordChangeCard";
+import { PHONE_PATTERN, PHONE_TITLE, PHONE_MIN_LENGTH, PHONE_MAX_LENGTH, sanitizePhone } from "../../lib/phone";
 import { getMe, patchMe } from "../../api/auth";
 import { getPlatform, updatePlatform } from "../../api/platform";
 import { setCachedUser } from "../../lib/session";
@@ -185,8 +186,14 @@ export function Settings() {
                 <Label htmlFor="profilePhone">Phone</Label>
                 <Input
                   id="profilePhone"
+                  type="tel"
+                  inputMode="numeric"
+                  pattern={PHONE_PATTERN}
+                  title={PHONE_TITLE}
+                  minLength={PHONE_MIN_LENGTH}
+                  maxLength={PHONE_MAX_LENGTH}
                   value={profilePhone}
-                  onChange={(event) => setProfilePhone(event.target.value)}
+                  onChange={(event) => setProfilePhone(sanitizePhone(event.target.value))}
                   disabled={isProfileLoading}
                   required
                 />
@@ -246,8 +253,14 @@ export function Settings() {
               <Label htmlFor="businessPhone">Phone Number</Label>
               <Input
                 id="businessPhone"
+                type="tel"
+                inputMode="numeric"
+                pattern={PHONE_PATTERN}
+                title={PHONE_TITLE}
+                minLength={PHONE_MIN_LENGTH}
+                maxLength={PHONE_MAX_LENGTH}
                 value={businessPhone}
-                onChange={(event) => setBusinessPhone(event.target.value)}
+                onChange={(event) => setBusinessPhone(sanitizePhone(event.target.value))}
                 disabled={isPlatformLoading}
               />
             </div>

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Badge } from "../../components/ui/badge";
 import { Plus, Search, Edit, Trash2, Mail, Phone, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
+import { PHONE_PATTERN, PHONE_TITLE, PHONE_MIN_LENGTH, PHONE_MAX_LENGTH, sanitizePhone, handlePhoneInput } from "../../lib/phone";
 import {
   listStudents,
   createStudent,
@@ -223,13 +224,13 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                     id="phone"
                     type="tel"
                     inputMode="numeric"
-                    pattern="\d{8,15}"
-                    title="Phone must be 8 to 15 digits"
+                    pattern={PHONE_PATTERN}
+                    title={PHONE_TITLE}
                     value={addForm.phone}
-                    onChange={(e) => setAddForm({ ...addForm, phone: e.target.value.replace(/\D/g, "").slice(0, 15) })}
+                    onChange={(e) => setAddForm({ ...addForm, phone: sanitizePhone(e.target.value) })}
                     required
-                    minLength={8}
-                    maxLength={15}
+                    minLength={PHONE_MIN_LENGTH}
+                    maxLength={PHONE_MAX_LENGTH}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -389,22 +390,13 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                     name="phone"
                     type="tel"
                     inputMode="numeric"
-                    pattern="\d{8,15}"
-                    title="Phone must be 8 to 15 digits"
+                    pattern={PHONE_PATTERN}
+                    title={PHONE_TITLE}
                     defaultValue={editing.phone}
-                    onInput={(e) => {
-                      const el = e.currentTarget;
-                      const prev = el.value;
-                      const cleaned = prev.replace(/\D/g, "").slice(0, 15);
-                      if (cleaned !== prev) {
-                        const pos = (el.selectionStart ?? prev.length) - (prev.length - cleaned.length);
-                        el.value = cleaned;
-                        el.setSelectionRange(pos, pos);
-                      }
-                    }}
+                    onInput={handlePhoneInput}
                     required
-                    minLength={8}
-                    maxLength={15}
+                    minLength={PHONE_MIN_LENGTH}
+                    maxLength={PHONE_MAX_LENGTH}
                   />
                 </div>
                 <div className="grid gap-2">

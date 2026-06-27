@@ -10,6 +10,7 @@ import { PasswordChangeCard } from "../../components/settings/PasswordChangeCard
 import { getMe, patchMe } from "../../api/auth";
 import { setCachedUser } from "../../lib/session";
 import type { TutorUser } from "../../api/types";
+import { PHONE_PATTERN, PHONE_TITLE, PHONE_MIN_LENGTH, PHONE_MAX_LENGTH, sanitizePhone } from "../../lib/phone";
 
 export function TutorSettings() {
   const [user, setUser] = useState<TutorUser | null>(null);
@@ -117,8 +118,14 @@ export function TutorSettings() {
                 <Label htmlFor="phone">Phone</Label>
                 <Input
                   id="phone"
+                  type="tel"
+                  inputMode="numeric"
+                  pattern={PHONE_PATTERN}
+                  title={PHONE_TITLE}
+                  minLength={PHONE_MIN_LENGTH}
+                  maxLength={PHONE_MAX_LENGTH}
                   value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
+                  onChange={(event) => setPhone(sanitizePhone(event.target.value))}
                   disabled={isLoading}
                   required
                 />
