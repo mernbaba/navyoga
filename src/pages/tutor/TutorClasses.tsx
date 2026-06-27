@@ -12,6 +12,16 @@ import { toast } from "sonner";
 import { listTutorClasses, type TutorClassesStatusFilter } from "../../api/classes";
 import type { TutorAssignedClass } from "../../api/types";
 import { formatISTDateTime } from "../../lib/datetime";
+import { Progress } from "../../components/ui/progress";
+import { useRecordingUploads } from "../../context/RecordingUploadContext";
+
+function formatBytes(bytes: number): string {
+  if (!bytes) return "";
+  const gb = bytes / 1024 ** 3;
+  if (gb >= 1) return `${gb.toFixed(2)} GB`;
+  const mb = bytes / 1024 ** 2;
+  return `${mb.toFixed(0)} MB`;
+}
 
 type StatusTab = "upcoming" | "past";
 
@@ -41,6 +51,7 @@ function difficultyTone(difficulty: TutorAssignedClass["difficulty"]) {
 
 export function TutorClasses() {
   const navigate = useNavigate();
+  const { uploads } = useRecordingUploads();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusTab, setStatusTab] = useState<StatusTab>("upcoming");
   const [items, setItems] = useState<TutorAssignedClass[]>([]);
@@ -268,6 +279,7 @@ export function TutorClasses() {
                     ) : (
                       filteredClasses.map((cls) => {
                         const isLive = cls.state === "LIVE";
+                        const upload = uploads[cls.id];
                         return (
                           <TableRow key={cls.id}>
                             <TableCell className="font-medium">
@@ -279,6 +291,44 @@ export function TutorClasses() {
                                 {isLive && <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />}
                                 <span className="truncate max-w-[220px]">{cls.title}</span>
                               </button>
+                              {upload && (
+                                <div className="mt-2 w-full max-w-[220px]">
+                                  {upload.status === "error" ? (
+                                    <p className="text-xs text-rose-600">
+                                      Recording upload failed
+                                    </p>
+                                  ) : upload.status === "done" ? (
+                                    <p className="text-xs text-green-600">
+                                      Recording uploaded
+                                    </p>
+                                  ) : (
+                                    <>
+                                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                        <span>
+                                          {upload.status === "saving"
+                                            ? "Finalizing recording…"
+                                            : "Uploading recording…"}
+                                        </span>
+                                        <span className="tabular-nums font-medium">
+                                          {upload.progress}%
+                                        </span>
+                                      </div>
+                                      <Progress
+                                        value={upload.progress}
+                                        className="mt-1 h-1.5"
+                                      />
+                                      {upload.totalBytes > 0 && (
+                                        <p className="mt-0.5 text-[10px] text-muted-foreground">
+                                          {formatBytes(
+                                            (upload.totalBytes * upload.progress) / 100,
+                                          )}{" "}
+                                          / {formatBytes(upload.totalBytes)}
+                                        </p>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              )}
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">

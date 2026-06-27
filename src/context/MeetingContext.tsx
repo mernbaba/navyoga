@@ -15,6 +15,7 @@ import {
   requestTutorRecordingPresign,
   saveTutorRecording,
 } from "@/api/live";
+import { useRecordingUploadsOptional } from "@/context/RecordingUploadContext";
 import {
   connectMeetingSocket,
   type MeetingChatMessage,
@@ -96,6 +97,16 @@ export const MeetingProvider = ({
   const [connectionState, setConnectionState] = useState<
     "connecting" | "joined" | "ended"
   >("connecting");
+
+  // Drives the recording upload progress shown in the tutor's "My Classes"
+  // table. Optional so the meeting still works if mounted outside the provider.
+  // Held in a ref so uploadRecording stays referentially stable (the store
+  // object changes on every progress tick, which we don't want to react to).
+  const recordingUploads = useRecordingUploadsOptional();
+  const recordingUploadsRef = useRef(recordingUploads);
+  useEffect(() => {
+    recordingUploadsRef.current = recordingUploads;
+  }, [recordingUploads]);
 
   const socketRef = useRef<MeetingClientSocket | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -701,20 +712,57 @@ export const MeetingProvider = ({
       const ext = mime.includes("mp4") ? "mp4" : "webm";
       const contentType = mime.includes("mp4") ? "video/mp4" : "video/webm";
       const filename = `recording.${ext}`;
+      const store = recordingUploadsRef.current;
 
-      const presign = await requestTutorRecordingPresign(cid, {
-        filename,
-        contentType,
-      });
+      // Register the upload up front so the "My Classes" table shows it (at 0%)
+      // the instant the class ends, before the presign round-trip resolves.
+      store?.startUpload(cid, blob.size);
 
-      const putRes = await fetch(presign.url, {
-        method: "PUT",
-        headers: { "Content-Type": contentType },
-        body: blob,
-      });
-      if (!putRes.ok) throw new Error("Recording upload failed");
+      try {
+        const presign = await requestTutorRecordingPresign(cid, {
+          filename,
+          contentType,
+        });
 
-      await saveTutorRecording(cid, presign.storePath);
+        // XMLHttpRequest (not fetch) so we get byte-level upload.onprogress —
+        // essential for multi-GB recordings where the PUT can take minutes.
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("PUT", presign.url, true);
+          xhr.setRequestHeader("Content-Type", contentType);
+
+          xhr.upload.onprogress = (event) => {
+            if (!event.lengthComputable) return;
+            store?.setProgress(cid, (event.loaded / event.total) * 100);
+          };
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              store?.setProgress(cid, 100);
+              resolve();
+            } else {
+              reject(new Error("Recording upload failed"));
+            }
+          };
+          xhr.onerror = () => reject(new Error("Recording upload failed"));
+          xhr.onabort = () => reject(new Error("Recording upload cancelled"));
+          xhr.send(blob);
+        });
+
+        // Bytes are in S3; now persist the path onto the class.
+        store?.setStatus(cid, "saving");
+        await saveTutorRecording(cid, presign.storePath);
+
+        store?.setStatus(cid, "done");
+        // Clear the row's progress shortly after success so it doesn't linger.
+        window.setTimeout(() => store?.clearUpload(cid), 5000);
+      } catch (err) {
+        store?.setStatus(
+          cid,
+          "error",
+          err instanceof Error ? err.message : "Upload failed",
+        );
+        throw err;
+      }
     },
     [classId],
   );
