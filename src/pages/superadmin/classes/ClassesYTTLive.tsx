@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toDatetimeLocalValue, fromDatetimeLocalValue } from "@/lib/datetime";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -103,20 +104,6 @@ function formatScheduled(iso: string | null) {
   });
 }
 
-// ISO ↔ datetime-local helpers (HTML input gives "YYYY-MM-DDTHH:MM" in local TZ)
-function isoToLocalInput(iso: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function localInputToIso(value: string): string | null {
-  if (!value) return null;
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString();
-}
 
 // ─── COURSE FORM DIALOG (Create + Edit) ───────────────────────────────────────
 
@@ -425,7 +412,7 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
         difficulty: initial.difficulty,
         duration: String(initial.duration ?? ""),
         description: initial.description ?? "",
-        scheduledAt: isoToLocalInput(initial.scheduledAt),
+        scheduledAt: toDatetimeLocalValue(initial.scheduledAt),
         recording: initial.recording ?? "",
         tutorId: initial.tutor?.id ?? initial.tutorId ?? "",
       });
@@ -450,7 +437,7 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
     }
     setSaving(true);
     try {
-      const scheduledIso = localInputToIso(form.scheduledAt);
+      const scheduledIso = fromDatetimeLocalValue(form.scheduledAt);
       const create: YTTLiveClassBody = {
         title: form.title.trim(),
         yogaType: form.yogaType.trim(),

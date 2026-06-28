@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { toDatetimeLocalValue, fromDatetimeLocalValue } from "@/lib/datetime";
 import {
   Card,
   CardContent,
@@ -105,20 +106,6 @@ const emptyWorkshopForm = (): WorkshopFormFields => ({
   capacity: "",
 });
 
-function toDatetimeLocal(iso: string | null | undefined): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function fromDatetimeLocal(value: string): string | undefined {
-  if (!value) return undefined;
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
-}
-
 function formatDate(iso: string | null) {
   if (!iso) return "-";
   return new Date(iso).toLocaleDateString("en-IN", {
@@ -138,8 +125,8 @@ function workshopToForm(w: Workshop): WorkshopFormFields {
     price: w.price,
     thumbnail: w.thumbnail ?? "",
     instructorName: w.instructorName ?? "",
-    startDate: toDatetimeLocal(w.startDate),
-    endDate: toDatetimeLocal(w.endDate),
+    startDate: toDatetimeLocalValue(w.startDate),
+    endDate: toDatetimeLocalValue(w.endDate),
     totalDuration: w.totalDuration != null ? String(w.totalDuration) : "",
     capacity: w.capacity != null ? String(w.capacity) : "",
   };
@@ -156,9 +143,9 @@ function buildWorkshopBody(form: WorkshopFormFields): CreateWorkshopInput {
   };
   if (form.thumbnail.trim()) body.thumbnail = form.thumbnail.trim();
   if (form.instructorName.trim()) body.instructorName = form.instructorName.trim();
-  const startIso = fromDatetimeLocal(form.startDate);
+  const startIso = fromDatetimeLocalValue(form.startDate);
   if (startIso) body.startDate = startIso;
-  const endIso = fromDatetimeLocal(form.endDate);
+  const endIso = fromDatetimeLocalValue(form.endDate);
   if (endIso) body.endDate = endIso;
   if (form.totalDuration.trim()) {
     const n = Number(form.totalDuration);

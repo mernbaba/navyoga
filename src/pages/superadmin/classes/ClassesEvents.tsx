@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState } from "react";
+import { toDatetimeLocalValue } from "@/lib/datetime";
 import {
   Card,
   CardContent,
@@ -134,13 +135,6 @@ function validateForm(
       featured: draft.featured,
     },
   };
-}
-
-function toDatetimeLocal(iso: string) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function formatDate(iso: string) {
@@ -339,7 +333,7 @@ export function ClassesEvents() {
     setForm({
       title: event.title,
       description: event.description,
-      date: toDatetimeLocal(event.date),
+      date: toDatetimeLocalValue(event.date),
       duration: event.duration,
       location: event.location,
       capacity: String(event.capacity),

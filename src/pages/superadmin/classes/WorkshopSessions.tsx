@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
+import { toDatetimeLocalValue, fromDatetimeLocalValue } from "@/lib/datetime";
 import {
   Card,
   CardContent,
@@ -87,20 +88,6 @@ function emptySessionForm(workshopMode: WorkshopMode): SessionFormFields {
   };
 }
 
-function toDatetimeLocal(iso: string | null | undefined): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function fromDatetimeLocal(value: string): string | undefined {
-  if (!value) return undefined;
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
-}
-
 function modeBadgeColor(mode: WorkshopMode) {
   switch (mode) {
     case "LIVE": return "#ef4444";
@@ -165,7 +152,7 @@ export function WorkshopSessions() {
       title: s.title,
       sortOrder: String(s.sortOrder),
       mode: s.mode === "RECORDED" ? "RECORDED" : "LIVE",
-      scheduledAt: toDatetimeLocal(s.scheduledAt),
+      scheduledAt: toDatetimeLocalValue(s.scheduledAt),
       duration: s.duration != null ? String(s.duration) : "",
       link: s.link ?? "",
       video: s.video ?? "",
@@ -204,7 +191,7 @@ export function WorkshopSessions() {
         sortOrder,
         mode: form.mode,
       };
-      const scheduledIso = fromDatetimeLocal(form.scheduledAt);
+      const scheduledIso = fromDatetimeLocalValue(form.scheduledAt);
       if (scheduledIso) body.scheduledAt = scheduledIso;
       if (form.duration.trim()) {
         const n = Number(form.duration);

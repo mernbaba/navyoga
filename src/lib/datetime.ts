@@ -17,6 +17,20 @@ export function toDatetimeLocalValue(iso: string | null | undefined): string {
   return local.toISOString().slice(0, 16);
 }
 
+/**
+ * Convert a `<input type="datetime-local">` value (local wall-clock, no
+ * timezone) back into a UTC ISO string for the API. Inverse of
+ * `toDatetimeLocalValue`. Returns null for empty/invalid input so callers can
+ * conditionally include the field in a request body.
+ */
+export function fromDatetimeLocalValue(
+  value: string | null | undefined,
+): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 // ---------------------------------------------------------------------------
 // IST display formatting
 //
