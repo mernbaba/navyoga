@@ -43,6 +43,17 @@ function deriveStatus(c: LiveClass): DerivedStatus {
   return "UNSCHEDULED";
 }
 
+// A scheduled class is still "upcoming or ongoing" if its scheduled window
+// (start → start + duration) has not fully elapsed yet. A class scheduled
+// 5-6pm is still surfaced at 5:30pm, but disappears once 6pm has passed —
+// even if it was never explicitly marked as ended.
+function isUpcomingOrOngoing(c: LiveClass): boolean {
+  if (!c.scheduledAt) return false;
+  const start = new Date(c.scheduledAt).getTime();
+  const end = start + c.duration * 60 * 1000;
+  return Date.now() <= end;
+}
+
 // Sort by scheduled date ascending (soonest first); unscheduled classes last.
 function byScheduledAsc(a: LiveClass, b: LiveClass): number {
   const ta = a.scheduledAt ? new Date(a.scheduledAt).getTime() : Infinity;
@@ -136,8 +147,13 @@ export function UserClasses() {
     };
 
     const live = classes.filter((c) => {
+      if (!matchesShared(c)) return false;
       const s = deriveStatus(c);
-      return (s === "LIVE" || s === "SCHEDULED") && matchesShared(c);
+      // A truly LIVE class (started, not yet ended) always shows.
+      if (s === "LIVE") return true;
+      // A scheduled class shows only while it is upcoming or still within its
+      // scheduled time window — past, never-ended classes are dropped.
+      return s === "SCHEDULED" && isUpcomingOrOngoing(c);
     });
 
     // Show only one class per batch — the active one (LIVE wins, otherwise
