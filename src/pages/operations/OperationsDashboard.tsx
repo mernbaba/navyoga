@@ -2,7 +2,7 @@
 import { Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { Users, UserCog, Phone, Bell, Ticket, UserPlus, GraduationCap, Clock, LogIn, LogOut, IndianRupee } from "lucide-react";
+import { UserCog, Phone, Bell, Ticket, UserPlus, GraduationCap, Clock, LogIn, LogOut, IndianRupee } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { toast } from "sonner";
 import { getMyOperationsAttendance, operationsCheckIn, operationsCheckOut } from "../../api/attendance";
@@ -65,12 +65,6 @@ export function OperationsDashboard() {
   const fmtDiff = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `${n}` : "-");
 
   const metrics = [
-    {
-      title: 'Total Employees',
-      value: dashboardData ? dashboardData.cards.employees.total.toLocaleString() : '-',
-      change: dashboardData ? fmtDiff(dashboardData.cards.employees.diff) : null,
-      icon: Users, color: '#ff691d', href: '/operations/employees',
-    },
     {
       title: 'Active Yoga Shikshaks',
       value: dashboardData ? dashboardData.cards.tutors.total.toLocaleString() : '-',
