@@ -28,59 +28,17 @@ import { motion } from "motion/react";
 import { getMyLiveEnrollment, listMyLiveClasses } from "../../api/plans";
 import { formatISTDateTime, isWithinJoinWindow } from "../../lib/datetime";
 import { resolveMediaUrl } from "../../lib/media";
+import {
+  deriveStatus,
+  selectUpcomingClasses,
+  DIFFICULTY_COLOR,
+  DIFFICULTY_GRADIENT,
+  type DerivedStatus,
+} from "../../lib/liveClasses";
 import type {
-  ClassDifficulty,
   LiveClass,
   MyLiveEnrollment,
 } from "../../api/types";
-
-type DerivedStatus = "LIVE" | "SCHEDULED" | "COMPLETED" | "UNSCHEDULED";
-
-function deriveStatus(c: LiveClass): DerivedStatus {
-  if (c.startedAt && !c.endedAt) return "LIVE";
-  if (c.endedAt || c.recording) return "COMPLETED";
-  if (c.scheduledAt) return "SCHEDULED";
-  return "UNSCHEDULED";
-}
-
-// A scheduled class is still "upcoming or ongoing" if its scheduled window
-// (start → start + duration) has not fully elapsed yet. A class scheduled
-// 5-6pm is still surfaced at 5:30pm, but disappears once 6pm has passed —
-// even if it was never explicitly marked as ended.
-function isUpcomingOrOngoing(c: LiveClass): boolean {
-  if (!c.scheduledAt) return false;
-  const start = new Date(c.scheduledAt).getTime();
-  const end = start + c.duration * 60 * 1000;
-  return Date.now() <= end;
-}
-
-// Sort by scheduled date ascending (soonest first); unscheduled classes last.
-function byScheduledAsc(a: LiveClass, b: LiveClass): number {
-  const ta = a.scheduledAt ? new Date(a.scheduledAt).getTime() : Infinity;
-  const tb = b.scheduledAt ? new Date(b.scheduledAt).getTime() : Infinity;
-  return ta - tb;
-}
-
-// Which of two classes in the same batch is the one to surface: a LIVE class
-// always wins; otherwise the one scheduled sooner.
-function isMoreActive(candidate: LiveClass, current: LiveClass): boolean {
-  const candLive = deriveStatus(candidate) === "LIVE";
-  const currLive = deriveStatus(current) === "LIVE";
-  if (candLive !== currLive) return candLive;
-  return byScheduledAsc(candidate, current) < 0;
-}
-
-const DIFFICULTY_COLOR: Record<ClassDifficulty, string> = {
-  EASY: "#10b981",
-  MEDIUM: "#f59e0b",
-  HARD: "#ef4444",
-};
-
-const DIFFICULTY_GRADIENT: Record<ClassDifficulty, string> = {
-  EASY: "from-green-500 to-teal-500",
-  MEDIUM: "from-yellow-500 to-orange-500",
-  HARD: "from-red-500 to-pink-500",
-};
 
 // Render in India time so every user sees the same IST wall-clock regardless
 // of their device timezone.
@@ -144,36 +102,8 @@ export function UserClasses() {
       return matchesSearch && matchesDifficulty;
     };
 
-    const live = classes.filter((c) => {
-      if (!matchesShared(c)) return false;
-      const s = deriveStatus(c);
-      // A truly LIVE class (started, not yet ended) always shows.
-      if (s === "LIVE") return true;
-      // A scheduled class shows only while it is upcoming or still within its
-      // scheduled time window — past, never-ended classes are dropped.
-      return s === "SCHEDULED" && isUpcomingOrOngoing(c);
-    });
-
-    // Show only one class per batch — the active one (LIVE wins, otherwise
-    // the soonest upcoming scheduled class). Classes without a batch are
-    // each kept on their own.
-    const byBatch = new Map<string, LiveClass>();
-    const noBatch: LiveClass[] = [];
-    for (const c of live) {
-      if (!c.batch) {
-        noBatch.push(c);
-        continue;
-      }
-      const current = byBatch.get(c.batch.id);
-      if (!current || isMoreActive(c, current)) {
-        byBatch.set(c.batch.id, c);
-      }
-    }
-
-    const upcoming = [...byBatch.values(), ...noBatch].sort(byScheduledAsc);
-
     return {
-      upcomingClasses: upcoming,
+      upcomingClasses: selectUpcomingClasses(classes, matchesShared),
       recordingClasses: classes.filter((c) => {
         const s = deriveStatus(c);
         return s === "COMPLETED" && c.recording !== null && matchesShared(c);

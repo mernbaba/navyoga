@@ -15,6 +15,14 @@ import { motion } from "motion/react";
 import { toast } from "sonner";
 import { ImageWithFallback } from "../../components/Fallback/ImageWithFallback";
 import { getStudentDashboard, type StudentDashboard } from "../../api/dashboard";
+import { listMyLiveClasses } from "../../api/plans";
+import type { LiveClass } from "../../api/types";
+import {
+  deriveStatus,
+  selectUpcomingClasses,
+  DIFFICULTY_COLOR,
+} from "../../lib/liveClasses";
+import { isWithinJoinWindow } from "../../lib/datetime";
 
 const formatDiff = (n: number, suffix: string): string => {
   if (n === 0) return "No change";
@@ -48,6 +56,7 @@ const formatScheduled = (iso: string | null): { date: string; time: string } => 
 
 export function UserDashboard() {
   const [data, setData] = useState<StudentDashboard | null>(null);
+  const [liveClasses, setLiveClasses] = useState<LiveClass[]>([]);
   const [enrolledModalOpen, setEnrolledModalOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -62,6 +71,25 @@ export function UserDashboard() {
           const message = err instanceof Error ? err.message : "Failed to load dashboard";
           toast.error(message);
         }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Source the "Upcoming Classes" widget from the same endpoint as the
+  // "My Live Classes" page (all batches, with live/scheduled state) so both
+  // surfaces always show the same active class. The dashboard endpoint's own
+  // `upcomingClasses` is scoped to the enrolled batch only and carries no live
+  // state, which made the two pages disagree.
+  useEffect(() => {
+    let cancelled = false;
+    listMyLiveClasses()
+      .then((res) => {
+        if (!cancelled) setLiveClasses(res.classes);
+      })
+      .catch(() => {
+        // Non-fatal: the widget simply shows "no upcoming classes".
       });
     return () => {
       cancelled = true;
@@ -125,19 +153,28 @@ export function UserDashboard() {
 
   const upcomingClasses = useMemo(
     () =>
-      (data?.upcomingClasses ?? []).map((c) => {
-        const { date, time } = formatScheduled(c.scheduledAt);
-        return {
-          id: c.id,
-          name: c.name,
-          instructor: c.instructor,
-          date,
-          time,
-          duration: `${c.duration} min`,
-          color: c.color,
-        };
-      }),
-    [data],
+      selectUpcomingClasses(liveClasses)
+        .slice(0, 4)
+        .map((c) => {
+          const { date, time } = formatScheduled(c.scheduledAt);
+          const isLive = deriveStatus(c) === "LIVE";
+          return {
+            id: c.id,
+            name: c.title,
+            instructor: c.tutor?.name ?? "Navyoga",
+            date,
+            time,
+            duration: `${c.duration} min`,
+            color: DIFFICULTY_COLOR[c.difficulty],
+            isLive,
+            joinable: isWithinJoinWindow({
+              scheduledAt: c.scheduledAt,
+              durationMinutes: c.duration,
+              isLive,
+            }),
+          };
+        }),
+    [liveClasses],
   );
 
   const referralStats = data?.referralStats ?? {
@@ -282,8 +319,16 @@ export function UserDashboard() {
                         <div className="relative z-10 flex items-center justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: class_item.color }} />
+                              <div
+                                className={`w-2 h-2 rounded-full ${class_item.isLive ? "bg-green-500 animate-pulse" : ""}`}
+                                style={class_item.isLive ? undefined : { backgroundColor: class_item.color }}
+                              />
                               <p className="font-semibold">{class_item.name}</p>
+                              {class_item.isLive && (
+                                <Badge className="bg-green-500 hover:bg-green-500/90 text-white text-[10px] px-1.5 py-0">
+                                  LIVE
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-xs text-muted-foreground">
                               {class_item.instructor} • {class_item.date}
@@ -293,13 +338,31 @@ export function UserDashboard() {
                               {class_item.duration}
                             </Badge>
                           </div>
-                          <Button
-                            size="sm"
-                            disabled
-                            className="bg-linear-to-r from-[#610981] to-[#8b0fa8] text-white shadow-lg opacity-60"
-                          >
-                            Join
-                          </Button>
+                          {class_item.joinable ? (
+                            <Link to={`/user/class-session/${class_item.id}`}>
+                              <Button
+                                size="sm"
+                                className={`text-white shadow-lg ${class_item.isLive ? "bg-linear-to-r from-[#ef4444] to-[#f97316]" : "bg-linear-to-r from-[#610981] to-[#8b0fa8]"}`}
+                              >
+                                {class_item.isLive ? (
+                                  <>
+                                    <Radio className="w-4 h-4 mr-1" /> Join Live
+                                  </>
+                                ) : (
+                                  "Join"
+                                )}
+                              </Button>
+                            </Link>
+                          ) : (
+                            <Button
+                              size="sm"
+                              disabled
+                              title="Available 15 minutes before class"
+                              className="bg-linear-to-r from-[#610981] to-[#8b0fa8] text-white shadow-lg opacity-60"
+                            >
+                              Join
+                            </Button>
+                          )}
                         </div>
                       </motion.div>
                     ))
