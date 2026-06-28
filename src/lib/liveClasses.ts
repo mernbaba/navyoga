@@ -10,8 +10,16 @@ export type DerivedStatus = "LIVE" | "SCHEDULED" | "COMPLETED" | "UNSCHEDULED";
 
 export function deriveStatus(c: LiveClass): DerivedStatus {
   if (c.startedAt && !c.endedAt) return "LIVE";
-  if (c.endedAt || c.recording) return "COMPLETED";
-  if (c.scheduledAt) return "SCHEDULED";
+  if (c.endedAt) return "COMPLETED";
+  // A recording can be attached while a class is still in progress, so a
+  // recording alone must NOT mark it completed — otherwise it disappears from
+  // the live/upcoming surface mid-session. Keep a scheduled class live until
+  // its window (start + duration) has fully elapsed; only then is it past.
+  if (c.scheduledAt) {
+    return isUpcomingOrOngoing(c) ? "SCHEDULED" : "COMPLETED";
+  }
+  // No schedule to anchor a window: a recording means it already happened.
+  if (c.recording) return "COMPLETED";
   return "UNSCHEDULED";
 }
 
