@@ -517,7 +517,7 @@ export const MeetingProvider = ({
     const sock = socketRef.current;
     if (!sock) return;
 
-    if (isScreenSharing) {
+    if (isScreenSharingRef.current) {
       const stream = screenStreamRef.current;
       if (stream) {
         stream.getTracks().forEach((t) => t.stop());
@@ -568,7 +568,7 @@ export const MeetingProvider = ({
     } catch {
       toast.error("Screen share canceled");
     }
-  }, [isScreenSharing, replaceVideoTrackOnPeers, refreshDisplayedLocalStream]);
+  }, [replaceVideoTrackOnPeers, refreshDisplayedLocalStream]);
 
   // Pick a container/codec the browser can actually produce. Order matters:
   // mp4 first (broadest playback), then webm variants.

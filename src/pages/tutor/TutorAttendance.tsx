@@ -309,6 +309,7 @@ export function TutorAttendance() {
         </Card>
 
         {/* Attendance history */}
+        {/*
         <Card className="relative overflow-hidden border-0 shadow-md">
           <div className="absolute top-0 right-0 w-64 h-64 bg-[#ffac96]/5 rounded-full blur-3xl" />
           <CardHeader className="relative z-10 flex flex-row items-center justify-between">
@@ -372,6 +373,7 @@ export function TutorAttendance() {
             )}
           </CardContent>
         </Card>
+        */}
 
       </div>
     </div>
