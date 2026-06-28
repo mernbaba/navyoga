@@ -360,11 +360,6 @@ export function ClassesSelfPaced() {
                       >
                         <ArrowDown className="w-3.5 h-3.5" />
                       </Button>
-                      <DownloadMediaButton
-                        path={cls.video}
-                        className="w-6 h-6 justify-center p-0 rounded-md border-transparent bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
-                        title="Download video"
-                      />
                       <Button
                         size="icon"
                         variant="ghost"

@@ -23,6 +23,7 @@ import {
   DIFFICULTY_COLOR,
 } from "../../lib/liveClasses";
 import { isWithinJoinWindow } from "../../lib/datetime";
+import { resolveMediaUrl } from "../../lib/media";
 
 const formatDiff = (n: number, suffix: string): string => {
   if (n === 0) return "No change";
@@ -158,6 +159,11 @@ export function UserDashboard() {
         .map((c) => {
           const { date, time } = formatScheduled(c.scheduledAt);
           const isLive = deriveStatus(c) === "LIVE";
+          // A live/upcoming class with a recording attached keeps the same
+          // "Join Live" button, but it opens the recording in a new tab instead
+          // of entering the session — shown to everyone regardless of recording
+          // access. Mirrors the Classes tab (UserClasses) so both surfaces agree.
+          const recordingHref = resolveMediaUrl(c.recording);
           return {
             id: c.id,
             name: c.title,
@@ -167,6 +173,7 @@ export function UserDashboard() {
             duration: `${c.duration} min`,
             color: DIFFICULTY_COLOR[c.difficulty],
             isLive,
+            recordingHref,
             joinable: isWithinJoinWindow({
               scheduledAt: c.scheduledAt,
               durationMinutes: c.duration,
@@ -338,7 +345,27 @@ export function UserDashboard() {
                               {class_item.duration}
                             </Badge>
                           </div>
-                          {class_item.joinable ? (
+                          {class_item.recordingHref ? (
+                            // Recording attached: same button, opens the recording in a new tab.
+                            <a
+                              href={class_item.recordingHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Button
+                                size="sm"
+                                className={`text-white shadow-lg ${class_item.isLive ? "bg-linear-to-r from-[#ef4444] to-[#f97316]" : "bg-linear-to-r from-[#610981] to-[#8b0fa8]"}`}
+                              >
+                                {class_item.isLive ? (
+                                  <>
+                                    <Radio className="w-4 h-4 mr-1" /> Join Live
+                                  </>
+                                ) : (
+                                  "Join"
+                                )}
+                              </Button>
+                            </a>
+                          ) : class_item.joinable ? (
                             <Link to={`/user/class-session/${class_item.id}`}>
                               <Button
                                 size="sm"

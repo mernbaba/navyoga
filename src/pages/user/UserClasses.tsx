@@ -421,6 +421,7 @@ function StatusBadge({ status }: { status: DerivedStatus }) {
 
 type Action =
   | { kind: "join"; classId: string }
+  | { kind: "joinRecording"; href: string }
   | { kind: "watch"; href: string }
   | { kind: "scheduled" }
   | { kind: "locked" }
@@ -428,6 +429,16 @@ type Action =
 
 function resolveAction(c: LiveClass): Action {
   const status = deriveStatus(c);
+  // A LIVE/upcoming class that already has a recording attached surfaces in the
+  // Classes tab with the same "Join Live" button, but clicking it opens the
+  // recording in a new tab instead of entering the live session. This applies
+  // regardless of the plan's recording access — once a recording is on the
+  // class, anyone seeing the card can open it. (Only once the class window has
+  // fully ended does it leave the Classes tab and move to Recordings.)
+  if (status === "LIVE" || status === "SCHEDULED") {
+    const recordingHref = resolveMediaUrl(c.recording);
+    if (recordingHref) return { kind: "joinRecording", href: recordingHref };
+  }
   if (status === "LIVE") return { kind: "join", classId: c.id };
   if (status === "SCHEDULED") {
     if (isWithinJoinWindow({ scheduledAt: c.scheduledAt, durationMinutes: c.duration })) {
@@ -452,6 +463,18 @@ function ActionButton({ action }: { action: Action }) {
           Join Live
         </Button>
       </Link>
+    );
+  }
+  // Same "Join Live" affordance as a real live class, but opens the attached
+  // recording in a new tab rather than joining the session.
+  if (action.kind === "joinRecording") {
+    return (
+      <a href={action.href} target="_blank" rel="noopener noreferrer">
+        <Button className="w-full bg-linear-to-r from-[#ef4444] to-[#f97316] text-white shadow-lg">
+          <Radio className="w-4 h-4 mr-2" />
+          Join Live
+        </Button>
+      </a>
     );
   }
   if (action.kind === "watch") {
