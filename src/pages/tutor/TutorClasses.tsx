@@ -119,15 +119,27 @@ export function TutorClasses() {
     });
   }, [items, searchQuery]);
 
-  const liveCount = useMemo(() => items.filter((c) => c.state === "LIVE").length, [items]);
   const upcomingCount = useMemo(() => items.filter((c) => c.state === "UPCOMING").length, [items]);
   const nextClass = useMemo(() => {
     const upcoming = items
-      .filter((c) => c.state === "UPCOMING" && c.scheduledAt)
+      .filter((c) => c.state !== "PAST" && c.scheduledAt && !isOngoing(c))
       .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime());
     return upcoming[0] ?? null;
   }, [items]);
   const lastClass = useMemo(() => items[0] ?? null, [items]);
+
+  // Pin any ongoing class to the top, then order chronologically — soonest
+  // first for upcoming, most recent first for past.
+  const sortedClasses = useMemo(() => {
+    return [...filteredClasses].sort((a, b) => {
+      const aOngoing = isOngoing(a);
+      const bOngoing = isOngoing(b);
+      if (aOngoing !== bOngoing) return aOngoing ? -1 : 1;
+      const at = a.scheduledAt ? new Date(a.scheduledAt).getTime() : 0;
+      const bt = b.scheduledAt ? new Date(b.scheduledAt).getTime() : 0;
+      return statusTab === "past" ? bt - at : at - bt;
+    });
+  }, [filteredClasses, statusTab]);
 
   const handleStartClass = (classItem: TutorAssignedClass) => {
     toast.success("Starting live session...");
@@ -166,7 +178,7 @@ export function TutorClasses() {
           </Button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader>
               <CardTitle>{statusTab === "past" ? "Past" : "Assigned"}</CardTitle>
@@ -176,15 +188,6 @@ export function TutorClasses() {
               <p className="text-xs text-muted-foreground mt-1">
                 {statusTab === "past" ? "Recently ended" : "Live + upcoming"}
               </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Live Now</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-semibold text-green-600">{liveCount}</div>
-              <p className="text-xs text-muted-foreground mt-1">In-progress sessions</p>
             </CardContent>
           </Card>
           <Card>
@@ -281,7 +284,7 @@ export function TutorClasses() {
                           ))}
                         </TableRow>
                       ))
-                    ) : filteredClasses.length === 0 ? (
+                    ) : sortedClasses.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center py-10 text-sm text-muted-foreground">
                           {searchQuery
@@ -292,8 +295,9 @@ export function TutorClasses() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredClasses.map((cls) => {
+                      sortedClasses.map((cls) => {
                         const isLive = cls.state === "LIVE";
+                        const ongoing = isOngoing(cls);
                         const upload = uploads[cls.id];
                         return (
                           <TableRow key={cls.id}>
@@ -303,7 +307,7 @@ export function TutorClasses() {
                                 onClick={() => handleViewDetails(cls)}
                                 className="flex items-center gap-2 text-left hover:underline"
                               >
-                                {isLive && <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />}
+                                {ongoing && <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />}
                                 <span className="truncate max-w-[220px]">{cls.title}</span>
                               </button>
                               {upload && (
@@ -371,7 +375,7 @@ export function TutorClasses() {
                             <TableCell>
                               {cls.state === "PAST" ? (
                                 <Badge variant="outline">Ended</Badge>
-                              ) : isLive ? (
+                              ) : ongoing ? (
                                 <Badge className="bg-green-500 hover:bg-green-500/90">Live Now</Badge>
                               ) : (
                                 <Badge variant="secondary">Upcoming</Badge>
