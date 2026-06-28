@@ -61,6 +61,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/components/ui/utils";
+import { DownloadMediaButton } from "@/components/media/DownloadMediaButton";
 import {
   listLiveClasses,
   createLiveClass,
@@ -565,6 +566,11 @@ export function ClassesLive() {
                   <span className="truncate flex-1 text-muted-foreground" title={extractRelativePath(form.recording)}>
                     {extractRelativePath(form.recording)}
                   </span>
+                  <DownloadMediaButton
+                    path={form.recording}
+                    className="shrink-0"
+                    title="Download recording"
+                  />
                   <Button
                     type="button"
                     size="icon"
@@ -755,10 +761,17 @@ function LiveClassCard({
               </span>
             )}
             {cls.recording && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium bg-[#610981]/10 text-[#610981] border-[#610981]/20">
-                <VideoIcon className="w-3 h-3" />
-                Recording added
-              </span>
+              <>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium bg-[#610981]/10 text-[#610981] border-[#610981]/20">
+                  <VideoIcon className="w-3 h-3" />
+                  Recording added
+                </span>
+                <DownloadMediaButton
+                  path={cls.recording}
+                  label="Download"
+                  title="Download recording"
+                />
+              </>
             )}
           </div>
 
@@ -924,10 +937,16 @@ function LiveClassTable({
                 </TableCell>
                 <TableCell className="text-center">
                   {cls.recording ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium bg-emerald-50 text-emerald-700 border-emerald-200">
-                      <Check className="w-3 h-3" />
-                      Added
-                    </span>
+                    <div className="inline-flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium bg-emerald-50 text-emerald-700 border-emerald-200">
+                        <Check className="w-3 h-3" />
+                        Added
+                      </span>
+                      <DownloadMediaButton
+                        path={cls.recording}
+                        title="Download recording"
+                      />
+                    </div>
                   ) : (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium bg-muted/40 text-muted-foreground border-border/60">
                       <Minus className="w-3 h-3" />

@@ -34,7 +34,7 @@ export const VideoGrid = () => {
     peers,
     activeSpeaker,
   } = useMeeting();
-  const [viewMode, setViewMode] = useState<"gallery" | "speaker">("gallery");
+  const [viewMode, setViewMode] = useState<"gallery" | "speaker">("speaker");
 
   const localTile: Tile = {
     id: "local",

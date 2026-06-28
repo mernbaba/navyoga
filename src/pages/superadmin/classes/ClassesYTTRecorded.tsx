@@ -70,6 +70,7 @@ import type {
   ClassLevel,
 } from "../../../api/types";
 import { resolveMediaUrl, extractRelativePath } from "../../../lib/media";
+import { DownloadMediaButton } from "@/components/media/DownloadMediaButton";
 import { useClassesRole } from "./classesRole";
 
 const BRAND = "#610981";
@@ -1129,6 +1130,11 @@ function EditClassDialog({ open, courseId, moduleId, moduleName, cls, onClose, o
                     <span className="text-xs font-mono truncate flex-1 text-muted-foreground" title={extractRelativePath(cls.video)}>
                       {extractRelativePath(cls.video)}
                     </span>
+                    <DownloadMediaButton
+                      path={cls.video}
+                      className="shrink-0"
+                      title="Download video"
+                    />
                     <Button
                       type="button"
                       size="icon"
@@ -1633,6 +1639,11 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
                       >
                         <ArrowDown className="w-3.5 h-3.5" />
                       </Button>
+                      <DownloadMediaButton
+                        path={cls.video}
+                        className="w-6 h-6 justify-center p-0 rounded-md border-transparent bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
+                        title="Download video"
+                      />
                       <Button
                         size="icon"
                         variant="ghost"

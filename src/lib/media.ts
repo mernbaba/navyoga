@@ -52,3 +52,41 @@ export function resolveMediaUrl(path: string | null | undefined): string | undef
   const segment = PREFIX ? `/${PREFIX}` : "";
   return `${CDN}${segment}${normalised}`;
 }
+
+// Derive a sensible download filename from a stored media path, e.g.
+// "/live/abc-123/recording.mp4" → "recording.mp4".
+export function mediaFileName(path: string | null | undefined): string {
+  const rel = extractRelativePath(path);
+  const last = rel.split(/[\\/]/).pop() ?? "";
+  const clean = last.split("?")[0]?.trim();
+  return clean && clean.length > 0 ? clean : "download";
+}
+
+// Force-download an uploaded media file (recording / course video) by its stored
+// path. CDN/S3 objects are cross-origin, so the `download` attribute on a plain
+// <a> is ignored by the browser — we fetch the bytes into a blob and save that
+// instead. Falls back to opening the URL in a new tab if the fetch is blocked
+// (e.g. CORS), so the user can still save it via the browser's own controls.
+export async function downloadMedia(
+  path: string | null | undefined,
+  filename?: string,
+): Promise<void> {
+  const url = resolveMediaUrl(path);
+  if (!url) return;
+  const name = filename ?? mediaFileName(path);
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    window.open(url, "_blank", "noopener");
+  }
+}

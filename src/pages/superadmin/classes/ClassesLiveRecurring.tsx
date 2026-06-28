@@ -571,7 +571,7 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
               <Label>Batch</Label>
               <Select value={form.batchId} onValueChange={(v) => setField("batchId", v)}>
                 <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
-                  <SelectValue placeholder="Assign to a batch (optional)" />
+                  <SelectValue placeholder="Assign to a batch" />
                 </SelectTrigger>
                 <SelectContent>
                   {batches.map((b) => (
