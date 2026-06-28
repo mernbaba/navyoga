@@ -26,7 +26,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { motion } from "motion/react";
 import { getMyLiveEnrollment, listMyLiveClasses } from "../../api/plans";
-import { formatISTDateTime } from "../../lib/datetime";
+import { formatISTDateTime, isWithinJoinWindow } from "../../lib/datetime";
 import { resolveMediaUrl } from "../../lib/media";
 import type {
   ClassDifficulty,
@@ -81,8 +81,6 @@ const DIFFICULTY_GRADIENT: Record<ClassDifficulty, string> = {
   MEDIUM: "from-yellow-500 to-orange-500",
   HARD: "from-red-500 to-pink-500",
 };
-
-const SCHEDULED_JOIN_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 // Render in India time so every user sees the same IST wall-clock regardless
 // of their device timezone.
@@ -502,9 +500,8 @@ function resolveAction(c: LiveClass): Action {
   const status = deriveStatus(c);
   if (status === "LIVE") return { kind: "join", classId: c.id };
   if (status === "SCHEDULED") {
-    if (c.scheduledAt) {
-      const ms = new Date(c.scheduledAt).getTime() - Date.now();
-      if (ms <= SCHEDULED_JOIN_WINDOW_MS) return { kind: "join", classId: c.id };
+    if (isWithinJoinWindow({ scheduledAt: c.scheduledAt, durationMinutes: c.duration })) {
+      return { kind: "join", classId: c.id };
     }
     return { kind: "scheduled" };
   }

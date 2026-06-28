@@ -102,3 +102,31 @@ export function formatISTTime(
   const d = toValidDate(value);
   return d ? IST_TIME_ONLY.format(d) : fallback;
 }
+
+// ---------------------------------------------------------------------------
+// Join window
+//
+// A live class's Join/Start button unlocks JOIN_WINDOW_MINUTES before the
+// scheduled start and stays unlocked until the class is scheduled to end
+// (start + duration). Tutor ("Start") and student ("Join Live") surfaces both
+// go through `isWithinJoinWindow` so they unlock at exactly the same moment.
+// ---------------------------------------------------------------------------
+
+/** Minutes before scheduled start that the Join/Start button unlocks. */
+export const JOIN_WINDOW_MINUTES = 15;
+
+export function isWithinJoinWindow(opts: {
+  scheduledAt: string | null | undefined;
+  durationMinutes?: number | null;
+  /** Already started (and not ended) — always joinable. */
+  isLive?: boolean;
+}): boolean {
+  if (opts.isLive) return true;
+  const start = toValidDate(opts.scheduledAt);
+  if (!start) return false;
+  const startMs = start.getTime();
+  const now = Date.now();
+  const opensAt = startMs - JOIN_WINDOW_MINUTES * 60_000;
+  const closesAt = startMs + (opts.durationMinutes ?? 0) * 60_000;
+  return now >= opensAt && now <= closesAt;
+}
