@@ -81,6 +81,7 @@ export type TutorUser = {
   bio: string | null;
   status: StaffStatus;
   isActive?: boolean;
+  batches?: { id: string; name: string }[];
   createdAt: string;
 };
 

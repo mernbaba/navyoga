@@ -266,7 +266,8 @@ export function Tutors() {
                   <TableHead>ID</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Contact</TableHead>
-                  <TableHead>Specialization</TableHead>
+                  <TableHead className="w-40">Specialization</TableHead>
+                  <TableHead>Batches</TableHead>
                   <TableHead>Experience</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -274,9 +275,9 @@ export function Tutors() {
               </TableHeader>
               <TableBody>
                 {isLoading && tutors.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
                 ) : tutors.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No yoga shikshaks found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No yoga shikshaks found.</TableCell></TableRow>
                 ) : (
                   tutors.map((tutor) => (
                     <TableRow key={tutor.id}>
@@ -296,9 +297,18 @@ export function Tutors() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-1 max-w-40">
                           {tutor.specializations.map((spec) => <Badge key={spec} variant="secondary" className="text-xs">{spec}</Badge>)}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {tutor.batches && tutor.batches.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {tutor.batches.map((batch) => <Badge key={batch.id} variant="outline" className="text-xs">{batch.name}</Badge>)}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1"><Award className="w-4 h-4 text-muted-foreground" />{tutor.experience} years</div>

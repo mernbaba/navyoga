@@ -1061,7 +1061,7 @@ export function ClassesEvents() {
                   <img
                     src={resolveMediaUrl(viewEvent.thumbnail)}
                     alt={viewEvent.title}
-                    className="w-full h-44 object-cover rounded-lg border border-border/60"
+                    className="w-full h-44 object-contain bg-muted/40 rounded-lg border border-border/60"
                   />
                 )}
                 <p className="text-sm text-muted-foreground leading-relaxed">
