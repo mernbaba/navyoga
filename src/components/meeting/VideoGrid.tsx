@@ -62,12 +62,12 @@ export const VideoGrid = () => {
 
   const allTiles = [localTile, ...remoteTiles];
 
-  // Speaker view always highlights the host (yoga teacher), even when the
-  // teacher is muted or a student is the loudest. Fall back to the active
-  // speaker only when no host is present in the room.
+  // Speaker view always pins the host (yoga teacher) - it never follows the
+  // active speaker, so the host stays put even when muted or when a student is
+  // the loudest. Until the host actually joins the room there is no host tile,
+  // so we show the local user (never switching between students who speak).
   let speakerTile = allTiles.find((t) => t.isHost);
-  if (!speakerTile) speakerTile = allTiles.find((t) => t.isActiveSpeaker);
-  if (!speakerTile) speakerTile = remoteTiles[0] ?? localTile;
+  if (!speakerTile) speakerTile = localTile;
   const thumbnails = allTiles.filter((t) => t.id !== speakerTile.id);
 
   return (

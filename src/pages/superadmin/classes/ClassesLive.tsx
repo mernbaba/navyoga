@@ -97,6 +97,8 @@ const BLANK_FORM = {
 
 type FormState = typeof BLANK_FORM;
 
+const LIMIT = 12;
+
 function formatSchedule(iso: string | null) {
   if (!iso) return null;
   return formatISTDateTimeYear(iso);
@@ -125,6 +127,9 @@ export function ClassesLive() {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [view, setView] = useState<"card" | "table">("card");
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -142,26 +147,42 @@ export function ClassesLive() {
 
   const load = useCallback(() => {
     setLoading(true);
-    listLiveClasses(role)
-      .then(setClasses)
+    listLiveClasses(role, {
+      q: debouncedSearch || undefined,
+      page,
+      limit: LIMIT,
+    })
+      .then((res) => {
+        setClasses(res.items);
+        setTotal(res.total);
+      })
       .catch((e) => toast.error(e instanceof Error ? e.message : "Failed to load classes"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [role, debouncedSearch, page]);
 
   useEffect(() => {
     load();
+  }, [load]);
+
+  useEffect(() => {
     listTutors(role, { limit: 100, status: "ACTIVE" })
       .then((r) => setTutors(r.items))
       .catch(() => {});
     listBatches(role, { limit: 100 })
       .then((r) => setBatches(r.items))
       .catch(() => {});
-  }, [load]);
+  }, [role]);
 
-  const filtered = classes.filter((c) => {
-    if (search && !c.title.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  // Debounce the search input and reset to the first page on a new query.
+  useEffect(() => {
+    const h = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(h);
+  }, [search]);
+
+  const totalPages = Math.max(1, Math.ceil(total / LIMIT));
 
   function openCreate() {
     setEditing(null);
@@ -242,10 +263,15 @@ export function ClassesLive() {
         saved = await updateLiveClass(role, saved.id, { recording: presign.storePath });
       }
 
-      setClasses((prev) => {
-        const exists = prev.some((c) => c.id === saved.id);
-        return exists ? prev.map((c) => (c.id === saved.id ? saved : c)) : [saved, ...prev];
-      });
+      if (editing) {
+        // In-place update keeps the current page; the row is already visible.
+        setClasses((prev) => prev.map((c) => (c.id === saved.id ? saved : c)));
+      } else {
+        // A new class lands at the top (newest first) — jump to page 1 and reload
+        // so the list reflects server order and pagination stays correct.
+        if (page === 1) load();
+        else setPage(1);
+      }
       toast.success(editing ? "Class updated" : "Live class created");
       setDialogOpen(false);
     } catch (e) {
@@ -260,9 +286,12 @@ export function ClassesLive() {
     setDeleting(true);
     try {
       await deleteLiveClass(role, deleteTarget.id);
-      setClasses((prev) => prev.filter((c) => c.id !== deleteTarget.id));
       toast.success("Class deleted");
       setDeleteTarget(null);
+      // If we just removed the only row on the last page, step back a page;
+      // otherwise reload to backfill from the next page and update the count.
+      if (classes.length === 1 && page > 1) setPage((p) => p - 1);
+      else load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Delete failed");
     } finally {
@@ -367,16 +396,16 @@ export function ClassesLive() {
         <div className="flex items-center justify-center py-24">
           <Loader2 className="w-8 h-8 animate-spin text-[#610981]/40" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : classes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 rounded-2xl border border-dashed border-border/60">
           <Radio className="w-12 h-12 mb-4 text-[#610981]/25" />
           <p className="text-sm font-medium text-muted-foreground">No live classes found</p>
-          {search && (
+          {debouncedSearch && (
             <p className="text-xs text-muted-foreground mt-1">
               Try clearing your search
             </p>
           )}
-          {!search && (
+          {!debouncedSearch && (
             <Button
               variant="outline"
               size="sm"
@@ -388,23 +417,53 @@ export function ClassesLive() {
             </Button>
           )}
         </div>
-      ) : view === "card" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((cls) => (
-            <LiveClassCard
-              key={cls.id}
-              cls={cls}
-              onEdit={() => openEdit(cls)}
-              onDelete={() => setDeleteTarget(cls)}
-            />
-          ))}
-        </div>
       ) : (
-        <LiveClassTable
-          classes={filtered}
-          onEdit={openEdit}
-          onDelete={setDeleteTarget}
-        />
+        <>
+          {view === "card" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {classes.map((cls) => (
+                <LiveClassCard
+                  key={cls.id}
+                  cls={cls}
+                  onEdit={() => openEdit(cls)}
+                  onDelete={() => setDeleteTarget(cls)}
+                />
+              ))}
+            </div>
+          ) : (
+            <LiveClassTable
+              classes={classes}
+              onEdit={openEdit}
+              onDelete={setDeleteTarget}
+            />
+          )}
+
+          {total > LIMIT && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Page {page} of {totalPages} &bull; {total} classes
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Create / Edit Dialog */}

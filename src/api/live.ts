@@ -2,6 +2,7 @@ import { authedRequest } from "../lib/apiClient";
 import {
   unwrap,
   type ApiSuccess,
+  type Paginated,
   type Role,
   type LiveClass,
   type ClassDifficulty,
@@ -13,6 +14,8 @@ export type LiveClassListParams = {
   tutorId?: string;
   batchId?: string;
   q?: string;
+  page?: number;
+  limit?: number;
 };
 
 export type LiveClassCreateBody = {
@@ -40,8 +43,8 @@ export type LiveClassUpdateBody = {
 };
 
 export function listLiveClasses(role: Role, params: LiveClassListParams = {}) {
-  return unwrap<LiveClass[]>(
-    authedRequest<ApiSuccess<LiveClass[]>>(role, {
+  return unwrap<Paginated<LiveClass>>(
+    authedRequest<ApiSuccess<Paginated<LiveClass>>>(role, {
       method: "GET",
       url: "/api/live",
       params,

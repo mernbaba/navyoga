@@ -156,10 +156,10 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
     try {
       const [tmplList, classList] = await Promise.all([
         listRecurringLiveClasses(role),
-        listLiveClasses(role),
+        listLiveClasses(role, { limit: 100 }),
       ]);
       setTemplates(tmplList);
-      setGeneratedClasses(classList.filter((c) => c.recurringId !== null));
+      setGeneratedClasses(classList.items.filter((c) => c.recurringId !== null));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load");
     } finally {
@@ -253,8 +253,8 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
       setTemplateDialogOpen(false);
       // Reload generated classes after a short delay to catch any immediate generation
       setTimeout(() => {
-        listLiveClasses(role)
-          .then((list) => setGeneratedClasses(list.filter((c) => c.recurringId !== null)))
+        listLiveClasses(role, { limit: 100 })
+          .then((list) => setGeneratedClasses(list.items.filter((c) => c.recurringId !== null)))
           .catch(() => {});
       }, 800);
     } catch (e) {

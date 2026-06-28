@@ -65,7 +65,10 @@ export const VideoTile = ({
   return (
     <div
       className={`relative h-full w-full overflow-hidden rounded-xl border-2 bg-zinc-900 transition-all duration-300 ${
-        isHost || isActiveSpeaker
+        // Only the host is ever highlighted. Active-speaker detection must never
+        // change the tile appearance - the host stays pinned/highlighted even
+        // when a student is speaking.
+        isHost
           ? "border-[var(--primary)] shadow-[0_0_18px_rgba(97,9,129,0.45)] scale-[1.01]"
           : "border-zinc-800 hover:border-zinc-700"
       }`}
