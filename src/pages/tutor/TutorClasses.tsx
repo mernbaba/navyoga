@@ -35,6 +35,20 @@ function isJoinable(cls: TutorAssignedClass): boolean {
   });
 }
 
+// The API can return `state: "UPCOMING"` for a class whose scheduled window is
+// actually in progress (it only flips to "LIVE" once the tutor starts it), so
+// derive the live state from the clock too: ongoing = explicitly LIVE, or now
+// sits between the scheduled start and start + duration.
+function isOngoing(cls: TutorAssignedClass): boolean {
+  if (cls.state === "LIVE") return true;
+  if (cls.state === "PAST" || !cls.scheduledAt) return false;
+  const start = new Date(cls.scheduledAt).getTime();
+  if (Number.isNaN(start)) return false;
+  const end = start + (cls.duration ?? 0) * 60_000;
+  const now = Date.now();
+  return now >= start && now <= end;
+}
+
 function formatSchedule(value: string | null): string {
   return formatISTDateTime(value, "-");
 }
