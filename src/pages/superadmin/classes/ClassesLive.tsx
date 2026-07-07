@@ -83,6 +83,10 @@ const DIFFICULTY_CONFIG: Record<ClassDifficulty, { label: string; color: string 
   HARD: { label: "Advanced", color: "bg-rose-50 text-rose-700 border-rose-200" },
 };
 
+// Sentinel Select value for "no batch" — an empty batchId means the class is
+// visible to every paid live yoga user regardless of their batch.
+const ALL_BATCHES = "__ALL_BATCHES__";
+
 const BLANK_FORM = {
   title: "",
   yogaType: "",
@@ -223,7 +227,6 @@ export function ClassesLive() {
     if (!form.duration || isNaN(Number(form.duration))) return toast.error("Valid duration is required");
     if (!form.scheduledAt) return toast.error("Scheduled date/time is required");
     if (!form.tutorId) return toast.error("Yoga Shikshak is required");
-    if (!form.batchId) return toast.error("Batch is required");
 
     setSaving(true);
     try {
@@ -234,7 +237,7 @@ export function ClassesLive() {
         duration: Number(form.duration),
         ...(form.description ? { description: form.description } : {}),
         tutorId: form.tutorId,
-        batchId: form.batchId,
+        batchId: form.batchId || null,
         scheduledAt: new Date(form.scheduledAt).toISOString(),
         recording: recordingFile ? null : form.recording || null,
       };
@@ -697,17 +700,20 @@ export function ClassesLive() {
 
             {/* Batch */}
             <div className="space-y-1.5">
-              <Label>
-                Batch <span className="text-red-500">*</span>
-              </Label>
+              <Label>Batch</Label>
               <Select
-                value={form.batchId}
-                onValueChange={(v) => setField("batchId", v)}
+                value={form.batchId || ALL_BATCHES}
+                onValueChange={(v) =>
+                  setField("batchId", v === ALL_BATCHES ? "" : v)
+                }
               >
                 <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
                   <SelectValue placeholder="Assign to a batch" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={ALL_BATCHES}>
+                    All batches (any paid live user)
+                  </SelectItem>
                   {batches.map((b) => (
                     <SelectItem key={b.id} value={b.id}>
                       {b.name}
@@ -715,6 +721,10 @@ export function ClassesLive() {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Leave as “All batches” to make this class visible to every paid
+                live yoga user, regardless of batch.
+              </p>
             </div>
 
             {/* Description */}
