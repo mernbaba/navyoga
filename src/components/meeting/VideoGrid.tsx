@@ -125,7 +125,7 @@ export const VideoGrid = () => {
           )}
           <div className="flex w-full flex-1 items-center justify-center overflow-hidden">
             <div className="h-full max-h-[640px] w-full max-w-5xl">
-              <VideoTile {...speakerTile} />
+              <VideoTile {...speakerTile} fit="contain" />
             </div>
           </div>
         </div>

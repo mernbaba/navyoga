@@ -11,6 +11,10 @@ type Props = {
   isActiveSpeaker: boolean;
   isHost?: boolean;
   isScreenShare?: boolean;
+  // How the camera feed fills the tile. Gallery tiles use "cover" (fill and
+  // crop) which looks fine at near-video proportions; the large speaker tile
+  // uses "contain" so the whole feed shows without stretching/cropping.
+  fit?: "cover" | "contain";
 };
 
 export const VideoTile = ({
@@ -22,6 +26,7 @@ export const VideoTile = ({
   isActiveSpeaker,
   isHost = false,
   isScreenShare = false,
+  fit = "cover",
 }: Props) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -86,7 +91,7 @@ export const VideoTile = ({
           className={`h-full w-full ${
             isScreenShare
               ? "bg-black object-contain"
-              : `object-cover ${isLocal ? "scale-x-[-1]" : ""}`
+              : `${fit === "contain" ? "bg-black object-contain" : "object-cover"} ${isLocal ? "scale-x-[-1]" : ""}`
           }`}
         />
       ) : (

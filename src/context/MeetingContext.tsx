@@ -63,7 +63,12 @@ export type MeetingContextValue = {
   setActivePanel: (panel: ActivePanel) => void;
 };
 
-const MeetingContext = createContext<MeetingContextValue | null>(null);
+// Exported so the SFU provider (SfuMeetingContext) can feed the shared meeting
+// UI components (VideoGrid, ControlBar, ParticipantList, ChatPanel) the exact
+// same value shape without duplicating them. The SFU value is structurally
+// compatible - the UI only reads peer.stream/peer.participant, never the mesh's
+// simple-peer instance.
+export const MeetingContext = createContext<MeetingContextValue | null>(null);
 
 type ProviderProps = {
   classId: string;
