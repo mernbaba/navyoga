@@ -38,15 +38,22 @@ export function useCheckout() {
         return { status: "free" };
       }
 
+      // A non-free order must carry gateway credentials. Guard so the fields are
+      // narrowed to non-undefined for the Razorpay options (which require them).
+      if (!paymentData.key || paymentData.amount == null || !paymentData.orderId) {
+        throw new Error("Payment could not be started. Please try again.");
+      }
+      const { key, amount, orderId } = paymentData;
+
       document.body.style.overflow = "hidden";
       try {
         await new Promise<void>((resolve, reject) => {
           const rzp = new Razorpay({
-            key: paymentData.key,
-            amount: paymentData.amount,
+            key,
+            amount,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             currency: paymentData.currency as any,
-            order_id: paymentData.orderId,
+            order_id: orderId,
             name: "Navyoga",
             description: opts.description,
             handler: async (response) => {
