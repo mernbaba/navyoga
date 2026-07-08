@@ -20,8 +20,13 @@ const getGridClass = (count: number): string => {
   if (count === 2) return "grid-cols-1 md:grid-cols-2";
   if (count <= 4) return "grid-cols-2";
   if (count <= 6) return "grid-cols-2 lg:grid-cols-3";
-  return "grid-cols-3";
+  return "grid-cols-2 md:grid-cols-3 xl:grid-cols-4";
 };
+
+// Above this many tiles the gallery can no longer fit everyone in the viewport
+// without shrinking each tile into an unusable sliver, so it switches to a
+// fixed-tile-size grid that scrolls vertically instead.
+const GALLERY_SCROLL_THRESHOLD = 6;
 
 export const VideoGrid = () => {
   const {
@@ -98,20 +103,38 @@ export const VideoGrid = () => {
       </div>
 
       {viewMode === "gallery" ? (
-        <div className="flex h-full w-full flex-1 items-center justify-center">
-          <div
-            className={`grid h-full w-full items-center justify-center gap-4 ${getGridClass(allTiles.length)}`}
-          >
-            {allTiles.map((tile) => (
-              <div
-                key={tile.id}
-                className="h-full min-h-[180px] w-full max-h-[480px]"
-              >
-                <VideoTile {...tile} />
-              </div>
-            ))}
+        allTiles.length <= GALLERY_SCROLL_THRESHOLD ? (
+          // Small classes: fit everyone in the viewport, tiles flex to fill.
+          <div className="flex h-full w-full flex-1 items-center justify-center">
+            <div
+              className={`grid h-full w-full items-center justify-center gap-4 ${getGridClass(allTiles.length)}`}
+            >
+              {allTiles.map((tile) => (
+                <div
+                  key={tile.id}
+                  className="h-full min-h-[180px] w-full max-h-[480px]"
+                >
+                  <VideoTile {...tile} />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          // Large classes: fixed-size tiles in a vertically scrollable grid so
+          // every participant stays visible (scroll to reach the rest) instead
+          // of shrinking into unusable slivers.
+          <div className="h-full w-full flex-1 overflow-y-auto">
+            <div
+              className={`grid w-full items-stretch justify-center gap-4 pb-2 ${getGridClass(allTiles.length)}`}
+            >
+              {allTiles.map((tile) => (
+                <div key={tile.id} className="aspect-video w-full">
+                  <VideoTile {...tile} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )
       ) : (
         <div className="flex h-full w-full flex-1 flex-col gap-4 overflow-hidden">
           {thumbnails.length > 0 && (
