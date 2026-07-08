@@ -26,6 +26,8 @@ import {
   type YTTRecordedEnrollmentInfo,
 } from "../../api/yttRecorded";
 import type { YTTClass, YTTModule } from "../../api/types";
+import { RenewPlanModal } from "../../components/RenewPlanModal";
+import { getRenewalPrompt, type RenewalPrompt } from "../../api/renewal";
 
 type ModuleCard = YTTModule & {
   classes: YTTClass[];
@@ -50,10 +52,23 @@ export function UserYTTRecorded() {
   const [modules, setModules] = useState<ModuleCard[]>([]);
   const [completedClassIds, setCompletedClassIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [renewPrompt, setRenewPrompt] = useState<RenewalPrompt | null>(null);
+  const [renewOpen, setRenewOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+
+    void (async () => {
+      const rollup = await getRenewalPrompt("STUDENT");
+      if (cancelled) return;
+      const prompt = rollup.yttRecorded[0];
+      if (prompt) {
+        setRenewPrompt(prompt);
+        setRenewOpen(true);
+      }
+    })();
+
     (async () => {
       try {
         const mine = await listMyYTTRecordedEnrollments("STUDENT");
@@ -470,6 +485,16 @@ export function UserYTTRecorded() {
           </>
         )}
       </div>
+
+      {renewPrompt && (
+        <RenewPlanModal
+          open={renewOpen}
+          onOpenChange={setRenewOpen}
+          category="ytt-recorded"
+          prompt={renewPrompt}
+          onRenewed={() => window.location.reload()}
+        />
+      )}
     </div>
   );
 }

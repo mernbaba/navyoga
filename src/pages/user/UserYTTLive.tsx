@@ -33,6 +33,8 @@ import {
   type YTTLiveStudentClass,
 } from "../../api/yttLive";
 import type { ClassDifficulty } from "../../api/types";
+import { RenewPlanModal } from "../../components/RenewPlanModal";
+import { getRenewalPrompt, type RenewalPrompt } from "../../api/renewal";
 import { resolveMediaUrl } from "../../lib/media";
 
 type ClassWithCourse = YTTLiveStudentClass & {
@@ -88,11 +90,23 @@ export function UserYTTLive() {
   const [error, setError] = useState<string | null>(null);
   const [enrollments, setEnrollments] = useState<YTTLiveEnrollmentInfo[]>([]);
   const [classes, setClasses] = useState<ClassWithCourse[]>([]);
+  const [renewPrompt, setRenewPrompt] = useState<RenewalPrompt | null>(null);
+  const [renewOpen, setRenewOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
+
+    void (async () => {
+      const rollup = await getRenewalPrompt("STUDENT");
+      if (cancelled) return;
+      const prompt = rollup.yttLive[0];
+      if (prompt) {
+        setRenewPrompt(prompt);
+        setRenewOpen(true);
+      }
+    })();
 
     (async () => {
       try {
@@ -338,6 +352,16 @@ export function UserYTTLive() {
 
         {loading && enrollments.length === 0 && <ClassesSkeleton />}
       </div>
+
+      {renewPrompt && (
+        <RenewPlanModal
+          open={renewOpen}
+          onOpenChange={setRenewOpen}
+          category="ytt-live"
+          prompt={renewPrompt}
+          onRenewed={() => window.location.reload()}
+        />
+      )}
     </div>
   );
 }

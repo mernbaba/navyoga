@@ -26,6 +26,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { motion } from "motion/react";
 import { getMyLiveEnrollment, listMyLiveClasses } from "../../api/plans";
+import { RenewPlanModal } from "../../components/RenewPlanModal";
+import type { RenewalPrompt } from "../../api/renewal";
 import { formatISTDateTime, isWithinJoinWindow } from "../../lib/datetime";
 import { resolveMediaUrl } from "../../lib/media";
 import {
@@ -62,6 +64,8 @@ export function UserClasses() {
   const [enrollment, setEnrollment] = useState<MyLiveEnrollment | null>(null);
   const [recordingDays, setRecordingDays] = useState(0);
   const [classes, setClasses] = useState<LiveClass[]>([]);
+  const [renewPrompt, setRenewPrompt] = useState<RenewalPrompt | null>(null);
+  const [renewOpen, setRenewOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,6 +78,10 @@ export function UserClasses() {
         setEnrollment(enrollmentRes.enrollment);
         setRecordingDays(classesRes.recordingDays);
         setClasses(classesRes.classes);
+        if (enrollmentRes.recentlyExpired) {
+          setRenewPrompt(enrollmentRes.recentlyExpired);
+          setRenewOpen(true);
+        }
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -244,6 +252,16 @@ export function UserClasses() {
 
         {loading && enrollment === null && <ClassesSkeleton />}
       </div>
+
+      {renewPrompt && (
+        <RenewPlanModal
+          open={renewOpen}
+          onOpenChange={setRenewOpen}
+          category="live"
+          prompt={renewPrompt}
+          onRenewed={() => window.location.reload()}
+        />
+      )}
     </div>
   );
 }

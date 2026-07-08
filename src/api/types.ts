@@ -1,4 +1,5 @@
 import axios, { type AxiosResponse } from "axios";
+import type { RenewalPrompt } from "./renewal";
 
 export type ApiSuccess<T> = {
   success: true;
@@ -675,6 +676,9 @@ export type MyLiveEnrollment = {
 export type MyLiveEnrollmentResponse = {
   enrolled: boolean;
   enrollment: MyLiveEnrollment | null;
+  // Present (non-null) when the student has no active enrollment but their last
+  // one expired within the renewal window — drives the "renew?" modal.
+  recentlyExpired?: RenewalPrompt | null;
 };
 
 export type MyLiveClassesResponse = {

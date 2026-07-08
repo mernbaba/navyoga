@@ -22,7 +22,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { motion } from "motion/react";
 import { toast } from "sonner";
-import { useRazorpay } from "react-razorpay";
+import { useCheckout } from "../../hooks/useCheckout";
 import {
   listLivePlans,
   listSelfPacedPlans,
@@ -33,7 +33,6 @@ import {
 import { getMySelfPacedSubscription } from "../../api/selfPaced";
 import { listMyYTTLiveEnrollments } from "../../api/yttLive";
 import { listMyYTTRecordedEnrollments } from "../../api/yttRecorded";
-import { initiatePayment, verifyPayment } from "../../api/payments";
 import type { InitiatePaymentInput } from "../../api/payments";
 import { listBatches } from "../../api/batches";
 import type { LivePlan, SelfPacedPlan, YTTPlan, Batch } from "../../api/types";
@@ -320,7 +319,7 @@ const isSubscribed = (plan: UiPlan): boolean => {
   };
 
 const [isEnrolling, setIsEnrolling] = useState(false);
-  const { Razorpay } = useRazorpay();
+  const checkout = useCheckout();
   const [appliedCoupon, setAppliedCoupon] = useState<CouponApplied | null>(null);
 
   // Shared CTA renderer for a plan card. Three states:
@@ -442,68 +441,23 @@ const [isEnrolling, setIsEnrolling] = useState(false);
         }
       })();
 
-      const paymentData = await initiatePayment("STUDENT", paymentInput);
+      const outcome = await checkout(paymentInput, { description: selectedPlan.name });
 
-      // Free order: a 100%-off coupon dropped the charge below Razorpay's ₹1
-      // minimum, so the backend already fulfilled the enrollment and returned no
-      // gateway key/order. Opening Razorpay here would throw "No key passed".
-      // Skip checkout and treat it as an immediate success.
-      if (paymentData.free) {
-        toast.success(
-          upgrading
-            ? `Successfully upgraded to ${selectedPlan.name}!`
-            : `Successfully subscribed to ${selectedPlan.name}!`,
-        );
-        setAppliedCoupon(null);
-        void fetchSubscriptions();
+      if (outcome.status === "dismissed") {
+        toast.info("Payment cancelled.");
         return;
       }
 
-      document.body.style.overflow = "hidden";
-      try {
-        await new Promise<void>((resolve, reject) => {
-          const rzp = new Razorpay({
-            key: paymentData.key,
-            amount: paymentData.amount,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            currency: paymentData.currency as any,
-            order_id: paymentData.orderId,
-            name: "Navyoga",
-            description: selectedPlan.name,
-            handler: async (response) => {
-              try {
-                await verifyPayment("STUDENT", {
-                  razorpayOrderId: response.razorpay_order_id,
-                  razorpayPaymentId: response.razorpay_payment_id,
-                  razorpaySignature: response.razorpay_signature,
-                });
-                toast.success(
-                  upgrading
-                    ? `Successfully upgraded to ${selectedPlan.name}!`
-                    : `Successfully subscribed to ${selectedPlan.name}!`,
-                );
-                setAppliedCoupon(null);
-                void fetchSubscriptions();
-                resolve();
-              } catch (err) {
-                reject(err);
-              }
-            },
-            modal: {
-              ondismiss: () => reject(new Error("__dismissed__")),
-            },
-          });
-          rzp.open();
-        });
-      } finally {
-        document.body.style.overflow = "";
-      }
+      // Both "paid" and "free" (100%-off coupon fulfilled inline) are successes.
+      toast.success(
+        upgrading
+          ? `Successfully upgraded to ${selectedPlan.name}!`
+          : `Successfully subscribed to ${selectedPlan.name}!`,
+      );
+      setAppliedCoupon(null);
+      void fetchSubscriptions();
     } catch (err) {
-      if (err instanceof Error && err.message === "__dismissed__") {
-        toast.info("Payment cancelled.");
-      } else {
-        toast.error(err instanceof Error ? err.message : "Payment failed. Please try again.");
-      }
+      toast.error(err instanceof Error ? err.message : "Payment failed. Please try again.");
     } finally {
       setIsEnrolling(false);
     }

@@ -25,6 +25,8 @@ import {
   type MySelfPacedSubscription,
 } from "../../api/selfPaced";
 import type { SelfPacedClass, SelfPacedModule } from "../../api/types";
+import { RenewPlanModal } from "../../components/RenewPlanModal";
+import type { RenewalPrompt } from "../../api/renewal";
 
 type ModuleCourse = SelfPacedModule & {
   classes: SelfPacedClass[];
@@ -38,6 +40,8 @@ export function UserSelfPaced() {
   const [subscription, setSubscription] = useState<MySelfPacedSubscription["subscription"]>(null);
   const [completedClassIds, setCompletedClassIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [renewPrompt, setRenewPrompt] = useState<RenewalPrompt | null>(null);
+  const [renewOpen, setRenewOpen] = useState(false);
 
   const enrolled = subscription !== null;
 
@@ -62,6 +66,10 @@ export function UserSelfPaced() {
         });
         setModules(courses);
         setSubscription(sub.enrolled ? sub.subscription : null);
+        if (sub.recentlyExpired) {
+          setRenewPrompt(sub.recentlyExpired);
+          setRenewOpen(true);
+        }
 
         if (sub.enrolled) {
           try {
@@ -425,6 +433,16 @@ export function UserSelfPaced() {
           </motion.div>
         )}
       </div>
+
+      {renewPrompt && (
+        <RenewPlanModal
+          open={renewOpen}
+          onOpenChange={setRenewOpen}
+          category="self-paced"
+          prompt={renewPrompt}
+          onRenewed={() => window.location.reload()}
+        />
+      )}
     </div>
   );
 }

@@ -17,6 +17,8 @@ import { ImageWithFallback } from "../../components/Fallback/ImageWithFallback";
 import { getStudentDashboard, type StudentDashboard } from "../../api/dashboard";
 import { listMyLiveClasses } from "../../api/plans";
 import type { LiveClass } from "../../api/types";
+import { RenewPlanModal, type RenewCategory } from "../../components/RenewPlanModal";
+import { getRenewalPrompt, asPrompt, type RenewalPrompt } from "../../api/renewal";
 import {
   deriveStatus,
   selectUpcomingClasses,
@@ -59,6 +61,9 @@ export function UserDashboard() {
   const [data, setData] = useState<StudentDashboard | null>(null);
   const [liveClasses, setLiveClasses] = useState<LiveClass[]>([]);
   const [enrolledModalOpen, setEnrolledModalOpen] = useState(false);
+  // Recently-expired plans across all categories, shown one renew modal at a time.
+  const [renewQueue, setRenewQueue] = useState<{ category: RenewCategory; prompt: RenewalPrompt }[]>([]);
+  const [renewIndex, setRenewIndex] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -72,6 +77,31 @@ export function UserDashboard() {
           const message = err instanceof Error ? err.message : "Failed to load dashboard";
           toast.error(message);
         }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Cross-category "recently expired — renew?" prompts. Flatten every category
+  // into a queue and surface one modal at a time.
+  useEffect(() => {
+    let cancelled = false;
+    getRenewalPrompt("STUDENT")
+      .then((rollup) => {
+        if (cancelled) return;
+        const queue: { category: RenewCategory; prompt: RenewalPrompt }[] = [];
+        const live = asPrompt(rollup.live);
+        if (live) queue.push({ category: "live", prompt: live });
+        const selfPaced = asPrompt(rollup.selfPaced);
+        if (selfPaced) queue.push({ category: "self-paced", prompt: selfPaced });
+        for (const p of rollup.yttLive) queue.push({ category: "ytt-live", prompt: p });
+        for (const p of rollup.yttRecorded) queue.push({ category: "ytt-recorded", prompt: p });
+        setRenewQueue(queue);
+        setRenewIndex(0);
+      })
+      .catch(() => {
+        // Non-fatal: no renewal prompts shown.
       });
     return () => {
       cancelled = true;
@@ -648,6 +678,20 @@ export function UserDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {renewQueue[renewIndex] && (
+        <RenewPlanModal
+          // Key on index so the modal fully remounts when advancing the queue.
+          key={renewIndex}
+          open
+          onOpenChange={(next) => {
+            // Closing (renew, dismiss, or backdrop) advances to the next prompt.
+            if (!next) setRenewIndex((i) => i + 1);
+          }}
+          category={renewQueue[renewIndex].category}
+          prompt={renewQueue[renewIndex].prompt}
+        />
+      )}
     </div>
   );
 }

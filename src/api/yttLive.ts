@@ -1,4 +1,5 @@
 import { authedRequest } from "../lib/apiClient";
+import type { RenewalPrompt } from "./renewal";
 import {
   unwrap,
   type ApiSuccess,
@@ -42,6 +43,9 @@ export type YTTLiveEnrollmentInfo = {
 export type MyYTTLiveCourseEnrollment = {
   enrolled: boolean;
   enrollment: YTTLiveEnrollmentInfo | null;
+  // Present (non-null) when the student has no active enrollment for this course
+  // but their last one expired within the renewal window — drives the "renew?" modal.
+  recentlyExpired?: RenewalPrompt | null;
 };
 
 // ─── CATALOGUE (student-accessible) ──────────────────────────────────────────

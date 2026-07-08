@@ -1,4 +1,5 @@
 import { authedRequest } from "../lib/apiClient";
+import type { RenewalPrompt } from "./renewal";
 import {
   unwrap,
   type ApiSuccess,
@@ -167,6 +168,9 @@ export type MySelfPacedSubscription = {
     startDate: string;
     expiresAt: string;
   } | null;
+  // Present (non-null) when the student has no active subscription but their last
+  // one expired within the renewal window — drives the "renew?" modal.
+  recentlyExpired?: RenewalPrompt | null;
 };
 
 export async function getMySelfPacedSubscription(role: Role = "STUDENT"): Promise<MySelfPacedSubscription> {
