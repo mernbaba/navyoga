@@ -30,6 +30,17 @@ type RemotePeer = {
   participant: MeetingParticipant;
 };
 
+// In the mesh every participant encodes their camera once per peer connection,
+// so a guest's uplink and CPU cost scale with participant count. Cap guest
+// capture resolution to keep that bounded - their tiles render small anyway.
+// The host stays uncapped: their video is the main tile and what the
+// recording compositor draws.
+const GUEST_VIDEO_CONSTRAINTS: MediaTrackConstraints = {
+  width: { ideal: 640, max: 640 },
+  height: { ideal: 360, max: 360 },
+  frameRate: { ideal: 15, max: 15 },
+};
+
 export type ActivePanel = "participants" | "chat" | null;
 
 export type MeetingContextValue = {
@@ -285,7 +296,9 @@ export const MeetingProvider = ({
         // Camera ON - acquire a fresh video track and graft it into the stream.
         let camStream: MediaStream;
         try {
-          camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          camStream = await navigator.mediaDevices.getUserMedia({
+            video: role === "guest" ? GUEST_VIDEO_CONSTRAINTS : true,
+          });
         } catch {
           toast.error("Couldn't access the camera");
           setIsVideoOff(true);
@@ -325,7 +338,7 @@ export const MeetingProvider = ({
         videoBusyRef.current = false;
       }
     },
-    [replaceVideoTrackOnPeers, refreshDisplayedLocalStream],
+    [role, replaceVideoTrackOnPeers, refreshDisplayedLocalStream],
   );
 
   const destroyPeer = useCallback((socketId: string) => {
@@ -908,7 +921,7 @@ export const MeetingProvider = ({
       let stream: MediaStream | null = null;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
+          video: role === "guest" ? GUEST_VIDEO_CONSTRAINTS : true,
           audio: true,
         });
       } catch {
