@@ -172,6 +172,40 @@ export function acceptStudentTerms() {
   );
 }
 
+// ─── WhatsApp OTP (AiSensy) ───────────────────────────────────────────────────
+//
+// Replaces the MSG91 browser widget (src/lib/msg91Otp.ts, now unused). MSG91 ran
+// the whole OTP flow client-side and handed us an access token; AiSensy is a
+// server-side send API, so the BE now owns generate/send/verify and mints the
+// access token itself. Both endpoints are public — password reset has no session
+// yet — and the BE rate-limits per phone.
+
+export type OtpPurpose = "PHONE_VERIFICATION" | "PASSWORD_RESET";
+
+/** Sends a 4-digit code over WhatsApp. Also used for resends — the BE enforces
+ *  its own 30s cooldown, so no separate retry endpoint is needed. */
+export function sendStudentOtp(phone: string, purpose: OtpPurpose) {
+  return unwrap<{ expiresAt: string }>(
+    apiClient.post<ApiSuccess<{ expiresAt: string }>>("/api/auth/student/otp/send", {
+      phone,
+      purpose,
+    }),
+  );
+}
+
+/** Verifies the code and returns the accessToken to hand to verifyStudentPhone
+ *  or forgotPasswordStudent — the same slot MSG91's token used to fill. */
+export async function verifyStudentOtp(phone: string, purpose: OtpPurpose, code: string) {
+  const { accessToken } = await unwrap<{ accessToken: string }>(
+    apiClient.post<ApiSuccess<{ accessToken: string }>>("/api/auth/student/otp/verify", {
+      phone,
+      purpose,
+      code,
+    }),
+  );
+  return accessToken;
+}
+
 export function verifyStudentPhone(accessToken: string) {
   return unwrap<StudentUser>(
     authedRequest<ApiSuccess<StudentUser>>("STUDENT", {
@@ -182,8 +216,8 @@ export function verifyStudentPhone(accessToken: string) {
   );
 }
 
-// Public (no auth): the verified MSG91 OTP access token proves ownership of the
-// phone, so the BE resets that student's password to newPassword.
+// Public (no auth): the verified OTP access token proves ownership of the phone,
+// so the BE resets that student's password to newPassword.
 export function forgotPasswordStudent(phone: string, accessToken: string, newPassword: string) {
   return unwrap<null>(
     apiClient.post<ApiSuccess<null>>("/api/auth/student/forgot-password", {

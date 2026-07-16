@@ -10,8 +10,9 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "../ui/input-otp";
-import { sendOtp, retryOtp, verifyOtp } from "../../lib/msg91Otp";
-import { verifyStudentPhone, patchMe } from "../../api/auth";
+// MSG91 widget OTP — replaced by AiSensy WhatsApp OTP (BE-driven).
+// import { sendOtp, retryOtp, verifyOtp } from "../../lib/msg91Otp";
+import { sendStudentOtp, verifyStudentOtp, verifyStudentPhone, patchMe } from "../../api/auth";
 import { setCachedUser } from "../../lib/session";
 import type { StudentUser } from "../../api/types";
 
@@ -51,8 +52,9 @@ export function PhoneVerificationModal({ user, setUser }: Props) {
     if (!user || sending) return;
     setSending(true);
     try {
-      await sendOtp(user.phone);
-      toast.success(`OTP sent via SMS to +${user.phone}`);
+      // await sendOtp(user.phone);
+      await sendStudentOtp(user.phone, "PHONE_VERIFICATION");
+      toast.success(`OTP sent on WhatsApp to +${user.phone}`);
       setOtpSent(true);
       setResendIn(30);
     } catch (err) {
@@ -73,8 +75,11 @@ export function PhoneVerificationModal({ user, setUser }: Props) {
     if (!user || resendIn > 0 || retrying) return;
     setRetrying(true);
     try {
-      await retryOtp();
-      toast.success(`New OTP sent via SMS to +${user.phone}`);
+      // await retryOtp();
+      // AiSensy has no separate retry — resending is just another send, and the
+      // BE invalidates the previous code so only the newest one works.
+      await sendStudentOtp(user.phone, "PHONE_VERIFICATION");
+      toast.success(`New OTP sent on WhatsApp to +${user.phone}`);
       setResendIn(30);
       setOtp("");
     } catch (err) {
@@ -89,7 +94,8 @@ export function PhoneVerificationModal({ user, setUser }: Props) {
     if (!user || otp.length !== 4 || verifying) return;
     setVerifying(true);
     try {
-      const accessToken = await verifyOtp(otp);
+      // const accessToken = await verifyOtp(otp);
+      const accessToken = await verifyStudentOtp(user.phone, "PHONE_VERIFICATION", otp);
       const updated = await verifyStudentPhone(accessToken);
       setCachedUser("STUDENT", updated);
       setUser(updated);
@@ -225,7 +231,7 @@ export function PhoneVerificationModal({ user, setUser }: Props) {
             ) : !otpSent ? (
               <>
                 <p id="phone-verify-description" className="text-sm text-muted-foreground leading-relaxed">
-                  You need to verify your phone number to continue. We'll send a 4-digit code via SMS to{" "}
+                  You need to verify your phone number to continue. We'll send a 4-digit code on WhatsApp to{" "}
                   <span className="font-semibold text-[#610981]">+{user?.phone}</span>.
                 </p>
 
@@ -249,7 +255,7 @@ export function PhoneVerificationModal({ user, setUser }: Props) {
             ) : (
               <>
                 <p id="phone-verify-description" className="text-sm text-muted-foreground leading-relaxed">
-                  We sent a 4-digit code via SMS to{" "}
+                  We sent a 4-digit code on WhatsApp to{" "}
                   <span className="font-semibold text-[#610981]">+{user?.phone}</span>.
                   Enter it below to continue.
                 </p>

@@ -10,8 +10,9 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "../ui/input-otp";
-import { sendOtp, retryOtp, verifyOtp } from "../../lib/msg91Otp";
-import { forgotPasswordStudent } from "../../api/auth";
+// MSG91 widget OTP — replaced by AiSensy WhatsApp OTP (BE-driven).
+// import { sendOtp, retryOtp, verifyOtp } from "../../lib/msg91Otp";
+import { sendStudentOtp, verifyStudentOtp, forgotPasswordStudent } from "../../api/auth";
 
 interface Props {
   open: boolean;
@@ -65,9 +66,10 @@ export function ForgotPasswordModal({ open, onClose }: Props) {
     }
     setSending(true);
     try {
-      await sendOtp(canonical);
+      // await sendOtp(canonical);
+      await sendStudentOtp(canonical, "PASSWORD_RESET");
       setPhone(canonical);
-      toast.success(`OTP sent via SMS to +${canonical}`);
+      toast.success(`OTP sent on WhatsApp to +${canonical}`);
       setStep("reset");
       setResendIn(30);
     } catch (err) {
@@ -82,8 +84,11 @@ export function ForgotPasswordModal({ open, onClose }: Props) {
     if (resendIn > 0 || retrying) return;
     setRetrying(true);
     try {
-      await retryOtp();
-      toast.success(`New OTP sent via SMS to +${phone}`);
+      // await retryOtp();
+      // AiSensy has no separate retry — resending is just another send, and the
+      // BE invalidates the previous code so only the newest one works.
+      await sendStudentOtp(phone, "PASSWORD_RESET");
+      toast.success(`New OTP sent on WhatsApp to +${phone}`);
       setResendIn(30);
       setOtp("");
     } catch (err) {
@@ -106,7 +111,8 @@ export function ForgotPasswordModal({ open, onClose }: Props) {
     }
     setSubmitting(true);
     try {
-      const accessToken = await verifyOtp(otp);
+      // const accessToken = await verifyOtp(otp);
+      const accessToken = await verifyStudentOtp(phone, "PASSWORD_RESET", otp);
       await forgotPasswordStudent(phone, accessToken, newPassword);
       toast.success("Password reset successful. You can now sign in.");
       onClose();
@@ -139,7 +145,7 @@ export function ForgotPasswordModal({ open, onClose }: Props) {
             {step === "phone" ? (
               <div className="w-full space-y-4 text-left">
                 <p id="forgot-password-description" className="text-sm text-muted-foreground text-center">
-                  Enter your registered phone number. We'll send a 4-digit code via SMS to verify it's you.
+                  Enter your registered phone number. We'll send a 4-digit code on WhatsApp to verify it's you.
                 </p>
                 <div className="flex gap-2">
                   <div className="relative w-24 shrink-0">
@@ -188,7 +194,7 @@ export function ForgotPasswordModal({ open, onClose }: Props) {
             ) : (
               <div className="w-full space-y-4 text-left">
                 <p id="forgot-password-description" className="text-sm text-muted-foreground text-center">
-                  We sent a 4-digit code via SMS to{" "}
+                  We sent a 4-digit code on WhatsApp to{" "}
                   <span className="font-semibold text-[#610981]">+{phone}</span>.
                   Enter it and choose a new password.
                 </p>

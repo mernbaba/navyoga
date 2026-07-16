@@ -1,3 +1,16 @@
+// ─── DISABLED: superseded by AiSensy WhatsApp OTP ────────────────────────────
+//
+// OTP delivery moved to AiSensy, which is a server-side send API — so the BE now
+// owns the whole OTP lifecycle (generate/send/verify) and this browser widget is
+// no longer driven. Nothing imports this module; the callers were
+// ForgotPasswordModal and PhoneVerificationModal, which now use sendStudentOtp /
+// verifyStudentOtp from src/api/auth.ts.
+//
+// Kept (with VITE_MSG91_* still set in .env) so the widget path can be restored
+// by reverting those two call sites. The BE likewise still accepts MSG91
+// access-tokens. Note this file throws at import time if the env vars are unset.
+// ─────────────────────────────────────────────────────────────────────────────
+
 const PROVIDER_SRC = "https://verify.msg91.com/otp-provider.js";
 const WIDGET_ID = import.meta.env.VITE_MSG91_WIDGET_ID;
 const TOKEN_AUTH = import.meta.env.VITE_MSG91_TOKEN_AUTH;
