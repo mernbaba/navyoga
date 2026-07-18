@@ -132,6 +132,30 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
     return match ? `${match.firstName} ${match.lastName}`.trim() : id;
   };
 
+  // Tracks which lead's inline assignee dropdown is mid-save, to disable it.
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+
+  const handleInlineAssign = async (lead: Lead, value: string) => {
+    const nextId = value === UNASSIGNED ? null : value;
+    if (nextId === lead.assignedToId) return;
+    setAssigningId(lead.id);
+    // Optimistically reflect the change; roll back on failure.
+    setLeads((prev) =>
+      prev.map((l) => (l.id === lead.id ? { ...l, assignedToId: nextId } : l)),
+    );
+    try {
+      await updateLead(role, lead.id, { assignedToId: nextId });
+      toast.success(nextId ? `Assigned to ${staffName(nextId)}` : "Lead unassigned");
+    } catch (error) {
+      setLeads((prev) =>
+        prev.map((l) => (l.id === lead.id ? { ...l, assignedToId: lead.assignedToId } : l)),
+      );
+      toast.error(error instanceof Error ? error.message : "Failed to assign lead.");
+    } finally {
+      setAssigningId(null);
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     getLeadStats(role)
@@ -399,14 +423,23 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                       <TableCell><Badge variant={statusVariant(lead.status)}>{lead.status.replace("_", " ")}</Badge></TableCell>
                       {canAssign && (
                         <TableCell>
-                          {staffName(lead.assignedToId) ? (
-                            <div className="flex items-center gap-1.5 text-sm">
-                              <User className="w-3 h-3 text-muted-foreground" />
-                              {staffName(lead.assignedToId)}
-                            </div>
-                          ) : (
-                            <span className="text-sm text-muted-foreground italic">Unassigned</span>
-                          )}
+                          <Select
+                            value={lead.assignedToId ?? UNASSIGNED}
+                            disabled={assigningId === lead.id}
+                            onValueChange={(v) => handleInlineAssign(lead, v)}
+                          >
+                            <SelectTrigger className="h-8 w-40 text-sm">
+                              <SelectValue placeholder="Unassigned" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={UNASSIGNED}>
+                                <span className="text-muted-foreground">Unassigned</span>
+                              </SelectItem>
+                              {staff.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>{s.firstName} {s.lastName}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                       )}
                       <TableCell>
