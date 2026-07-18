@@ -8,11 +8,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Badge } from "../../components/ui/badge";
-import { Plus, Search, Edit, Trash2, Mail, Phone, Calendar, Eye, MapPin, FileText, Globe } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Mail, Phone, Calendar, Eye, MapPin, FileText, Globe, User } from "lucide-react";
 import { toast } from "sonner";
 import { listLeads, createLead, updateLead, deleteLead, getLeadStats, type LeadStats } from "../../api/leads";
-import type { Lead, LeadSource, LeadStatus, Role } from "../../api/types";
+import { listFrontline } from "../../api/frontline";
+import type { FrontlineAgentRow, Lead, LeadSource, LeadStatus, Role } from "../../api/types";
 import { PHONE_PATTERN, PHONE_TITLE, PHONE_MIN_LENGTH, PHONE_MAX_LENGTH, sanitizePhone, handlePhoneInput } from "../../lib/phone";
+
+// Sentinel used by the assignee <Select>s, since Radix Select cannot hold an empty-string value.
+const UNASSIGNED = "__unassigned__";
 
 const SOURCES: LeadSource[] = ["WEBSITE", "REFERRAL", "WALK_IN", "SOCIAL_MEDIA", "FACEBOOK", "INSTAGRAM", "GOOGLE_ADS"];
 const STATUSES: LeadStatus[] = ["NEW", "CONTACTED", "INTERESTED", "CONVERTED", "NOT_INTERESTED"];
@@ -37,6 +41,10 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 type LeadsRole = Extract<Role, "SUPERADMIN" | "FRONTLINE" | "OPERATIONS">;
 
 export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
+  // Frontline agents own their leads and cannot (re)assign them — the backend
+  // self-assigns on create and rejects reassignment. Only admins/ops manage assignment.
+  const canAssign = role !== "FRONTLINE";
+
   const [leads, setLeads] = useState<Lead[]>([]);
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState<LeadStats | null>(null);
@@ -44,6 +52,8 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "ALL">("ALL");
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("ALL");
+  const [staff, setStaff] = useState<FrontlineAgentRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -58,6 +68,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
     interest: "",
     location: "",
     notes: "",
+    assignedToId: UNASSIGNED,
   });
 
   const [editing, setEditing] = useState<Lead | null>(null);
@@ -67,7 +78,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedQuery]);
+  }, [debouncedQuery, assigneeFilter]);
 
   useEffect(() => {
     const handle = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
@@ -80,6 +91,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
     listLeads(role, {
       q: debouncedQuery || undefined,
       status: statusFilter === "ALL" ? undefined : statusFilter,
+      assignedToId: assigneeFilter === "ALL" ? undefined : assigneeFilter,
       page,
       limit: 15,
     })
@@ -95,7 +107,30 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
     return () => {
       cancelled = true;
     };
-  }, [debouncedQuery, statusFilter, page, refreshKey, role]);
+  }, [debouncedQuery, statusFilter, assigneeFilter, page, refreshKey, role]);
+
+  // Load the frontline roster once so admins/ops can pick an assignee and we can
+  // render staff names in the table/detail views. Frontline agents skip this.
+  useEffect(() => {
+    if (!canAssign) return;
+    let cancelled = false;
+    listFrontline(role, { limit: 100 })
+      .then((res) => {
+        if (!cancelled) setStaff(res.items);
+      })
+      .catch(() => {
+        /* non-critical; assignment simply shows IDs if this fails */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canAssign, role]);
+
+  const staffName = (id: string | null): string | null => {
+    if (!id) return null;
+    const match = staff.find((s) => s.id === id);
+    return match ? `${match.firstName} ${match.lastName}`.trim() : id;
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -127,10 +162,13 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
         interest: addForm.interest,
         location: addForm.location || undefined,
         notes: addForm.notes || undefined,
+        ...(canAssign && addForm.assignedToId !== UNASSIGNED
+          ? { assignedToId: addForm.assignedToId }
+          : {}),
       });
       toast.success("Lead added successfully");
       setIsAddOpen(false);
-      setAddForm({ name: "", email: "", phone: "", source: "WEBSITE", page: "", interest: "", location: "", notes: "" });
+      setAddForm({ name: "", email: "", phone: "", source: "WEBSITE", page: "", interest: "", location: "", notes: "", assignedToId: UNASSIGNED });
       refetch();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to add lead.");
@@ -160,6 +198,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
     setIsUpdating(true);
     const fd = new FormData(event.currentTarget);
     const lastContactDate = String(fd.get("lastContactDate") || "");
+    const assignedToId = String(fd.get("assignedToId") || "");
     try {
       await updateLead(role, editing.id, {
         name: String(fd.get("name") || ""),
@@ -172,6 +211,9 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
         location: String(fd.get("location") || "") || null,
         notes: String(fd.get("notes") || "") || null,
         lastContactDate: lastContactDate || null,
+        ...(canAssign
+          ? { assignedToId: assignedToId && assignedToId !== UNASSIGNED ? assignedToId : null }
+          : {}),
       });
       toast.success("Lead updated successfully");
       setEditing(null);
@@ -236,6 +278,20 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                   <Label htmlFor="location">Location</Label>
                   <Input id="location" value={addForm.location} onChange={(e) => setAddForm({ ...addForm, location: e.target.value })} maxLength={100} />
                 </div>
+                {canAssign && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="assignedTo">Assign To</Label>
+                    <Select value={addForm.assignedToId} onValueChange={(v) => setAddForm({ ...addForm, assignedToId: v })}>
+                      <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
+                        {staff.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>{s.firstName} {s.lastName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="grid gap-2 md:col-span-2">
                   <Label htmlFor="notes">Notes</Label>
                   <Textarea id="notes" value={addForm.notes} onChange={(e) => setAddForm({ ...addForm, notes: e.target.value })} rows={3} />
@@ -294,6 +350,17 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                 {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace("_", " ")}</SelectItem>)}
               </SelectContent>
             </Select>
+            {canAssign && (
+              <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+                <SelectTrigger className="md:w-56"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All assignees</SelectItem>
+                  {staff.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.firstName} {s.lastName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div className="border rounded-lg overflow-hidden">
@@ -306,15 +373,16 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                   <TableHead>Source</TableHead>
                   <TableHead>Interest</TableHead>
                   <TableHead>Status</TableHead>
+                  {canAssign && <TableHead>Assigned To</TableHead>}
                   <TableHead>Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading && leads.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={canAssign ? 9 : 8} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
                 ) : leads.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No leads found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={canAssign ? 9 : 8} className="text-center py-8 text-muted-foreground">No leads found.</TableCell></TableRow>
                 ) : (
                   leads.map((lead, index) => (
                     <TableRow key={lead.id}>
@@ -329,6 +397,18 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                       <TableCell><Badge variant="outline" className="capitalize">{lead.source.replace("_", " ").toLowerCase()}</Badge></TableCell>
                       <TableCell>{lead.interest}</TableCell>
                       <TableCell><Badge variant={statusVariant(lead.status)}>{lead.status.replace("_", " ")}</Badge></TableCell>
+                      {canAssign && (
+                        <TableCell>
+                          {staffName(lead.assignedToId) ? (
+                            <div className="flex items-center gap-1.5 text-sm">
+                              <User className="w-3 h-3 text-muted-foreground" />
+                              {staffName(lead.assignedToId)}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground italic">Unassigned</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Calendar className="w-3 h-3" />{new Date(lead.createdAt).toLocaleDateString()}
@@ -418,6 +498,12 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                   <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                   <DetailRow label="Location" value={viewing.location} />
                 </div>
+                {canAssign && (
+                  <div className="flex items-start gap-2">
+                    <User className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <DetailRow label="Assigned To" value={staffName(viewing.assignedToId)} />
+                  </div>
+                )}
                 <div className="flex items-start gap-2">
                   <Calendar className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                   <DetailRow
@@ -513,6 +599,20 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                   <Label htmlFor="edit-lastContactDate">Last Contact Date</Label>
                   <Input id="edit-lastContactDate" name="lastContactDate" type="date" defaultValue={editing.lastContactDate ? editing.lastContactDate.slice(0, 10) : ""} />
                 </div>
+                {canAssign && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-assignedTo">Assign To</Label>
+                    <Select name="assignedToId" defaultValue={editing.assignedToId ?? UNASSIGNED}>
+                      <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
+                        {staff.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>{s.firstName} {s.lastName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="grid gap-2 md:col-span-2">
                   <Label htmlFor="edit-notes">Notes</Label>
                   <Textarea id="edit-notes" name="notes" defaultValue={editing.notes ?? ""} rows={3} />
