@@ -75,18 +75,10 @@ export function FrontlineLayout() {
           ))}
         </nav>
         <div className="p-4 border-t">
-          <div className="mb-3 px-4 py-3 rounded-xl bg-linear-to-br from-[#ffac96]/10 to-[#ff691d]/5 border border-[#ffac96]/20">
+          <div className="px-4 py-3 rounded-xl bg-linear-to-br from-[#ffac96]/10 to-[#ff691d]/5 border border-[#ffac96]/20">
             <p className="text-sm font-semibold" style={{ color: '#ff691d' }}>{fullName || "-"}</p>
             <p className="text-xs text-muted-foreground">{user?.designation || "Frontline Agent"}</p>
           </div>
-          <Button
-            onClick={() => setLogoutOpen(true)}
-            variant="outline"
-            className="w-full justify-start gap-2 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-          >
-            <LogOut className="w-4 h-4" />
-            Logout
-          </Button>
         </div>
       </div>
       <main data-scroll-container className="flex-1 overflow-y-auto flex flex-col">
@@ -106,6 +98,15 @@ export function FrontlineLayout() {
               <span className="text-sm font-medium text-foreground max-w-[160px] truncate">
                 {fullName || "Frontline Agent"}
               </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLogoutOpen(true)}
+                className="gap-2 text-muted-foreground hover:text-red-600 hover:bg-red-50"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </Button>
             </div>
           </div>
         </header>

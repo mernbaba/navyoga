@@ -2,28 +2,30 @@
 import { Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
-import { Button } from "../../components/ui/button";
 import { Phone, Users, CheckCircle, Clock, PhoneCall, Target, LogIn, LogOut } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
 import { getMyFrontlineAttendance, frontlineCheckIn, frontlineCheckOut } from "../../api/attendance";
+import { getFrontlineDashboard, type FrontlineDashboard as FrontlineDashboardData } from "../../api/dashboard";
 import type { MyFrontlineAttendance } from "../../api/types";
 import { useRoleSession } from "../../lib/session";
 
-const callData = [
-  { day: 'Mon', calls: 45, connected: 32 },
-  { day: 'Tue', calls: 52, connected: 38 },
-  { day: 'Wed', calls: 48, connected: 35 },
-  { day: 'Thu', calls: 58, connected: 42 },
-  { day: 'Fri', calls: 55, connected: 40 },
-  { day: 'Sat', calls: 35, connected: 25 },
-];
+type CallDatum = { day: string; calls: number; connected: number };
+type RecentCall = {
+  id: string;
+  name: string;
+  status: string;
+  time: string;
+  duration: string;
+  outcome: string;
+};
 
 export function FrontlineDashboard() {
   const { user } = useRoleSession("FRONTLINE");
   const [attendance, setAttendance] = useState<MyFrontlineAttendance>(null);
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(true);
   const [isClocking, setIsClocking] = useState(false);
+  const [dashboard, setDashboard] = useState<FrontlineDashboardData | null>(null);
 
   useEffect(() => {
     setIsAttendanceLoading(true);
@@ -31,6 +33,12 @@ export function FrontlineDashboard() {
       .then(setAttendance)
       .catch(() => setAttendance(null))
       .finally(() => setIsAttendanceLoading(false));
+  }, []);
+
+  useEffect(() => {
+    getFrontlineDashboard("FRONTLINE")
+      .then(setDashboard)
+      .catch(() => setDashboard(null));
   }, []);
 
   const fmtTime = (ts: string | null) =>
@@ -66,18 +74,26 @@ export function FrontlineDashboard() {
     }
   };
 
-  const stats = [
-    { name: "Today's Calls", value: 32, target: 50, icon: Phone, color: '#ff691d', href: '/frontline/call-log' },
-    { name: "Connected", value: 24, percentage: 75, icon: PhoneCall, color: '#10b981', href: '/frontline/call-log' },
-    { name: "New Leads", value: 18, trend: '+12%', icon: Users, color: '#610981', href: '/frontline/leads' },
-    { name: "Conversions", value: 5, trend: '+25%', icon: CheckCircle, color: '#3b82f6', href: '/frontline/leads' },
+  const dailyTarget = user?.dailyTarget ?? 0;
+  const callsMade = 0;
+  const targetPct = dailyTarget > 0 ? Math.min(100, Math.round((callsMade / dailyTarget) * 100)) : 0;
+
+  const stats: {
+    name: string;
+    value: number;
+    target?: number;
+    icon: typeof Phone;
+    color: string;
+    href: string;
+  }[] = [
+    { name: "Today's Calls", value: 0, target: dailyTarget || undefined, icon: Phone, color: '#ff691d', href: '/frontline/call-log' },
+    { name: "Connected", value: 0, icon: PhoneCall, color: '#10b981', href: '/frontline/call-log' },
+    { name: "New Leads", value: dashboard?.cards.leads.total ?? 0, icon: Users, color: '#610981', href: '/frontline/leads' },
+    { name: "Conversions", value: 0, icon: CheckCircle, color: '#3b82f6', href: '/frontline/leads' },
   ];
 
-  const recentCalls = [
-    { id: 1, name: 'Amit Patel', status: 'Connected', time: '10:30 AM', duration: '5m 23s', outcome: 'Interested' },
-    { id: 2, name: 'Priya Singh', status: 'No Answer', time: '11:15 AM', duration: '-', outcome: 'Follow-up' },
-    { id: 3, name: 'Rahul Kumar', status: 'Connected', time: '12:00 PM', duration: '8m 45s', outcome: 'Converted' },
-  ];
+  const callData: CallDatum[] = [];
+  const recentCalls: RecentCall[] = [];
 
   return (
     <div className="p-6 lg:p-8">
@@ -95,7 +111,7 @@ export function FrontlineDashboard() {
                     <Phone className="w-6 h-6" />
                   </div>
                   <Badge variant="secondary" className="bg-white/20 text-white border-0">
-                    Lead Generation Specialist
+                    {user?.designation || "Frontline Agent"}
                   </Badge>
                 </div>
                 <h1 className="text-4xl font-bold mb-2">Welcome, {user?.firstName || "Agent"}! 📞</h1>
@@ -108,10 +124,10 @@ export function FrontlineDashboard() {
                       <Target className="w-5 h-5" />
                       <p className="text-sm font-medium">Daily Target</p>
                     </div>
-                    <p className="text-3xl font-bold mb-1">32/50</p>
+                    <p className="text-3xl font-bold mb-1">{callsMade}/{dailyTarget || "—"}</p>
                     <p className="text-sm text-white/80">Calls Made</p>
                     <div className="mt-3 w-full bg-white/20 rounded-full h-2">
-                      <div className="bg-white h-2 rounded-full" style={{ width: '64%' }} />
+                      <div className="bg-white h-2 rounded-full" style={{ width: `${targetPct}%` }} />
                     </div>
                   </div>
                 </div>
@@ -183,21 +199,11 @@ export function FrontlineDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{stat.value}</div>
-                {stat.target && (
+                {stat.target ? (
                   <p className="text-xs text-muted-foreground mt-1">
                     Target: {stat.target}
                   </p>
-                )}
-                {stat.percentage && (
-                  <p className="text-xs font-medium mt-2" style={{ color: '#10b981' }}>
-                    {stat.percentage}% success rate
-                  </p>
-                )}
-                {stat.trend && (
-                  <p className="text-xs font-medium mt-2" style={{ color: '#10b981' }}>
-                    {stat.trend} from yesterday
-                  </p>
-                )}
+                ) : null}
               </CardContent>
             </Card>
             </Link>
@@ -212,16 +218,22 @@ export function FrontlineDashboard() {
               <CardTitle style={{ color: '#ff691d' }}>Weekly Call Performance</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={callData}>
-                  <CartesianGrid key="grid" strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis key="xaxis" dataKey="day" stroke="#888" />
-                  <YAxis key="yaxis" stroke="#888" />
-                  <Tooltip key="tooltip" />
-                  <Bar key="calls-bar" dataKey="calls" fill="#610981" radius={[8, 8, 0, 0]} />
-                  <Bar key="connected-bar" dataKey="connected" fill="#10b981" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {callData.length === 0 ? (
+                <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
+                  No call data yet
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={callData}>
+                    <CartesianGrid key="grid" strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis key="xaxis" dataKey="day" stroke="#888" />
+                    <YAxis key="yaxis" stroke="#888" />
+                    <Tooltip key="tooltip" />
+                    <Bar key="calls-bar" dataKey="calls" fill="#610981" radius={[8, 8, 0, 0]} />
+                    <Bar key="connected-bar" dataKey="connected" fill="#10b981" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
  
@@ -231,35 +243,41 @@ export function FrontlineDashboard() {
               <CardTitle style={{ color: '#ff691d' }}>Recent Calls</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {recentCalls.map((call) => (
-                  <div key={call.id} className="flex items-center justify-between p-2.5 rounded-lg border hover:bg-gray-50 transition-colors">
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{call.name}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <Clock className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">{call.time}</span>
-                        <span className="text-xs text-muted-foreground">• {call.duration}</span>
+              {recentCalls.length === 0 ? (
+                <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
+                  No recent calls
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {recentCalls.map((call) => (
+                    <div key={call.id} className="flex items-center justify-between p-2.5 rounded-lg border hover:bg-gray-50 transition-colors">
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{call.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Clock className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">{call.time}</span>
+                          <span className="text-xs text-muted-foreground">• {call.duration}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5">
+                        <Badge variant={call.status === 'Connected' ? 'default' : 'secondary'} className="text-xs">
+                          {call.status}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className="text-xs"
+                          style={{
+                            borderColor: call.outcome === 'Converted' ? '#10b981' : call.outcome === 'Interested' ? '#f59e0b' : '#94a3b8',
+                            color: call.outcome === 'Converted' ? '#10b981' : call.outcome === 'Interested' ? '#f59e0b' : '#94a3b8'
+                          }}
+                        >
+                          {call.outcome}
+                        </Badge>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1.5">
-                      <Badge variant={call.status === 'Connected' ? 'default' : 'secondary'} className="text-xs">
-                        {call.status}
-                      </Badge>
-                      <Badge 
-                        variant="outline" 
-                        className="text-xs"
-                        style={{ 
-                          borderColor: call.outcome === 'Converted' ? '#10b981' : call.outcome === 'Interested' ? '#f59e0b' : '#94a3b8',
-                          color: call.outcome === 'Converted' ? '#10b981' : call.outcome === 'Interested' ? '#f59e0b' : '#94a3b8'
-                        }}
-                      >
-                        {call.outcome}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

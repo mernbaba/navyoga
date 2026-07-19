@@ -123,6 +123,15 @@ export type OperationsDashboard = {
   }>;
 };
 
+export type FrontlineDashboard = {
+  cards: {
+    calls: DashboardCardValue;
+    connected: DashboardCardValue;
+    leads: DashboardCardValue;
+    conversions: DashboardCardValue;
+  };
+};
+
 export function getSuperadminDashboard(role: Role) {
   return unwrap<SuperadminDashboard>(
     authedRequest<ApiSuccess<SuperadminDashboard>>(role, {
@@ -155,6 +164,15 @@ export function getOperationsDashboard(role: Role) {
     authedRequest<ApiSuccess<OperationsDashboard>>(role, {
       method: "GET",
       url: "/api/dashboard/operations",
+    }),
+  );
+}
+
+export function getFrontlineDashboard(role: Role) {
+  return unwrap<FrontlineDashboard>(
+    authedRequest<ApiSuccess<FrontlineDashboard>>(role, {
+      method: "GET",
+      url: "/api/dashboard/frontline",
     }),
   );
 }
