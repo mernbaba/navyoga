@@ -43,6 +43,8 @@ export type FinancialsPayment = {
   type: PaymentType;
   method: string | null;
   status: PaymentStatus;
+  // Batch the subscription belongs to (LIVE payments only; null otherwise).
+  batch: { id: string; name: string } | null;
 };
 
 export type DateRange =

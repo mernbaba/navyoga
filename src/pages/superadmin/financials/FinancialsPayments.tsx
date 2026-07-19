@@ -344,6 +344,7 @@ export function FinancialsPayments() {
                   <TableHead>Amount</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Batch</TableHead>
                   <TableHead>Method</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
@@ -351,7 +352,7 @@ export function FinancialsPayments() {
               <TableBody>
                 {paymentsLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-10">
+                    <TableCell colSpan={8} className="text-center py-10">
                       <span className="inline-flex items-center gap-2 text-muted-foreground">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         Loading payments…
@@ -360,7 +361,7 @@ export function FinancialsPayments() {
                   </TableRow>
                 ) : payments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                       No payments found
                     </TableCell>
                   </TableRow>
@@ -385,6 +386,13 @@ export function FinancialsPayments() {
                       <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <Badge variant="outline">{TYPE_LABEL[payment.type] ?? payment.type}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {payment.batch ? (
+                          payment.batch.name
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2 capitalize">

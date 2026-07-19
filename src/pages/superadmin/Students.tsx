@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
 import { Label } from "../../components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog";
@@ -17,12 +18,21 @@ import {
   deleteStudent,
   listStudentEnrollments,
   updateStudentEnrollment,
+  grantStudentEnrollment,
   type StudentEnrollments,
   type EnrollmentType,
   type EnrollmentStatus,
 } from "../../api/students";
 import { listBatches } from "../../api/batches";
-import type { Student, Batch } from "../../api/types";
+import {
+  listLivePlans,
+  listSelfPacedPlans,
+  listYTTLiveCourses,
+  listAllYTTLivePlans,
+  listYTTRecordedCourses,
+  listAllYTTRecordedPlans,
+} from "../../api/plans";
+import type { Student, Batch, YTTCourse } from "../../api/types";
 
 type ActiveFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
@@ -60,6 +70,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
   const [batches, setBatches] = useState<Batch[]>([]);
   const [isLoadingSubs, setIsLoadingSubs] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [isGranting, setIsGranting] = useState(false);
 
   useEffect(() => {
     const handle = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
@@ -190,6 +201,30 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
     }
   };
 
+  const handleGrant = async (body: {
+    type: EnrollmentType;
+    planId: string;
+    amount: number;
+    batchId?: string;
+    courseId?: string;
+    method?: string;
+    notes?: string;
+  }) => {
+    if (!subStudent) return;
+    setIsGranting(true);
+    try {
+      await grantStudentEnrollment(role, subStudent.id, body);
+      toast.success("Subscription granted");
+      const subs = await listStudentEnrollments(role, subStudent.id);
+      setEnrollments(subs);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to grant subscription.");
+      throw error; // let the form keep its values open on failure
+    } finally {
+      setIsGranting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -315,6 +350,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                   <TableHead>#</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Contact</TableHead>
+                  <TableHead>Batch</TableHead>
                   <TableHead>Join Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -322,9 +358,9 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
               </TableHeader>
               <TableBody>
                 {isLoading && visibleStudents.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
                 ) : visibleStudents.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No sādhakas found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No sādhakas found.</TableCell></TableRow>
                 ) : (
                   visibleStudents.map((student, index) => (
                     <TableRow key={student.id}>
@@ -335,6 +371,17 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                           <div className="flex items-center gap-2 text-sm"><Mail className="w-3 h-3 text-muted-foreground" />{student.email}</div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Phone className="w-3 h-3" />{student.phone}</div>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {student.batches && student.batches.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {student.batches.map((b) => (
+                              <Badge key={b.id} variant="outline">{b.name}</Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
                       </TableCell>
                       <TableCell>{new Date(student.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell>
@@ -434,6 +481,12 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
             <div className="py-10 text-center text-muted-foreground">Loading subscriptions…</div>
           ) : !enrollments ? null : (
             <div className="space-y-6 py-2">
+              <GrantSubscriptionForm
+                role={role}
+                batches={batches}
+                granting={isGranting}
+                onGrant={handleGrant}
+              />
               <EnrollmentGroup
                 title="Live"
                 rows={enrollments.live}
@@ -613,6 +666,293 @@ function EnrollmentRow({
           {saving ? "Saving…" : "Save"}
         </Button>
       </div>
+    </div>
+  );
+}
+
+// ─── Grant subscription (manual / cash / payment-failed) ─────────────────────
+// Admin-only form to enable a subscription when the online payment failed but
+// the student paid out-of-band, or for a cash purchase. Records a PAID payment
+// so the amount reflects in the finance reports.
+
+type GrantType = EnrollmentType;
+
+type PlanOption = { id: string; name: string; price: number; courseId?: string };
+type CourseOption = { id: string; title: string };
+
+const GRANT_TYPE_LABEL: Record<GrantType, string> = {
+  live: "Live",
+  "self-paced": "Self-paced",
+  "ytt-live": "YTT Live",
+  "ytt-recorded": "YTT Recorded",
+};
+
+function GrantSubscriptionForm({
+  role,
+  batches,
+  granting,
+  onGrant,
+}: {
+  role: StudentsAdminRole;
+  batches: Batch[];
+  granting: boolean;
+  onGrant: (body: {
+    type: GrantType;
+    planId: string;
+    amount: number;
+    batchId?: string;
+    courseId?: string;
+    method?: string;
+    notes?: string;
+  }) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [type, setType] = useState<GrantType>("live");
+
+  // Plans/courses are loaded lazily per type on first use and cached here.
+  const [plansByType, setPlansByType] = useState<Partial<Record<GrantType, PlanOption[]>>>({});
+  const [coursesByType, setCoursesByType] = useState<Partial<Record<GrantType, CourseOption[]>>>({});
+  const [loadingOptions, setLoadingOptions] = useState(false);
+
+  const [courseId, setCourseId] = useState("");
+  const [planId, setPlanId] = useState("");
+  const [batchId, setBatchId] = useState("");
+  const [amount, setAmount] = useState("");
+  // Whether the admin has hand-edited the amount; once true we stop auto-filling.
+  const [amountTouched, setAmountTouched] = useState(false);
+  const [method, setMethod] = useState("cash");
+  const [notes, setNotes] = useState("");
+
+  const isLive = type === "live";
+  const isCourseType = type === "ytt-live" || type === "ytt-recorded";
+
+  const plans = plansByType[type] ?? [];
+  const courses = coursesByType[type] ?? [];
+  // For course types, only show plans belonging to the selected course.
+  const visiblePlans = isCourseType
+    ? plans.filter((p) => p.courseId === courseId)
+    : plans;
+
+  const resetSelections = () => {
+    setCourseId("");
+    setPlanId("");
+    setBatchId("");
+    setAmount("");
+    setAmountTouched(false);
+    setNotes("");
+  };
+
+  // Load the option lists for a type the first time it's selected.
+  const loadOptions = async (t: GrantType) => {
+    if (plansByType[t]) return; // already cached
+    setLoadingOptions(true);
+    try {
+      if (t === "live") {
+        const list = await listLivePlans(role);
+        setPlansByType((m) => ({ ...m, live: list.map((p) => ({ id: p.id, name: p.name, price: Number(p.price) })) }));
+      } else if (t === "self-paced") {
+        const list = await listSelfPacedPlans(role);
+        setPlansByType((m) => ({ ...m, "self-paced": list.map((p) => ({ id: p.id, name: p.name, price: Number(p.price) })) }));
+      } else if (t === "ytt-live") {
+        const [courseList, planList] = await Promise.all([
+          listYTTLiveCourses(role),
+          listAllYTTLivePlans(role),
+        ]);
+        setCoursesByType((m) => ({ ...m, "ytt-live": (courseList as YTTCourse[]).map((c) => ({ id: c.id, title: c.title })) }));
+        setPlansByType((m) => ({ ...m, "ytt-live": planList.map((p) => ({ id: p.id, name: p.name, price: Number(p.price), courseId: p.courseId })) }));
+      } else if (t === "ytt-recorded") {
+        const [courseList, planList] = await Promise.all([
+          listYTTRecordedCourses(role),
+          listAllYTTRecordedPlans(role),
+        ]);
+        setCoursesByType((m) => ({ ...m, "ytt-recorded": (courseList as YTTCourse[]).map((c) => ({ id: c.id, title: c.title })) }));
+        setPlansByType((m) => ({ ...m, "ytt-recorded": planList.map((p) => ({ id: p.id, name: p.name, price: Number(p.price), courseId: p.courseId })) }));
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load plans.");
+    } finally {
+      setLoadingOptions(false);
+    }
+  };
+
+  const handleOpen = () => {
+    const next = !open;
+    setOpen(next);
+    if (next) void loadOptions(type);
+  };
+
+  const handleTypeChange = (t: GrantType) => {
+    setType(t);
+    resetSelections();
+    void loadOptions(t);
+  };
+
+  const handlePlanChange = (id: string) => {
+    setPlanId(id);
+    // Auto-fill the amount with the plan's price unless the admin already edited it.
+    if (!amountTouched) {
+      const p = (plansByType[type] ?? []).find((x) => x.id === id);
+      if (p) setAmount(String(p.price));
+    }
+  };
+
+  const canSubmit =
+    !!planId &&
+    amount !== "" &&
+    Number(amount) >= 0 &&
+    (!isLive || !!batchId) &&
+    (!isCourseType || !!courseId);
+
+  const submit = async () => {
+    if (!canSubmit) return;
+    try {
+      await onGrant({
+        type,
+        planId,
+        amount: Number(amount),
+        ...(isLive ? { batchId } : {}),
+        ...(isCourseType ? { courseId } : {}),
+        method: method || undefined,
+        notes: notes.trim() || undefined,
+      });
+      // Success — collapse and clear for the next grant.
+      resetSelections();
+      setOpen(false);
+    } catch {
+      // handleGrant already toasted; keep the form open with values intact.
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-dashed p-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-medium">Grant subscription</h3>
+          <p className="text-xs text-muted-foreground">
+            Manually enable a subscription (cash payment, or when an online payment failed).
+          </p>
+        </div>
+        <Button variant={open ? "outline" : "default"} size="sm" onClick={handleOpen}>
+          {open ? "Cancel" : <><Plus className="w-4 h-4 mr-1" />Grant</>}
+        </Button>
+      </div>
+
+      {open && (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <Label className="text-xs">Type</Label>
+            <Select value={type} onValueChange={(v) => handleTypeChange(v as GrantType)}>
+              <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(GRANT_TYPE_LABEL) as GrantType[]).map((t) => (
+                  <SelectItem key={t} value={t}>{GRANT_TYPE_LABEL[t]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isCourseType && (
+            <div className="grid gap-1.5">
+              <Label className="text-xs">Course</Label>
+              <Select
+                value={courseId}
+                onValueChange={(v) => { setCourseId(v); setPlanId(""); if (!amountTouched) setAmount(""); }}
+                disabled={loadingOptions}
+              >
+                <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
+                  <SelectValue placeholder={loadingOptions ? "Loading…" : "Select course"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="grid gap-1.5">
+            <Label className="text-xs">Plan</Label>
+            <Select
+              value={planId}
+              onValueChange={handlePlanChange}
+              disabled={loadingOptions || (isCourseType && !courseId)}
+            >
+              <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
+                <SelectValue placeholder={loadingOptions ? "Loading…" : isCourseType && !courseId ? "Pick a course first" : "Select plan"} />
+              </SelectTrigger>
+              <SelectContent>
+                {visiblePlans.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.name} · ₹{p.price}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isLive && (
+            <div className="grid gap-1.5">
+              <Label className="text-xs">Batch</Label>
+              <Select value={batchId} onValueChange={setBatchId}>
+                <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
+                  <SelectValue placeholder="Select batch" />
+                </SelectTrigger>
+                <SelectContent>
+                  {batches.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="grid gap-1.5">
+            <Label className="text-xs">Amount collected (₹, incl. GST)</Label>
+            <Input
+              type="number"
+              min={0}
+              step="0.01"
+              value={amount}
+              onChange={(e) => { setAmount(e.target.value); setAmountTouched(true); }}
+              placeholder="0.00"
+            />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label className="text-xs">Method</Label>
+            <Select value={method} onValueChange={setMethod}>
+              <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="bank">Bank transfer</SelectItem>
+                <SelectItem value="upi">UPI</SelectItem>
+                <SelectItem value="card">Card</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-1.5 sm:col-span-2">
+            <Label className="text-xs">Note (optional)</Label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="e.g. Paid cash at studio; Razorpay attempt failed on 12 Jul"
+              rows={2}
+              maxLength={500}
+            />
+          </div>
+
+          <div className="sm:col-span-2 flex justify-end">
+            <Button size="sm" disabled={!canSubmit || granting} onClick={submit}>
+              {granting ? "Granting…" : "Grant subscription"}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -148,3 +148,37 @@ export function updateStudentEnrollment(
     }),
   );
 }
+
+// Manually grant (enable) a subscription — used when the online payment failed
+// but the student paid out-of-band, or for a cash purchase. Records a PAID
+// "MANUAL" payment so the amount shows up in the finance reports.
+export type GrantEnrollmentBody = {
+  type: EnrollmentType;
+  planId: string;
+  // amount actually collected, GST-inclusive (rupees). 0 = complimentary.
+  amount: number;
+  batchId?: string; // required for type "live"
+  courseId?: string; // required for "ytt-live" / "ytt-recorded"
+  startDate?: string; // ISO; defaults to now server-side
+  method?: string; // "cash" | "bank" | "upi" | ... (free text)
+  notes?: string;
+};
+
+export type GrantEnrollmentResult = {
+  paymentId: string;
+  enrollmentId: string;
+};
+
+export function grantStudentEnrollment(
+  role: Role,
+  studentId: string,
+  body: GrantEnrollmentBody,
+) {
+  return unwrap<GrantEnrollmentResult>(
+    authedRequest<ApiSuccess<GrantEnrollmentResult>>(role, {
+      method: "POST",
+      url: `/api/students/${studentId}/enrollments`,
+      data: body,
+    }),
+  );
+}
