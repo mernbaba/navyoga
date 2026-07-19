@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { toast } from "sonner";
 import { getMyFrontlineAttendance, frontlineCheckIn, frontlineCheckOut } from "../../api/attendance";
 import type { MyFrontlineAttendance } from "../../api/types";
+import { useRoleSession } from "../../lib/session";
 
 const callData = [
   { day: 'Mon', calls: 45, connected: 32 },
@@ -19,6 +20,7 @@ const callData = [
 ];
 
 export function FrontlineDashboard() {
+  const { user } = useRoleSession("FRONTLINE");
   const [attendance, setAttendance] = useState<MyFrontlineAttendance>(null);
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(true);
   const [isClocking, setIsClocking] = useState(false);
@@ -96,7 +98,7 @@ export function FrontlineDashboard() {
                     Lead Generation Specialist
                   </Badge>
                 </div>
-                <h1 className="text-4xl font-bold mb-2">Welcome, Sarah! 📞</h1>
+                <h1 className="text-4xl font-bold mb-2">Welcome, {user?.firstName || "Agent"}! 📞</h1>
                 <p className="text-white/80 text-lg">Let's make today count with great conversations!</p>
               </div>
               <div className="flex flex-row gap-3 items-center">

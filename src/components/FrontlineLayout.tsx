@@ -2,6 +2,8 @@
 import { Phone, Users, ClipboardList, Settings, LogOut, LayoutDashboard, PhoneCall } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { resolveAvatarUrl } from "../lib/media";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -87,8 +89,29 @@ export function FrontlineLayout() {
           </Button>
         </div>
       </div>
-      <main data-scroll-container className="flex-1 overflow-y-auto">
-        <Outlet />
+      <main data-scroll-container className="flex-1 overflow-y-auto flex flex-col">
+        <header className="sticky top-0 z-30 w-full border-b border-border/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 shadow-sm">
+          <div className="flex h-16 items-center px-6 lg:px-8">
+            <div className="ml-auto flex items-center gap-2 pl-1">
+              <Avatar className="size-8">
+                <AvatarImage
+                  src={resolveAvatarUrl(user?.avatar)}
+                  alt={fullName}
+                  className="object-cover"
+                />
+                <AvatarFallback className="bg-linear-to-br from-[#610981] to-[#ff691d] text-white text-xs font-semibold">
+                  {(fullName || "F").trim().charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm font-medium text-foreground max-w-[160px] truncate">
+                {fullName || "Frontline Agent"}
+              </span>
+            </div>
+          </div>
+        </header>
+        <div className="flex-1">
+          <Outlet />
+        </div>
       </main>
 
       <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
