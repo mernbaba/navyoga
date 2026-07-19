@@ -87,6 +87,11 @@ const DAY_FULL: Record<string, string> = Object.fromEntries(
   ALL_DAYS.map((d) => [d.value, d.full]),
 );
 
+// Sentinel for the "All batches" choice — Radix Select can't use "" as an item
+// value. Maps to/from an empty batchId (null on the class), which the student
+// app treats as visible to every batch.
+const ALL_BATCHES = "__ALL__";
+
 const BLANK_RECURRING_FORM = {
   title: "",
   yogaType: "",
@@ -237,16 +242,23 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
         startDate: new Date(form.startDate).toISOString(),
         ...(form.description ? { description: form.description } : {}),
         ...(form.tutorId ? { tutorId: form.tutorId } : {}),
-        ...(form.batchId ? { batchId: form.batchId } : {}),
         ...(form.endDate ? { endDate: new Date(form.endDate).toISOString() } : {}),
       };
 
       if (editingTemplate) {
-        const updated = await updateRecurringLiveClass(role, editingTemplate.id, payload);
+        // On edit, send batchId explicitly (null = "All batches") so a
+        // previously-assigned batch can be cleared back to all.
+        const updated = await updateRecurringLiveClass(role, editingTemplate.id, {
+          ...payload,
+          batchId: form.batchId || null,
+        });
         setTemplates((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
         toast.success("Recurring template updated");
       } else {
-        const created = await createRecurringLiveClass(role, payload);
+        const created = await createRecurringLiveClass(role, {
+          ...payload,
+          ...(form.batchId ? { batchId: form.batchId } : {}),
+        });
         setTemplates((prev) => [created, ...prev]);
         toast.success("Recurring template created - classes will be generated at midnight");
       }
@@ -569,11 +581,15 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
             {/* Batch */}
             <div className="space-y-1.5">
               <Label>Batch</Label>
-              <Select value={form.batchId} onValueChange={(v) => setField("batchId", v)}>
+              <Select
+                value={form.batchId || ALL_BATCHES}
+                onValueChange={(v) => setField("batchId", v === ALL_BATCHES ? "" : v)}
+              >
                 <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
                   <SelectValue placeholder="Assign to a batch" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={ALL_BATCHES}>All batches</SelectItem>
                   {batches.map((b) => (
                     <SelectItem key={b.id} value={b.id}>
                       {b.name}
@@ -581,6 +597,9 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-[11px] text-muted-foreground">
+                "All batches" makes the generated class visible to every batch's sādhakas.
+              </p>
             </div>
 
             {/* Description */}
@@ -814,12 +833,10 @@ function RecurringTemplateCard({
             <Clock className="w-3.5 h-3.5" />
             {t.timeOfDay} · {t.duration} min
           </span>
-          {t.batch && (
-            <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <Layers className="w-3.5 h-3.5" />
-              {t.batch.name}
-            </span>
-          )}
+          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Layers className="w-3.5 h-3.5" />
+            {t.batch ? t.batch.name : "All batches"}
+          </span>
         </div>
       </div>
     </div>
@@ -1075,11 +1092,15 @@ function EditGeneratedClassDialog({
 
           <div className="space-y-1.5">
             <Label>Batch</Label>
-            <Select value={form.batchId} onValueChange={(v) => setField("batchId", v)}>
+            <Select
+              value={form.batchId || ALL_BATCHES}
+              onValueChange={(v) => setField("batchId", v === ALL_BATCHES ? "" : v)}
+            >
               <SelectTrigger className="h-9 w-full rounded-xl bg-input-background/50">
                 <SelectValue placeholder="Assign to a batch" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value={ALL_BATCHES}>All batches</SelectItem>
                 {batches.map((b) => (
                   <SelectItem key={b.id} value={b.id}>
                     {b.name}

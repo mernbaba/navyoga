@@ -105,6 +105,8 @@ export type RecurringLiveClassCreateBody = {
 
 export type RecurringLiveClassUpdateBody = Partial<RecurringLiveClassCreateBody> & {
   isActive?: boolean;
+  // Nullable on update so an existing batch can be cleared back to "all batches".
+  batchId?: string | null;
 };
 
 export function listRecurringLiveClasses(role: Role) {
