@@ -103,7 +103,9 @@ export type RecurringLiveClassCreateBody = {
   endDate?: string;
 };
 
-export type RecurringLiveClassUpdateBody = Partial<RecurringLiveClassCreateBody> & {
+export type RecurringLiveClassUpdateBody = Partial<
+  Omit<RecurringLiveClassCreateBody, "batchId">
+> & {
   isActive?: boolean;
   // Nullable on update so an existing batch can be cleared back to "all batches".
   batchId?: string | null;
