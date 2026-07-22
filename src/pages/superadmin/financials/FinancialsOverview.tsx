@@ -96,14 +96,14 @@ export function FinancialsOverview() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader>
-            <CardTitle style={{ color: "#ffac96" }}>Total Revenue</CardTitle>
+            <CardTitle style={{ color: "#ffac96" }}>Monthly Revenue</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-semibold flex items-center gap-1">
               <IndianRupee className="w-6 h-6" />
               {data.revenue.toLocaleString()}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">This month</p>
+            <p className="text-sm text-muted-foreground mt-1">Aggregate revenue</p>
           </CardContent>
         </Card>
         <Card>

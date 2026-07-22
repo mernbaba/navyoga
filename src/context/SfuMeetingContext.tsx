@@ -14,9 +14,15 @@ import type {
   Producer,
   Consumer,
   RtpCapabilities,
+  RtpParameters,
 } from "mediasoup-client/types";
 import { toast } from "sonner";
 import { registerAudioContext } from "@/lib/audioUnlock";
+import {
+  requestTutorRecordingPresign,
+  saveTutorRecording,
+} from "@/api/live";
+import { useRecordingUploadsOptional } from "@/context/RecordingUploadContext";
 import {
   MeetingContext,
   type MeetingContextValue,
@@ -33,18 +39,35 @@ import {
 import type { MeetingRoleClient } from "@/lib/meetingSocket";
 
 // A remote peer as the UI expects it: one aggregated MediaStream per remote
-// participant (all their consumer tracks merged), plus their metadata. This
+// participant (mic + the video being presented), plus their metadata. This
 // mirrors the mesh RemotePeer shape so VideoGrid/VideoTile work unchanged.
 type SfuRemotePeer = {
   stream: MediaStream | null;
   participant: SfuParticipant;
 };
 
+// The remote tracks we hold for one participant, keyed by logical source.
+// Unlike the mesh (where a peer's single video sender is replaceTrack'd), the
+// SFU delivers camera and screen as SEPARATE tracks that can coexist - so we
+// keep them all and compose "what the tile shows" deterministically: the
+// screen while they share, else the camera.
+type RemoteTrackSet = Partial<Record<SfuProducerSource, MediaStreamTrack>>;
+
+// Same guest capture cap as the mesh. Even though an SFU client uploads only
+// once, every student tile still renders small and the DOWNLINK of everyone
+// else scales with each sender's bitrate - so keep student video modest. The
+// host stays uncapped: their video is the main tile and what the recording
+// compositor draws.
+const GUEST_VIDEO_CONSTRAINTS: MediaTrackConstraints = {
+  width: { ideal: 640, max: 640 },
+  height: { ideal: 360, max: 360 },
+  frameRate: { ideal: 15, max: 15 },
+};
+
 export type ActivePanel = "participants" | "chat" | null;
 
 // Deliberately identical to the mesh MeetingContextValue so the shared UI
-// components can consume either provider via useMeeting-shaped hooks. Recording
-// is a no-op stub on the SFU path for now (mesh-only feature).
+// components can consume either provider via useMeeting-shaped hooks.
 export type SfuMeetingContextValue = {
   classId: string;
   role: MeetingRoleClient;
@@ -100,6 +123,8 @@ export const SfuMeetingProvider = ({
   const [isMuted, setIsMuted] = useState(true);
   const [isVideoOff, setIsVideoOff] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isRecordingBusy, setIsRecordingBusy] = useState(false);
   const [peers, setPeers] = useState<Record<string, SfuRemotePeer>>({});
   const [chatMessages, setChatMessages] = useState<SfuChatMessage[]>([]);
   const [unreadChat, setUnreadChat] = useState(0);
@@ -108,6 +133,14 @@ export const SfuMeetingProvider = ({
   const [connectionState, setConnectionState] = useState<
     "connecting" | "joined" | "ended"
   >("connecting");
+
+  // Drives the recording upload progress shown in the tutor's "My Classes"
+  // table. Optional so the meeting still works if mounted outside the provider.
+  const recordingUploads = useRecordingUploadsOptional();
+  const recordingUploadsRef = useRef(recordingUploads);
+  useEffect(() => {
+    recordingUploadsRef.current = recordingUploads;
+  }, [recordingUploads]);
 
   const socketRef = useRef<SfuClientSocket | null>(null);
   const deviceRef = useRef<Device | null>(null);
@@ -127,13 +160,19 @@ export const SfuMeetingProvider = ({
 
   // Consumers we're receiving, keyed by consumer id.
   const consumersRef = useRef<Record<string, Consumer>>({});
-  // producerId -> the consumer/track/owner it produced, so a producer-closed
-  // event removes EXACTLY that track (not "any track of this kind"), which
-  // matters when a camera/screen restarts and a new producer replaces an old.
-  const producerConsumerRef = useRef<
+  // producerId -> everything needed to tear down EXACTLY that producer's track
+  // later (which consumer it fed, whose tile, which source slot). Matching by
+  // producerId matters when a camera/screen restarts and a new producer
+  // replaces an old one whose close event arrives late.
+  const producerInfoRef = useRef<
     Record<
       string,
-      { consumerId: string; socketId: string; track: MediaStreamTrack }
+      {
+        consumerId: string;
+        socketId: string;
+        source: SfuProducerSource;
+        track: MediaStreamTrack;
+      }
     >
   >({});
   // producerIds we've started consuming, to dedupe concurrent consume attempts
@@ -144,17 +183,35 @@ export const SfuMeetingProvider = ({
   const pendingProducersRef = useRef<
     { producerId: string; producerSocketId: string; producerUserId: string }[]
   >([]);
-  // The aggregated MediaStream per remote socketId (all their tracks).
+  // Per-remote-participant tracks by source, and the composed MediaStream the
+  // tile currently renders.
+  const remoteTracksRef = useRef<Record<string, RemoteTrackSet>>({});
   const remoteStreamsRef = useRef<Record<string, MediaStream>>({});
   const peersRef = useRef<Record<string, SfuRemotePeer>>({});
   const audioCtxRef = useRef<Record<string, AudioContext>>({});
 
   const teardownStartedRef = useRef(false);
   const isScreenSharingRef = useRef(false);
+  const isMutedRef = useRef(true);
+  const videoBusyRef = useRef(false);
   const onLeaveRef = useRef(onLeave);
   const activePanelRef = useRef<ActivePanel>(null);
   const selfRef = useRef<SfuParticipant | null>(null);
+  const participantsRef = useRef<SfuParticipant[]>([]);
   const seenMessageIdsRef = useRef<Set<string>>(new Set());
+
+  // Recording (ported from the mesh MeetingContext; it only touches LOCAL
+  // tracks + the presign upload APIs, so it works identically under the SFU).
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+  const recordingMimeRef = useRef<string>("video/webm");
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const compositorVideoRef = useRef<HTMLVideoElement | null>(null);
+  const compositorRafRef = useRef<number | null>(null);
+  const compositorTrackIdRef = useRef<string | null>(null);
+  const syncRecordingSourcesRef = useRef<(() => void) | null>(null);
+  const startRecordingRef = useRef<((auto?: boolean) => void) | null>(null);
 
   useEffect(() => {
     onLeaveRef.current = onLeave;
@@ -169,6 +226,23 @@ export const SfuMeetingProvider = ({
     isScreenSharingRef.current = isScreenSharing;
   }, [isScreenSharing]);
 
+  // Single write-path for participants so the ref NEVER lags the state. The
+  // socket handlers (registered once) read the ref, which sidesteps the stale
+  // closure that used to label freshly-consumed tracks "Participant".
+  const setParticipantsSynced = useCallback(
+    (
+      next:
+        | SfuParticipant[]
+        | ((prev: SfuParticipant[]) => SfuParticipant[]),
+    ) => {
+      const value =
+        typeof next === "function" ? next(participantsRef.current) : next;
+      participantsRef.current = value;
+      setParticipants(value);
+    },
+    [],
+  );
+
   const setActivePanel = useCallback((panel: ActivePanel) => {
     if (panel === "chat") setUnreadChat(0);
     setActivePanelState(panel);
@@ -176,45 +250,42 @@ export const SfuMeetingProvider = ({
 
   // Voice-activity detection for the active-speaker highlight, identical in
   // spirit to the mesh path.
-  const setupActiveSpeaker = useCallback(
-    (id: string, stream: MediaStream) => {
-      try {
-        if (stream.getAudioTracks().length === 0) return;
-        // Only ever run ONE analyser per id. Without this guard, every track
-        // re-attach (camera restart, etc.) would spawn another perpetual timer
-        // and leak an AudioContext (browsers cap ~6, after which new() throws).
-        if (audioCtxRef.current[id]) return;
-        const Ctx =
-          window.AudioContext ??
-          (window as unknown as { webkitAudioContext?: typeof AudioContext })
-            .webkitAudioContext;
-        if (!Ctx) return;
-        const ctx = new Ctx();
-        registerAudioContext(ctx);
-        const source = ctx.createMediaStreamSource(stream);
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 512;
-        source.connect(analyser);
-        audioCtxRef.current[id] = ctx;
-        const data = new Uint8Array(analyser.frequencyBinCount);
-        const tick = () => {
-          // Stop if this ctx was replaced/closed (identity check, not just
-          // truthiness) so an orphaned loop can never run forever.
-          if (audioCtxRef.current[id] !== ctx) return;
-          analyser.getByteFrequencyData(data);
-          let sum = 0;
-          for (let i = 0; i < data.length; i++) sum += data[i] ?? 0;
-          const avg = sum / data.length;
-          if (avg > 18) setActiveSpeaker(id);
-          setTimeout(tick, 500);
-        };
-        tick();
-      } catch {
-        // analyser optional
-      }
-    },
-    [],
-  );
+  const setupActiveSpeaker = useCallback((id: string, stream: MediaStream) => {
+    try {
+      if (stream.getAudioTracks().length === 0) return;
+      // Only ever run ONE analyser per id. Without this guard, every track
+      // re-attach (camera restart, etc.) would spawn another perpetual timer
+      // and leak an AudioContext (browsers cap ~6, after which new() throws).
+      if (audioCtxRef.current[id]) return;
+      const Ctx =
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      registerAudioContext(ctx);
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      source.connect(analyser);
+      audioCtxRef.current[id] = ctx;
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        // Stop if this ctx was replaced/closed (identity check, not just
+        // truthiness) so an orphaned loop can never run forever.
+        if (audioCtxRef.current[id] !== ctx) return;
+        analyser.getByteFrequencyData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) sum += data[i] ?? 0;
+        const avg = sum / data.length;
+        if (avg > 18) setActiveSpeaker(id);
+        setTimeout(tick, 500);
+      };
+      tick();
+    } catch {
+      // analyser optional
+    }
+  }, []);
 
   // Rebuild the peers state object from the refs (called whenever streams or
   // participant metadata change).
@@ -222,46 +293,60 @@ export const SfuMeetingProvider = ({
     setPeers({ ...peersRef.current });
   }, []);
 
-  // Attach a freshly received consumer track to the aggregated remote stream
-  // for its owner, creating the peer entry if needed.
+  // Re-derive the single MediaStream a remote tile renders from the tracks we
+  // hold for that participant: mic + (screen while sharing, else camera). This
+  // is what makes the camera feed COME BACK when a screen share ends - the
+  // camera track is still being consumed, it just wasn't being displayed.
+  const recomposePeerStream = useCallback(
+    (socketId: string) => {
+      const tracks = remoteTracksRef.current[socketId];
+      const existing = peersRef.current[socketId];
+      const participant =
+        existing?.participant ??
+        participantsRef.current.find((p) => p.socketId === socketId);
+      if (!tracks || !participant) return;
+
+      const list: MediaStreamTrack[] = [];
+      if (tracks.mic) list.push(tracks.mic);
+      const video = tracks.screen ?? tracks.camera;
+      if (video) list.push(video);
+
+      const stream = new MediaStream(list);
+      remoteStreamsRef.current[socketId] = stream;
+      peersRef.current[socketId] = { stream, participant };
+      if (tracks.mic) setupActiveSpeaker(socketId, stream);
+      publishPeers();
+    },
+    [publishPeers, setupActiveSpeaker],
+  );
+
+  // Wire a freshly received consumer track into the source slot for its owner
+  // and refresh their tile.
   const attachConsumerTrack = useCallback(
     (
       socketId: string,
       producerId: string,
       consumerId: string,
+      source: SfuProducerSource,
       track: MediaStreamTrack,
       participant: SfuParticipant,
     ) => {
-      let stream = remoteStreamsRef.current[socketId];
-      if (!stream) {
-        stream = new MediaStream();
-        remoteStreamsRef.current[socketId] = stream;
-      }
-      // Drop any prior track of the same kind (e.g. camera restart) so the
-      // stream carries at most one audio + one video track.
-      stream.getTracks().forEach((t) => {
-        if (t.kind === track.kind) stream.removeTrack(t);
-      });
-      stream.addTrack(track);
-
-      // Record which producer this track came from so producer-closed can
-      // remove exactly this track later.
-      producerConsumerRef.current[producerId] = {
+      remoteTracksRef.current[socketId] = {
+        ...remoteTracksRef.current[socketId],
+        [source]: track,
+      };
+      producerInfoRef.current[producerId] = {
         consumerId,
         socketId,
+        source,
         track,
       };
-
-      const existing = peersRef.current[socketId];
-      peersRef.current[socketId] = {
-        // Fresh MediaStream reference so VideoTile re-binds srcObject.
-        stream: new MediaStream(stream.getTracks()),
-        participant: existing?.participant ?? participant,
-      };
-      setupActiveSpeaker(socketId, stream);
-      publishPeers();
+      if (!peersRef.current[socketId]) {
+        peersRef.current[socketId] = { stream: null, participant };
+      }
+      recomposePeerStream(socketId);
     },
-    [publishPeers, setupActiveSpeaker],
+    [recomposePeerStream],
   );
 
   // Consume a single remote producer end-to-end: ask the server, build the
@@ -287,7 +372,7 @@ export const SfuMeetingProvider = ({
           id: string;
           producerId: string;
           kind: "audio" | "video";
-          rtpParameters: import("mediasoup-client/types").RtpParameters;
+          rtpParameters: RtpParameters;
           source: SfuProducerSource;
           producerSocketId: string;
           producerUserId: string;
@@ -311,7 +396,9 @@ export const SfuMeetingProvider = ({
 
         const participant =
           peersRef.current[producerSocketId]?.participant ??
-          participants.find((p) => p.socketId === producerSocketId) ??
+          participantsRef.current.find(
+            (p) => p.socketId === producerSocketId,
+          ) ??
           ({
             userId: producerUserId,
             socketId: producerSocketId,
@@ -327,6 +414,7 @@ export const SfuMeetingProvider = ({
           producerSocketId,
           producerId,
           consumer.id,
+          params.source,
           consumer.track,
           participant,
         );
@@ -336,7 +424,7 @@ export const SfuMeetingProvider = ({
         consumingProducerIdsRef.current.delete(producerId);
       }
     },
-    [attachConsumerTrack, participants],
+    [attachConsumerTrack],
   );
 
   // Create both send and recv transports and wire their connect/produce
@@ -418,10 +506,49 @@ export const SfuMeetingProvider = ({
     [],
   );
 
+  // Close one of our producers locally AND on the server (the server-side
+  // close is what fires producer-closed on everyone else's consumers).
+  const closeProducer = useCallback((source: SfuProducerSource) => {
+    const producer = producersRef.current[source];
+    if (producer) {
+      try {
+        producer.close();
+      } catch {
+        // ignore
+      }
+      producersRef.current[source] = null;
+    }
+    socketRef.current?.emit("sfu:close-producer", { source }, () => {});
+  }, []);
+
   const updateLocalAudioState = useCallback((muted: boolean) => {
     setIsMuted(muted);
+    isMutedRef.current = muted;
     const track = localStreamRef.current?.getAudioTracks()[0];
     if (track) track.enabled = !muted;
+  }, []);
+
+  // The local tile shows the screen track while sharing, otherwise the camera
+  // track from localStreamRef (the source of truth for camera/mic). Kept as a
+  // separate MediaStream so screen sharing never has to mutate - and risk
+  // losing - the camera track held on localStreamRef. (Fixes "self not showing
+  // while screen sharing".)
+  const refreshDisplayedLocalStream = useCallback(() => {
+    const local = localStreamRef.current;
+    if (!local) {
+      setLocalStream(null);
+      return;
+    }
+    const audio = local.getAudioTracks();
+    const screenTrack = isScreenSharingRef.current
+      ? screenStreamRef.current?.getVideoTracks()[0]
+      : null;
+    if (screenTrack) {
+      setLocalStream(new MediaStream([screenTrack, ...audio]));
+    } else {
+      // Camera path: a fresh reference so VideoTile re-binds srcObject.
+      setLocalStream(new MediaStream(local.getTracks()));
+    }
   }, []);
 
   const toggleMute = useCallback(() => {
@@ -431,63 +558,99 @@ export const SfuMeetingProvider = ({
   }, [isMuted, updateLocalAudioState]);
 
   // Camera on/off. On: acquire a fresh camera track and produce it. Off: stop
-  // the track and close the camera producer (releases the device + LED).
-  const toggleVideo = useCallback(async () => {
-    const socket = socketRef.current;
-    const local = localStreamRef.current;
-    if (!local || !socket) return;
-
-    if (!isVideoOff) {
-      // Turn OFF
-      const track = local.getVideoTracks()[0];
-      if (track) {
-        track.stop();
-        local.removeTrack(track);
-      }
-      const cam = producersRef.current.camera;
-      if (cam) {
-        try {
-          cam.close();
-        } catch {
-          // ignore
+  // the track (releases the device + LED) and close the camera producer.
+  // Returns the resulting camera-off value (may differ from the request if
+  // getUserMedia fails when turning on).
+  const updateLocalVideoState = useCallback(
+    async (off: boolean): Promise<boolean> => {
+      if (videoBusyRef.current) return off;
+      videoBusyRef.current = true;
+      try {
+        const stream = localStreamRef.current;
+        if (!stream) {
+          setIsVideoOff(off);
+          return off;
         }
-        producersRef.current.camera = null;
-        socket.emit("sfu:close-producer", { source: "camera" }, () => {});
-      }
-      localStreamRef.current = new MediaStream(local.getTracks());
-      setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
-      setIsVideoOff(true);
-      socket.emit("sfu:toggle-video", { is_video_off: true });
-      return;
-    }
 
-    // Turn ON
-    let camStream: MediaStream;
-    try {
-      camStream = await navigator.mediaDevices.getUserMedia({ video: true });
-    } catch {
-      toast.error("Couldn't access the camera");
-      setIsVideoOff(true);
-      return;
-    }
-    const newTrack = camStream.getVideoTracks()[0];
-    if (!newTrack) {
-      camStream.getTracks().forEach((t) => t.stop());
-      setIsVideoOff(true);
-      return;
-    }
-    const current = localStreamRef.current ?? local;
-    current.getVideoTracks().forEach((t) => {
-      t.stop();
-      current.removeTrack(t);
-    });
-    current.addTrack(newTrack);
-    localStreamRef.current = new MediaStream(current.getTracks());
-    setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
-    setIsVideoOff(false);
-    socket.emit("sfu:toggle-video", { is_video_off: false });
-    await produceTrack(newTrack, "camera");
-  }, [isVideoOff, produceTrack]);
+        if (off) {
+          const track = stream.getVideoTracks()[0];
+          if (track) {
+            track.stop();
+            stream.removeTrack(track);
+          }
+          closeProducer("camera");
+          localStreamRef.current = new MediaStream(stream.getTracks());
+          // While screen sharing, the local tile shows the screen, so leave
+          // isVideoOff/the displayed stream alone - just update the source ref.
+          if (!isScreenSharingRef.current) {
+            setIsVideoOff(true);
+            refreshDisplayedLocalStream();
+            syncRecordingSourcesRef.current?.();
+          }
+          return true;
+        }
+
+        // Camera ON - acquire a fresh video track and graft it into the stream.
+        let camStream: MediaStream;
+        try {
+          camStream = await navigator.mediaDevices.getUserMedia({
+            video: role === "guest" ? GUEST_VIDEO_CONSTRAINTS : true,
+          });
+        } catch {
+          toast.error("Couldn't access the camera");
+          setIsVideoOff(true);
+          return true;
+        }
+        const newTrack = camStream.getVideoTracks()[0];
+        if (!newTrack) {
+          camStream.getTracks().forEach((t) => t.stop());
+          setIsVideoOff(true);
+          return true;
+        }
+
+        const current = localStreamRef.current ?? stream;
+        // Drop any stale video track before adding the new one.
+        current.getVideoTracks().forEach((t) => {
+          t.stop();
+          current.removeTrack(t);
+        });
+        current.addTrack(newTrack);
+        localStreamRef.current = new MediaStream(current.getTracks());
+
+        try {
+          await produceTrack(newTrack, "camera");
+        } catch (err) {
+          // Producing failed (dead transport / signalling timeout): release the
+          // camera again so the LED doesn't stay on for a track nobody gets.
+          console.error("[sfu] camera produce failed", err);
+          newTrack.stop();
+          current.removeTrack(newTrack);
+          localStreamRef.current = new MediaStream(current.getTracks());
+          toast.error("Couldn't publish the camera");
+          setIsVideoOff(true);
+          return true;
+        }
+
+        if (!isScreenSharingRef.current) {
+          setIsVideoOff(false);
+          refreshDisplayedLocalStream();
+          syncRecordingSourcesRef.current?.();
+        }
+        return false;
+      } finally {
+        videoBusyRef.current = false;
+      }
+    },
+    [role, closeProducer, produceTrack, refreshDisplayedLocalStream],
+  );
+
+  const toggleVideo = useCallback(async () => {
+    if (videoBusyRef.current) return;
+    const requested = !isVideoOff;
+    const actual = await updateLocalVideoState(requested);
+    // Emit the state we actually ended up in (getUserMedia may have failed).
+    socketRef.current?.emit("sfu:toggle-video", { is_video_off: actual });
+  }, [isVideoOff, updateLocalVideoState]);
 
   const toggleScreenShare = useCallback(async () => {
     const socket = socketRef.current;
@@ -499,23 +662,24 @@ export const SfuMeetingProvider = ({
         stream.getTracks().forEach((t) => t.stop());
         screenStreamRef.current = null;
       }
-      const screenProducer = producersRef.current.screen;
-      if (screenProducer) {
-        try {
-          screenProducer.close();
-        } catch {
-          // ignore
-        }
-        producersRef.current.screen = null;
-        socket.emit("sfu:close-producer", { source: "screen" }, () => {});
-      }
+      closeProducer("screen");
       setIsScreenSharing(false);
       isScreenSharingRef.current = false;
+      // Local preview: back to the camera - or the avatar if it's off. The
+      // camera producer (if any) kept running the whole time, so remote tiles
+      // switch back on their own via recompose.
+      const cam = localStreamRef.current?.getVideoTracks()[0] ?? null;
+      setIsVideoOff(!cam);
+      refreshDisplayedLocalStream();
+      // The recording follows the active video source; re-point it at the
+      // camera (or nothing) now that the screen track has stopped.
+      syncRecordingSourcesRef.current?.();
       return;
     }
 
+    let display: MediaStream | null = null;
     try {
-      const display = await navigator.mediaDevices.getDisplayMedia({
+      display = await navigator.mediaDevices.getDisplayMedia({
         video: true,
         audio: false,
       });
@@ -523,23 +687,334 @@ export const SfuMeetingProvider = ({
       const screenTrack = display.getVideoTracks()[0];
       if (!screenTrack) {
         display.getTracks().forEach((t) => t.stop());
+        screenStreamRef.current = null;
         return;
       }
       await produceTrack(screenTrack, "screen");
       setIsScreenSharing(true);
       isScreenSharingRef.current = true;
+      // Local preview: show the screen track and flag video "on" so VideoTile
+      // renders the <video>. The camera track (if any) stays untouched on
+      // localStreamRef so it can be restored when sharing stops.
+      setIsVideoOff(false);
+      refreshDisplayedLocalStream();
+      // Recording (if running) should now capture the screen, not the camera.
+      syncRecordingSourcesRef.current?.();
       screenTrack.onended = () => {
         toggleScreenShare();
       };
     } catch {
+      // Either the user dismissed the picker, or producing failed after the
+      // capture started - stop the capture so the browser's "sharing" pill
+      // doesn't linger for a stream nobody receives.
+      if (display) {
+        display.getTracks().forEach((t) => t.stop());
+      }
+      if (screenStreamRef.current === display) screenStreamRef.current = null;
       toast.error("Screen share canceled");
     }
-  }, [produceTrack]);
+  }, [closeProducer, produceTrack, refreshDisplayedLocalStream]);
 
-  // Recording is not wired on the SFU path yet (mesh-only feature for now).
-  const toggleRecording = useCallback(() => {
-    toast.message("Recording isn't available on the new (SFU) meeting yet");
+  // ---------------------------------------------------------------------------
+  // Recording (identical approach to the mesh): a canvas compositor draws the
+  // currently presented video source (screen while sharing, else camera, else a
+  // branded placeholder), MediaRecorder captures canvas + mic, and the file is
+  // uploaded to S3 via the tutor presign endpoints when recording stops.
+  // ---------------------------------------------------------------------------
+
+  const pickRecordingMime = useCallback((): string => {
+    const candidates = [
+      "video/mp4",
+      "video/webm;codecs=vp9,opus",
+      "video/webm;codecs=vp8,opus",
+      "video/webm",
+    ];
+    for (const type of candidates) {
+      if (
+        typeof MediaRecorder !== "undefined" &&
+        MediaRecorder.isTypeSupported(type)
+      ) {
+        return type;
+      }
+    }
+    return "video/webm";
   }, []);
+
+  // The video track currently being presented: the screen while sharing,
+  // otherwise the live camera track (null when the camera is off).
+  const getActiveVideoTrack = useCallback((): MediaStreamTrack | null => {
+    if (isScreenSharingRef.current) {
+      return screenStreamRef.current?.getVideoTracks()[0] ?? null;
+    }
+    return localStreamRef.current?.getVideoTracks()[0] ?? null;
+  }, []);
+
+  // Point the compositor's hidden <video> at the active source track. Switching
+  // the track keeps the canvas - and therefore the captured recording track -
+  // identical, so MediaRecorder never has to restart.
+  const setCompositorSource = useCallback((track: MediaStreamTrack | null) => {
+    const id = track?.id ?? null;
+    if (compositorTrackIdRef.current === id) return;
+    compositorTrackIdRef.current = id;
+    const videoEl = compositorVideoRef.current;
+    if (!videoEl) return;
+    if (track) {
+      videoEl.srcObject = new MediaStream([track]);
+      videoEl.play().catch(() => undefined);
+    } else {
+      videoEl.srcObject = null;
+    }
+  }, []);
+
+  const syncRecordingSources = useCallback(() => {
+    if (!recorderRef.current) return;
+    setCompositorSource(getActiveVideoTrack());
+  }, [getActiveVideoTrack, setCompositorSource]);
+
+  useEffect(() => {
+    syncRecordingSourcesRef.current = syncRecordingSources;
+  }, [syncRecordingSources]);
+
+  const buildRecordingStream = useCallback((): MediaStream | null => {
+    const audioTrack = localStreamRef.current?.getAudioTracks()[0] ?? null;
+
+    const canvas =
+      canvasRef.current ?? (canvasRef.current = document.createElement("canvas"));
+    canvas.width = 1280;
+    canvas.height = 720;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      // Canvas unavailable - fall back to recording the raw active track.
+      const raw = getActiveVideoTrack();
+      const tracks: MediaStreamTrack[] = [];
+      if (raw) tracks.push(raw);
+      if (audioTrack) tracks.push(audioTrack);
+      return tracks.length ? new MediaStream(tracks) : null;
+    }
+
+    // Hidden <video> the compositor reads frames from.
+    const videoEl =
+      compositorVideoRef.current ??
+      (compositorVideoRef.current = document.createElement("video"));
+    videoEl.muted = true;
+    videoEl.playsInline = true;
+    compositorTrackIdRef.current = null;
+    setCompositorSource(getActiveVideoTrack());
+
+    const draw = () => {
+      ctx.fillStyle = "#09090b"; // zinc-950, matches the meeting shell
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const v = compositorVideoRef.current;
+      if (v && v.videoWidth > 0 && v.videoHeight > 0) {
+        // Contain the source inside 1280x720 without stretching.
+        const scale = Math.min(
+          canvas.width / v.videoWidth,
+          canvas.height / v.videoHeight,
+        );
+        const w = v.videoWidth * scale;
+        const h = v.videoHeight * scale;
+        ctx.drawImage(v, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+      } else {
+        // No live video (camera off, not sharing): keep the dark frame so the
+        // recording stays valid and the audio keeps flowing.
+        ctx.fillStyle = "#52525b"; // zinc-600
+        ctx.font = "600 36px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Navyoga", canvas.width / 2, canvas.height / 2);
+      }
+      compositorRafRef.current = requestAnimationFrame(draw);
+    };
+    if (compositorRafRef.current === null) {
+      compositorRafRef.current = requestAnimationFrame(draw);
+    }
+
+    const canvasStream = canvas.captureStream(30);
+    const videoTrack = canvasStream.getVideoTracks()[0] ?? null;
+
+    const tracks: MediaStreamTrack[] = [];
+    if (videoTrack) tracks.push(videoTrack);
+    if (audioTrack) tracks.push(audioTrack);
+    return tracks.length ? new MediaStream(tracks) : null;
+  }, [getActiveVideoTrack, setCompositorSource]);
+
+  // Tear down the compositor (RAF loop, hidden video, captured canvas track).
+  const stopCompositor = useCallback(() => {
+    if (compositorRafRef.current !== null) {
+      cancelAnimationFrame(compositorRafRef.current);
+      compositorRafRef.current = null;
+    }
+    if (compositorVideoRef.current) {
+      compositorVideoRef.current.srcObject = null;
+    }
+    compositorTrackIdRef.current = null;
+  }, []);
+
+  const uploadRecording = useCallback(
+    async (blob: Blob, mime: string) => {
+      const cid = classId;
+      const ext = mime.includes("mp4") ? "mp4" : "webm";
+      const contentType = mime.includes("mp4") ? "video/mp4" : "video/webm";
+      const filename = `recording.${ext}`;
+      const store = recordingUploadsRef.current;
+
+      // Register the upload up front so the "My Classes" table shows it (at 0%)
+      // the instant the class ends, before the presign round-trip resolves.
+      store?.startUpload(cid, blob.size);
+
+      try {
+        const presign = await requestTutorRecordingPresign(cid, {
+          filename,
+          contentType,
+        });
+
+        // XMLHttpRequest (not fetch) so we get byte-level upload.onprogress -
+        // essential for multi-GB recordings where the PUT can take minutes.
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("PUT", presign.url, true);
+          xhr.setRequestHeader("Content-Type", contentType);
+
+          xhr.upload.onprogress = (event) => {
+            if (!event.lengthComputable) return;
+            store?.setProgress(cid, (event.loaded / event.total) * 100);
+          };
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              store?.setProgress(cid, 100);
+              resolve();
+            } else {
+              reject(new Error("Recording upload failed"));
+            }
+          };
+          xhr.onerror = () => reject(new Error("Recording upload failed"));
+          xhr.onabort = () => reject(new Error("Recording upload cancelled"));
+          xhr.send(blob);
+        });
+
+        // Bytes are in S3; now persist the path onto the class.
+        store?.setStatus(cid, "saving");
+        await saveTutorRecording(cid, presign.storePath);
+
+        store?.setStatus(cid, "done");
+        // Clear the row's progress shortly after success so it doesn't linger.
+        window.setTimeout(() => store?.clearUpload(cid), 5000);
+      } catch (err) {
+        store?.setStatus(
+          cid,
+          "error",
+          err instanceof Error ? err.message : "Upload failed",
+        );
+        throw err;
+      }
+    },
+    [classId],
+  );
+
+  const startRecording = useCallback(
+    (auto = false) => {
+      if (recorderRef.current) return;
+      if (typeof MediaRecorder === "undefined") {
+        if (!auto) toast.error("Recording is not supported in this browser");
+        return;
+      }
+
+      const stream = buildRecordingStream();
+      if (!stream) {
+        if (!auto)
+          toast.error("Nothing to record - turn on your camera, screen, or mic");
+        return;
+      }
+
+      const mime = pickRecordingMime();
+      let recorder: MediaRecorder;
+      try {
+        recorder = new MediaRecorder(stream, { mimeType: mime });
+      } catch {
+        try {
+          recorder = new MediaRecorder(stream);
+        } catch {
+          stopCompositor();
+          if (!auto) toast.error("Couldn't start recording");
+          return;
+        }
+      }
+
+      recordedChunksRef.current = [];
+      recordingMimeRef.current = recorder.mimeType || mime;
+      recordingStreamRef.current = stream;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        stopCompositor();
+        const mimeUsed = recordingMimeRef.current;
+        const blob = new Blob(recordedChunksRef.current, { type: mimeUsed });
+        recordedChunksRef.current = [];
+        recordingStreamRef.current = null;
+        recorderRef.current = null;
+        setIsRecording(false);
+
+        if (blob.size === 0) {
+          setIsRecordingBusy(false);
+          return;
+        }
+
+        setIsRecordingBusy(true);
+        toast.message("Uploading recording…");
+        uploadRecording(blob, mimeUsed)
+          .then(() => toast.success("Recording saved to this class"))
+          .catch((err) =>
+            toast.error(
+              err instanceof Error ? err.message : "Failed to save recording",
+            ),
+          )
+          .finally(() => setIsRecordingBusy(false));
+      };
+
+      // Flush a chunk every few seconds so a crash mid-session still yields a
+      // partial, playable file rather than losing everything.
+      recorder.start(4000);
+      recorderRef.current = recorder;
+      setIsRecording(true);
+      toast(auto ? "Class recording started" : "Recording started", {
+        icon: "🔴",
+      });
+    },
+    [buildRecordingStream, pickRecordingMime, stopCompositor, uploadRecording],
+  );
+
+  useEffect(() => {
+    startRecordingRef.current = startRecording;
+  }, [startRecording]);
+
+  const stopRecording = useCallback(() => {
+    const recorder = recorderRef.current;
+    if (!recorder) return;
+    try {
+      if (recorder.state !== "inactive") recorder.stop();
+    } catch {
+      // ignore - onstop handles cleanup
+    }
+  }, []);
+
+  const toggleRecording = useCallback(() => {
+    const isHost = !!selfRef.current && selfRef.current.userId === hostUserId;
+    if (!isHost) {
+      toast.error("Only the yoga shikshak can record this class");
+      return;
+    }
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  }, [hostUserId, isRecording, startRecording, stopRecording]);
+
+  // ---------------------------------------------------------------------------
 
   const destroyRemote = useCallback(
     (socketId: string) => {
@@ -548,6 +1023,7 @@ export const SfuMeetingProvider = ({
         stream.getTracks().forEach((t) => t.stop());
         delete remoteStreamsRef.current[socketId];
       }
+      delete remoteTracksRef.current[socketId];
       const ctx = audioCtxRef.current[socketId];
       if (ctx) {
         ctx.close().catch(() => undefined);
@@ -555,21 +1031,21 @@ export const SfuMeetingProvider = ({
       }
       // Drop this peer's producer/consumer bookkeeping so their producerIds can
       // be consumed afresh if they rejoin.
-      for (const [producerId, m] of Object.entries(
-        producerConsumerRef.current,
+      for (const [producerId, info] of Object.entries(
+        producerInfoRef.current,
       )) {
-        if (m.socketId === socketId) {
-          const consumer = consumersRef.current[m.consumerId];
+        if (info.socketId === socketId) {
+          const consumer = consumersRef.current[info.consumerId];
           if (consumer) {
             try {
               consumer.close();
             } catch {
               // ignore
             }
-            delete consumersRef.current[m.consumerId];
+            delete consumersRef.current[info.consumerId];
           }
           consumingProducerIdsRef.current.delete(producerId);
-          delete producerConsumerRef.current[producerId];
+          delete producerInfoRef.current[producerId];
         }
       }
       delete peersRef.current[socketId];
@@ -578,9 +1054,69 @@ export const SfuMeetingProvider = ({
     [publishPeers],
   );
 
+  // Drop every remote consumer/stream and our own producers/transports/device,
+  // but KEEP local capture (mic/camera/screen tracks) and the socket. Used when
+  // the signalling socket reconnects: the server built a fresh participant for
+  // our new socket id, so all previous mediasoup state is dead and the session
+  // must be rebuilt - while whatever the user had on keeps running locally.
+  const resetMediaSession = useCallback(() => {
+    for (const socketId of Object.keys(peersRef.current)) {
+      destroyRemote(socketId);
+    }
+    Object.values(consumersRef.current).forEach((c) => {
+      try {
+        c.close();
+      } catch {
+        // ignore
+      }
+    });
+    consumersRef.current = {};
+    producerInfoRef.current = {};
+    consumingProducerIdsRef.current = new Set();
+    pendingProducersRef.current = [];
+    remoteTracksRef.current = {};
+    remoteStreamsRef.current = {};
+
+    Object.values(producersRef.current).forEach((p) => {
+      try {
+        p?.close();
+      } catch {
+        // ignore
+      }
+    });
+    producersRef.current = { camera: null, mic: null, screen: null };
+
+    try {
+      sendTransportRef.current?.close();
+    } catch {
+      // ignore
+    }
+    try {
+      recvTransportRef.current?.close();
+    } catch {
+      // ignore
+    }
+    sendTransportRef.current = null;
+    recvTransportRef.current = null;
+    deviceRef.current = null;
+  }, [destroyRemote]);
+
   const teardown = useCallback(() => {
     if (teardownStartedRef.current) return;
     teardownStartedRef.current = true;
+
+    // Stop any in-progress recording first, while its source tracks are still
+    // live, so MediaRecorder.onstop fires and the (partial) file uploads. The
+    // upload runs async after onstop; teardown does not await it.
+    if (recorderRef.current) {
+      try {
+        if (recorderRef.current.state !== "inactive") {
+          recorderRef.current.stop();
+        }
+      } catch {
+        // ignore
+      }
+    }
 
     if (socketRef.current) {
       try {
@@ -609,9 +1145,10 @@ export const SfuMeetingProvider = ({
       }
     });
     consumersRef.current = {};
-    producerConsumerRef.current = {};
+    producerInfoRef.current = {};
     consumingProducerIdsRef.current = new Set();
     pendingProducersRef.current = [];
+    remoteTracksRef.current = {};
 
     try {
       sendTransportRef.current?.close();
@@ -647,11 +1184,11 @@ export const SfuMeetingProvider = ({
 
     setPeers({});
     setLocalStream(null);
-    setParticipants([]);
+    setParticipantsSynced([]);
     setSelf(null);
     setHostUserId(null);
     setConnectionState("ended");
-  }, []);
+  }, [setParticipantsSynced]);
 
   const leaveMeeting = useCallback(() => {
     teardown();
@@ -678,11 +1215,118 @@ export const SfuMeetingProvider = ({
 
   useEffect(() => {
     let cancelled = false;
+    // Re-arm teardown for this mount (StrictMode remounts leave the one-shot
+    // guard stuck `true` from the first unmount otherwise) and clear de-dupe
+    // state so a fresh session starts clean.
     teardownStartedRef.current = false;
     seenMessageIdsRef.current = new Set();
-    producerConsumerRef.current = {};
+    producerInfoRef.current = {};
     consumingProducerIdsRef.current = new Set();
     pendingProducersRef.current = [];
+    remoteTracksRef.current = {};
+
+    // Whether this socket has completed its FIRST connect; any 'connect' after
+    // that is a reconnect and triggers a full rejoin (the server forgot us the
+    // moment the old socket dropped).
+    let hasConnectedOnce = false;
+    let joining = false;
+
+    // Join (or re-join) the room on the current socket: signalling handshake,
+    // transports, then produce whatever local tracks are live and consume
+    // everything already in the room.
+    const joinSession = async (isRejoin: boolean) => {
+      const socket = socketRef.current;
+      if (!socket || cancelled) return;
+      joining = true;
+      try {
+        const joinRes = await emitWithAck<{
+          self: SfuParticipant;
+          participants: SfuParticipant[];
+          hostUserId: string | null;
+          rtpCapabilities: RtpCapabilities;
+        }>(socket, "sfu:join-room", { classId, name: displayName });
+        if (cancelled) return;
+
+        setSelf(joinRes.self);
+        setParticipantsSynced(joinRes.participants);
+        setHostUserId(joinRes.hostUserId);
+
+        const device = new Device();
+        await device.load({ routerRtpCapabilities: joinRes.rtpCapabilities });
+        deviceRef.current = device;
+
+        await createTransports();
+        if (cancelled) return;
+
+        setConnectionState("joined");
+
+        // Publish the mic track (kept but muted). Producing it means remote
+        // peers can hear us the instant we unmute - no renegotiation needed.
+        const micTrack = localStreamRef.current?.getAudioTracks()[0];
+        if (micTrack && device.canProduce("audio")) {
+          await produceTrack(micTrack, "mic");
+        }
+
+        // After a rejoin the server re-created us with the default state
+        // (muted, camera off) - re-publish any live local video and re-sync
+        // the flags so the rest of the room sees the truth.
+        if (isRejoin) {
+          const camTrack = localStreamRef.current?.getVideoTracks()[0];
+          if (camTrack && device.canProduce("video")) {
+            await produceTrack(camTrack, "camera");
+            socket.emit("sfu:toggle-video", { is_video_off: false });
+          }
+          const screenTrack = screenStreamRef.current?.getVideoTracks()[0];
+          if (screenTrack && device.canProduce("video")) {
+            await produceTrack(screenTrack, "screen");
+          }
+          if (!isMutedRef.current) {
+            socket.emit("sfu:toggle-mute", { is_muted: false });
+          }
+        }
+
+        // Consume every producer that already exists in the room.
+        const { producers } = await emitWithAck<{
+          producers: {
+            producerId: string;
+            source: SfuProducerSource;
+            producerSocketId: string;
+            producerUserId: string;
+          }[];
+        }>(socket, "sfu:list-producers", {});
+        for (const p of producers) {
+          await consumeProducer(
+            p.producerId,
+            p.producerSocketId,
+            p.producerUserId,
+          );
+        }
+
+        // Drain any new-producer events that arrived while we were still
+        // setting up transports. consumeProducer dedupes by producerId, so
+        // overlap with the list-producers set above is harmless.
+        const queued = pendingProducersRef.current;
+        pendingProducersRef.current = [];
+        for (const p of queued) {
+          await consumeProducer(
+            p.producerId,
+            p.producerSocketId,
+            p.producerUserId,
+          );
+        }
+
+        // Auto-start recording from the tutor's end the moment the host joins
+        // (exactly like the mesh). Survives reconnects: the recorder keeps
+        // running on local tracks, so we only start it if it isn't already.
+        const isHost =
+          !!joinRes.self && joinRes.self.userId === joinRes.hostUserId;
+        if (isHost && !recorderRef.current) {
+          startRecordingRef.current?.(true);
+        }
+      } finally {
+        joining = false;
+      }
+    };
 
     const bootstrap = async () => {
       // Acquire mic (kept, muted) + camera (stopped, off) up front - same
@@ -690,7 +1334,7 @@ export const SfuMeetingProvider = ({
       let stream: MediaStream | null = null;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
+          video: role === "guest" ? GUEST_VIDEO_CONSTRAINTS : true,
           audio: true,
         });
       } catch {
@@ -711,13 +1355,20 @@ export const SfuMeetingProvider = ({
       const audioTrack = stream.getAudioTracks()[0];
       if (audioTrack) audioTrack.enabled = false;
       setIsMuted(true);
+      isMutedRef.current = true;
+      // Stop AND remove the camera track: releases the device (LED off), and -
+      // unlike the mesh - the SFU needs no placeholder track since producers
+      // are created on demand when the camera turns on.
       const videoTrack = stream.getVideoTracks()[0];
-      if (videoTrack) videoTrack.stop();
-      if (videoTrack) stream.removeTrack(videoTrack);
+      if (videoTrack) {
+        videoTrack.stop();
+        stream.removeTrack(videoTrack);
+      }
       setIsVideoOff(true);
 
       localStreamRef.current = new MediaStream(stream.getTracks());
       setLocalStream(new MediaStream(stream.getTracks()));
+      setupActiveSpeaker("local", localStreamRef.current);
 
       let socket: SfuClientSocket;
       try {
@@ -736,9 +1387,35 @@ export const SfuMeetingProvider = ({
       });
       socket.on("sfu:error", (payload) => toast.error(payload.message));
 
+      // Reconnect handling: socket.io re-establishes the connection by itself,
+      // but the server treated the drop as a leave and destroyed our mediasoup
+      // state - so on every connect after the first, rebuild the session.
+      socket.on("connect", () => {
+        if (!hasConnectedOnce) {
+          hasConnectedOnce = true;
+          return;
+        }
+        if (cancelled || teardownStartedRef.current || joining) return;
+        toast.message("Reconnected - rejoining the class…");
+        setConnectionState("connecting");
+        resetMediaSession();
+        joinSession(true).catch((err) => {
+          console.error("[sfu] rejoin failed", err);
+          if (cancelled || teardownStartedRef.current) return;
+          toast.error("Couldn't rejoin the class");
+          teardown();
+          onLeaveRef.current();
+        });
+      });
+
+      socket.on("disconnect", () => {
+        if (cancelled || teardownStartedRef.current) return;
+        toast.message("Connection lost - reconnecting…");
+      });
+
       // Server events -------------------------------------------------------
       socket.on("sfu:user-connected", ({ participant }) => {
-        setParticipants((prev) =>
+        setParticipantsSynced((prev) =>
           prev.some((p) => p.socketId === participant.socketId)
             ? prev
             : [...prev, participant],
@@ -747,11 +1424,13 @@ export const SfuMeetingProvider = ({
 
       socket.on("sfu:user-disconnected", ({ socketId }) => {
         destroyRemote(socketId);
-        setParticipants((prev) => prev.filter((p) => p.socketId !== socketId));
+        setParticipantsSynced((prev) =>
+          prev.filter((p) => p.socketId !== socketId),
+        );
       });
 
       socket.on("sfu:participant-update", ({ participants: list }) => {
-        setParticipants(list);
+        setParticipantsSynced(list);
         list.forEach((p) => {
           const entry = peersRef.current[p.socketId];
           if (entry) {
@@ -764,8 +1443,9 @@ export const SfuMeetingProvider = ({
       socket.on(
         "sfu:new-producer",
         ({ producerId, producerSocketId, producerUserId }) => {
-          // If the recv transport isn't up yet (event arrived mid-bootstrap),
-          // queue it; the join flow drains the queue once transports exist.
+          // If the recv transport isn't up yet (event arrived mid-bootstrap or
+          // mid-rejoin), queue it; the join flow drains the queue once
+          // transports exist.
           if (!recvTransportRef.current) {
             pendingProducersRef.current.push({
               producerId,
@@ -778,49 +1458,54 @@ export const SfuMeetingProvider = ({
         },
       );
 
-      socket.on("sfu:producer-closed", ({ producerId, producerSocketId }) => {
-        // Remove EXACTLY the track this producer produced (matched by
+      socket.on("sfu:producer-closed", ({ producerId }) => {
+        // Tear down EXACTLY the track this producer produced (matched by
         // producerId), never "any track of this kind" - otherwise a
         // camera/screen restart, whose new track has already been attached,
         // could be wiped by a late close event for the OLD producer.
-        const mapping = producerConsumerRef.current[producerId];
+        const info = producerInfoRef.current[producerId];
         consumingProducerIdsRef.current.delete(producerId);
-        delete producerConsumerRef.current[producerId];
-        if (!mapping) return;
-        const stream = remoteStreamsRef.current[producerSocketId];
-        if (!stream) return;
-        // Only remove the track if it's still the one on the stream (a restart
-        // may already have swapped in a newer track of the same kind).
-        if (stream.getTracks().includes(mapping.track)) {
+        delete producerInfoRef.current[producerId];
+        if (!info) return;
+
+        const consumer = consumersRef.current[info.consumerId];
+        if (consumer) {
           try {
-            mapping.track.stop();
+            consumer.close();
           } catch {
             // ignore
           }
-          stream.removeTrack(mapping.track);
+          delete consumersRef.current[info.consumerId];
         }
-        const existing = peersRef.current[producerSocketId];
-        if (existing) {
-          peersRef.current[producerSocketId] = {
-            ...existing,
-            stream: new MediaStream(stream.getTracks()),
-          };
-          publishPeers();
+
+        const bucket = remoteTracksRef.current[info.socketId];
+        // Only clear the slot if it still holds this producer's track (a
+        // restart may already have swapped in a newer one).
+        if (bucket && bucket[info.source] === info.track) {
+          delete bucket[info.source];
+          try {
+            info.track.stop();
+          } catch {
+            // ignore
+          }
+          // Recompose: if a screen share just ended this puts the (still
+          // consumed) camera track back on the tile.
+          recomposePeerStream(info.socketId);
         }
       });
 
       socket.on("sfu:participant-muted-status", ({ userId, isMuted: m }) => {
-        setParticipants((prev) =>
+        setParticipantsSynced((prev) =>
           prev.map((p) => (p.userId === userId ? { ...p, isMuted: m } : p)),
         );
       });
       socket.on("sfu:participant-video-status", ({ userId, isVideoOff: v }) => {
-        setParticipants((prev) =>
+        setParticipantsSynced((prev) =>
           prev.map((p) => (p.userId === userId ? { ...p, isVideoOff: v } : p)),
         );
       });
       socket.on("sfu:screen-share-status", ({ userId, isSharing }) => {
-        setParticipants((prev) =>
+        setParticipantsSynced((prev) =>
           prev.map((p) =>
             p.userId === userId ? { ...p, isScreenSharing: isSharing } : p,
           ),
@@ -856,66 +1541,9 @@ export const SfuMeetingProvider = ({
         onLeaveRef.current();
       });
 
-      // Join flow: join -> load device -> transports -> produce mic ->
-      // consume everyone already in the room. ------------------------------
+      // Initial join.
       try {
-        const joinRes = await emitWithAck<{
-          self: SfuParticipant;
-          participants: SfuParticipant[];
-          hostUserId: string | null;
-          rtpCapabilities: RtpCapabilities;
-        }>(socket, "sfu:join-room", { classId, name: displayName });
-        if (cancelled) return;
-
-        setSelf(joinRes.self);
-        setParticipants(joinRes.participants);
-        setHostUserId(joinRes.hostUserId);
-
-        const device = new Device();
-        await device.load({ routerRtpCapabilities: joinRes.rtpCapabilities });
-        deviceRef.current = device;
-
-        await createTransports();
-        if (cancelled) return;
-
-        setConnectionState("joined");
-
-        // Publish the mic track (kept but muted). Producing it means remote
-        // peers can hear us the instant we unmute - no renegotiation needed.
-        const micTrack = localStreamRef.current?.getAudioTracks()[0];
-        if (micTrack && device.canProduce("audio")) {
-          await produceTrack(micTrack, "mic");
-        }
-
-        // Consume every producer that already exists in the room.
-        const { producers } = await emitWithAck<{
-          producers: {
-            producerId: string;
-            source: SfuProducerSource;
-            producerSocketId: string;
-            producerUserId: string;
-          }[];
-        }>(socket, "sfu:list-producers", {});
-        for (const p of producers) {
-          await consumeProducer(
-            p.producerId,
-            p.producerSocketId,
-            p.producerUserId,
-          );
-        }
-
-        // Drain any new-producer events that arrived while we were still
-        // setting up transports. consumeProducer dedupes by producerId, so
-        // overlap with the list-producers set above is harmless.
-        const queued = pendingProducersRef.current;
-        pendingProducersRef.current = [];
-        for (const p of queued) {
-          await consumeProducer(
-            p.producerId,
-            p.producerSocketId,
-            p.producerUserId,
-          );
-        }
+        await joinSession(false);
       } catch (err) {
         console.error("[sfu] join flow failed", err);
         toast.error(
@@ -946,8 +1574,8 @@ export const SfuMeetingProvider = ({
       isMuted,
       isVideoOff,
       isScreenSharing,
-      isRecording: false,
-      isRecordingBusy: false,
+      isRecording,
+      isRecordingBusy,
       peers,
       chatMessages,
       unreadChat,
@@ -975,6 +1603,8 @@ export const SfuMeetingProvider = ({
       isMuted,
       isVideoOff,
       isScreenSharing,
+      isRecording,
+      isRecordingBusy,
       peers,
       chatMessages,
       unreadChat,
@@ -1002,9 +1632,7 @@ export const SfuMeetingProvider = ({
   // has a simple-peer `peer` field the UI never touches).
   return (
     <SfuMeetingContext.Provider value={value}>
-      <MeetingContext.Provider
-        value={value as unknown as MeetingContextValue}
-      >
+      <MeetingContext.Provider value={value as unknown as MeetingContextValue}>
         {children}
       </MeetingContext.Provider>
     </SfuMeetingContext.Provider>

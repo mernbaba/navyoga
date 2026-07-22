@@ -173,19 +173,32 @@ type SfuClientToServer = {
 export type SfuClientSocket = Socket<SfuServerToClient, SfuClientToServer>;
 
 // A small promise wrapper around Socket.IO acks so signalling reads top-to-
-// bottom in the context. Rejects if the server returned { error }.
+// bottom in the context. Rejects if the server returned { error }, and also
+// rejects after a timeout so a dropped connection / dead server can never hang
+// the join flow forever on a promise that will never settle.
 export const emitWithAck = <T>(
   socket: SfuClientSocket,
   event: keyof SfuClientToServer,
   payload: unknown,
+  timeoutMs = 15000,
 ): Promise<T> =>
   new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const timer = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error(`${String(event)} timed out`));
+    }, timeoutMs);
+
     // socket.io types don't narrow the generic ack easily here; the runtime
     // shape is validated by the AckOk check below.
     (socket.emit as (e: string, p: unknown, cb: (r: AckOk<T>) => void) => void)(
       event as string,
       payload,
       (res: AckOk<T>) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
         if (res && typeof res === "object" && "error" in res) {
           reject(new Error((res as { error: string }).error));
         } else {
