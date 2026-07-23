@@ -475,24 +475,20 @@ function resolveAction(c: LiveClass): Action {
 function ActionButton({ action }: { action: Action }) {
   if (action.kind === "join") {
     return (
-      <>
+      <div className="flex flex-col gap-2">
         <Link to={`/user/class-session/${action.classId}`}>
           <Button className="w-full bg-linear-to-r from-[#ef4444] to-[#f97316] text-white shadow-lg">
             <Radio className="w-4 h-4 mr-2" />
             Join Live
           </Button>
         </Link>
-        {/* Experimental SFU (mediasoup) meeting - hidden for now.
-            Uncomment (and wrap both in a <div className="flex flex-col gap-2">)
-            to expose the "Join Live (New)" entry point.
         <Link to={`/user/class-session/${action.classId}?mode=sfu`}>
           <Button variant="outline" className="w-full">
             <Radio className="w-4 h-4 mr-2" />
             Join Live (New)
           </Button>
         </Link>
-        */}
-      </>
+      </div>
     );
   }
   // Same "Join Live" affordance as a real live class, but opens the attached

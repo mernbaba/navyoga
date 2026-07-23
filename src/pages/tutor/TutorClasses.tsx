@@ -406,8 +406,6 @@ export function TutorClasses() {
                                     {cls.kind === "YTT_LIVE" ? "Join" : isLive ? "Rejoin" : "Start"}
                                   </Button>
                                 )}
-                                {/* Experimental SFU (mediasoup) meeting - hidden for now.
-                                    Uncomment to expose the "Join (New)" entry point.
                                 {cls.state !== "PAST" && (
                                   <Button
                                     onClick={() => handleStartClassSfu(cls)}
@@ -420,7 +418,6 @@ export function TutorClasses() {
                                     Join (New)
                                   </Button>
                                 )}
-                                */}
                               </div>
                             </TableCell>
                           </TableRow>
