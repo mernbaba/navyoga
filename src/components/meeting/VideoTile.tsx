@@ -15,6 +15,8 @@ type Props = {
   // crop) which looks fine at near-video proportions; the large speaker tile
   // uses "contain" so the whole feed shows without stretching/cropping.
   fit?: "cover" | "contain";
+  // When set the tile becomes clickable (gallery tiles open the focus modal).
+  onClick?: () => void;
 };
 
 export const VideoTile = ({
@@ -27,6 +29,7 @@ export const VideoTile = ({
   isHost = false,
   isScreenShare = false,
   fit = "cover",
+  onClick,
 }: Props) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -69,7 +72,24 @@ export const VideoTile = ({
 
   return (
     <div
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
       className={`relative h-full w-full overflow-hidden rounded-xl border-2 bg-zinc-900 transition-all duration-300 ${
+        onClick
+          ? "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          : ""
+      } ${
         // Only the host is ever highlighted. Active-speaker detection must never
         // change the tile appearance - the host stays pinned/highlighted even
         // when a student is speaking.
