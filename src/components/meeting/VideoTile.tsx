@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MicOff } from "lucide-react";
 import { registerRemoteMedia } from "@/lib/audioUnlock";
+import { observeSpeaking } from "@/lib/speakingDetector";
 
 type Props = {
   stream: MediaStream | null;
@@ -62,6 +63,18 @@ export const VideoTile = ({
     return unregister;
   }, [stream, isLocal]);
 
+  // Live voice activity for this tile. An unmuted-but-silent participant shows
+  // no indicator at all - the green meter appears only while we actually hear
+  // audio from them. Skipped entirely while muted (the mic-off icon wins).
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  useEffect(() => {
+    if (!stream || isMuted) {
+      setIsSpeaking(false);
+      return;
+    }
+    return observeSpeaking(stream, setIsSpeaking);
+  }, [stream, isMuted]);
+
   const initials =
     name
       .split(" ")
@@ -92,9 +105,11 @@ export const VideoTile = ({
       } ${
         // Only the host is ever highlighted. Active-speaker detection must never
         // change the tile appearance - the host stays pinned/highlighted even
-        // when a student is speaking.
+        // when a student is speaking. No scale here: the tile fills its cell
+        // exactly, so scaling it up pushed the border and the name gradient past
+        // the parent's overflow-hidden and cropped them top and bottom.
         isHost
-          ? "border-[var(--primary)] shadow-[0_0_18px_rgba(97,9,129,0.45)] scale-[1.01]"
+          ? "border-[var(--primary)] shadow-[0_0_18px_rgba(97,9,129,0.45)]"
           : "border-zinc-800 hover:border-zinc-700"
       }`}
     >
@@ -136,17 +151,19 @@ export const VideoTile = ({
             </span>
           )}
         </span>
-        <div className="flex items-center gap-1.5 rounded-md border border-zinc-800/40 bg-black/40 px-2 py-1 backdrop-blur-md">
-          {isMuted ? (
-            <MicOff className="h-4 w-4 text-red-400" />
-          ) : (
-            <div className="flex h-3.5 items-center gap-[2px]">
-              <span className="h-1.5 w-[2px] rounded-full bg-emerald-400" />
-              <span className="h-3.5 w-[2px] rounded-full bg-emerald-400" />
-              <span className="h-2.5 w-[2px] rounded-full bg-emerald-400" />
-            </div>
-          )}
-        </div>
+        {(isMuted || isSpeaking || isActiveSpeaker) && (
+          <div className="flex items-center gap-1.5 rounded-md border border-zinc-800/40 bg-black/40 px-2 py-1 backdrop-blur-md">
+            {isMuted ? (
+              <MicOff className="h-4 w-4 text-red-400" />
+            ) : (
+              <div className="flex h-3.5 items-center gap-[2px]">
+                <span className="h-1.5 w-[2px] rounded-full bg-emerald-400" />
+                <span className="h-3.5 w-[2px] rounded-full bg-emerald-400" />
+                <span className="h-2.5 w-[2px] rounded-full bg-emerald-400" />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

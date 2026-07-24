@@ -10,7 +10,7 @@ import {
 } from "react";
 import Peer from "simple-peer";
 import { toast } from "sonner";
-import { registerAudioContext } from "@/lib/audioUnlock";
+import { observeSpeaking } from "@/lib/speakingDetector";
 import {
   requestTutorRecordingPresign,
   saveTutorRecording,
@@ -128,7 +128,11 @@ export const MeetingProvider = ({
   const localStreamRef = useRef<MediaStream | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const peersRef = useRef<Record<string, RemotePeer>>({});
-  const audioCtxRef = useRef<Record<string, AudioContext>>({});
+  // Live voice-activity watchers keyed by peer id. The mic track id is kept
+  // alongside so a replaced mic swaps the watcher onto the new track.
+  const vadStopRef = useRef<
+    Record<string, { trackId: string; stop: () => void }>
+  >({});
   const teardownStartedRef = useRef(false);
   const isScreenSharingRef = useRef(false);
   const videoBusyRef = useRef(false);
@@ -175,36 +179,24 @@ export const MeetingProvider = ({
     onLeaveRef.current = onLeave;
   }, [onLeave]);
 
+  // Voice-activity detection runs in the shared detector (one AudioContext for
+  // the page), so a full class is covered - a context per peer used to throw
+  // past the browser's ~6 AudioContext cap and silently stop detecting.
   const setupActiveSpeaker = useCallback((id: string, stream: MediaStream) => {
-    try {
-      const Ctx =
-        window.AudioContext ??
-        (window as unknown as { webkitAudioContext?: typeof AudioContext })
-          .webkitAudioContext;
-      if (!Ctx) return;
-      const ctx = new Ctx();
-      // Mobile starts AudioContexts suspended until a user gesture; register so
-      // it resumes on first interaction (otherwise the analyser never ticks).
-      registerAudioContext(ctx);
-      const source = ctx.createMediaStreamSource(stream);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 512;
-      source.connect(analyser);
-      audioCtxRef.current[id] = ctx;
-      const data = new Uint8Array(analyser.frequencyBinCount);
-      const tick = () => {
-        if (!audioCtxRef.current[id]) return;
-        analyser.getByteFrequencyData(data);
-        let sum = 0;
-        for (let i = 0; i < data.length; i++) sum += data[i] ?? 0;
-        const avg = sum / data.length;
-        if (avg > 18) setActiveSpeaker(id);
-        setTimeout(tick, 500);
-      };
-      tick();
-    } catch {
-      // analyser optional
-    }
+    const track = stream.getAudioTracks()[0];
+    if (!track) return;
+    // Only ever one watcher per id, else a track re-attach stacks them up - but
+    // a genuinely new mic track does need the watcher moved over to it.
+    const existing = vadStopRef.current[id];
+    if (existing?.trackId === track.id) return;
+    existing?.stop();
+    const stop = observeSpeaking(stream, (speaking) => {
+      setActiveSpeaker((prev) => {
+        if (speaking) return id;
+        return prev === id ? null : prev;
+      });
+    });
+    vadStopRef.current[id] = { trackId: track.id, stop };
   }, []);
 
   const updateLocalAudioState = useCallback((muted: boolean) => {
@@ -350,11 +342,8 @@ export const MeetingProvider = ({
         // ignore
       }
       delete peersRef.current[socketId];
-      const ctx = audioCtxRef.current[socketId];
-      if (ctx) {
-        ctx.close().catch(() => undefined);
-        delete audioCtxRef.current[socketId];
-      }
+      vadStopRef.current[socketId]?.stop();
+      delete vadStopRef.current[socketId];
       setPeers({ ...peersRef.current });
     }
   }, []);
@@ -495,10 +484,8 @@ export const MeetingProvider = ({
       screenStreamRef.current = null;
     }
 
-    Object.values(audioCtxRef.current).forEach((ctx) => {
-      ctx.close().catch(() => undefined);
-    });
-    audioCtxRef.current = {};
+    Object.values(vadStopRef.current).forEach((entry) => entry.stop());
+    vadStopRef.current = {};
 
     setPeers({});
     setLocalStream(null);

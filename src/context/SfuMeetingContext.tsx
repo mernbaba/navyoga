@@ -17,7 +17,7 @@ import type {
   RtpParameters,
 } from "mediasoup-client/types";
 import { toast } from "sonner";
-import { registerAudioContext } from "@/lib/audioUnlock";
+import { observeSpeaking } from "@/lib/speakingDetector";
 import {
   requestTutorRecordingPresign,
   saveTutorRecording,
@@ -188,7 +188,11 @@ export const SfuMeetingProvider = ({
   const remoteTracksRef = useRef<Record<string, RemoteTrackSet>>({});
   const remoteStreamsRef = useRef<Record<string, MediaStream>>({});
   const peersRef = useRef<Record<string, SfuRemotePeer>>({});
-  const audioCtxRef = useRef<Record<string, AudioContext>>({});
+  // Live voice-activity watchers keyed by socket id. The mic track id is kept
+  // alongside so a re-produced mic swaps the watcher onto the new track.
+  const vadStopRef = useRef<
+    Record<string, { trackId: string; stop: () => void }>
+  >({});
 
   const teardownStartedRef = useRef(false);
   const isScreenSharingRef = useRef(false);
@@ -249,42 +253,24 @@ export const SfuMeetingProvider = ({
   }, []);
 
   // Voice-activity detection for the active-speaker highlight, identical in
-  // spirit to the mesh path.
+  // spirit to the mesh path: the shared detector keeps one AudioContext for the
+  // whole page, so detection still works past the browser's ~6 context cap.
   const setupActiveSpeaker = useCallback((id: string, stream: MediaStream) => {
-    try {
-      if (stream.getAudioTracks().length === 0) return;
-      // Only ever run ONE analyser per id. Without this guard, every track
-      // re-attach (camera restart, etc.) would spawn another perpetual timer
-      // and leak an AudioContext (browsers cap ~6, after which new() throws).
-      if (audioCtxRef.current[id]) return;
-      const Ctx =
-        window.AudioContext ??
-        (window as unknown as { webkitAudioContext?: typeof AudioContext })
-          .webkitAudioContext;
-      if (!Ctx) return;
-      const ctx = new Ctx();
-      registerAudioContext(ctx);
-      const source = ctx.createMediaStreamSource(stream);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 512;
-      source.connect(analyser);
-      audioCtxRef.current[id] = ctx;
-      const data = new Uint8Array(analyser.frequencyBinCount);
-      const tick = () => {
-        // Stop if this ctx was replaced/closed (identity check, not just
-        // truthiness) so an orphaned loop can never run forever.
-        if (audioCtxRef.current[id] !== ctx) return;
-        analyser.getByteFrequencyData(data);
-        let sum = 0;
-        for (let i = 0; i < data.length; i++) sum += data[i] ?? 0;
-        const avg = sum / data.length;
-        if (avg > 18) setActiveSpeaker(id);
-        setTimeout(tick, 500);
-      };
-      tick();
-    } catch {
-      // analyser optional
-    }
+    const track = stream.getAudioTracks()[0];
+    if (!track) return;
+    // Only ever run ONE watcher per id. Without this guard, every track
+    // re-attach (camera restart, etc.) would stack another one on top - but a
+    // genuinely new mic track does need the watcher moved over to it.
+    const existing = vadStopRef.current[id];
+    if (existing?.trackId === track.id) return;
+    existing?.stop();
+    const stop = observeSpeaking(stream, (speaking) => {
+      setActiveSpeaker((prev) => {
+        if (speaking) return id;
+        return prev === id ? null : prev;
+      });
+    });
+    vadStopRef.current[id] = { trackId: track.id, stop };
   }, []);
 
   // Rebuild the peers state object from the refs (called whenever streams or
@@ -1024,11 +1010,8 @@ export const SfuMeetingProvider = ({
         delete remoteStreamsRef.current[socketId];
       }
       delete remoteTracksRef.current[socketId];
-      const ctx = audioCtxRef.current[socketId];
-      if (ctx) {
-        ctx.close().catch(() => undefined);
-        delete audioCtxRef.current[socketId];
-      }
+      vadStopRef.current[socketId]?.stop();
+      delete vadStopRef.current[socketId];
       // Drop this peer's producer/consumer bookkeeping so their producerIds can
       // be consumed afresh if they rejoin.
       for (const [producerId, info] of Object.entries(
@@ -1176,10 +1159,8 @@ export const SfuMeetingProvider = ({
       s.getTracks().forEach((t) => t.stop()),
     );
     remoteStreamsRef.current = {};
-    Object.values(audioCtxRef.current).forEach((ctx) =>
-      ctx.close().catch(() => undefined),
-    );
-    audioCtxRef.current = {};
+    Object.values(vadStopRef.current).forEach((entry) => entry.stop());
+    vadStopRef.current = {};
     peersRef.current = {};
 
     setPeers({});

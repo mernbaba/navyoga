@@ -170,7 +170,9 @@ export const VideoGrid = () => {
         // it full-size in the focus modal.
         <div
           ref={galleryRef}
-          className="h-full w-full flex-1 overflow-hidden pt-11"
+          // px/pb leave room for the host tile's glow, which the overflow-hidden
+          // would otherwise slice off at the edges of the grid.
+          className="h-full w-full flex-1 overflow-hidden px-1 pb-1 pt-11"
         >
           <div
             className="grid h-full w-full gap-4"
@@ -208,7 +210,7 @@ export const VideoGrid = () => {
               ))}
             </div>
           )}
-          <div className="flex w-full flex-1 items-center justify-center overflow-hidden">
+          <div className="flex w-full flex-1 items-center justify-center overflow-hidden p-1">
             <div className="h-full max-h-[640px] w-full max-w-5xl">
               <VideoTile {...speakerTile} fit="contain" />
             </div>
