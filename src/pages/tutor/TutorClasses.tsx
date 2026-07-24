@@ -406,7 +406,7 @@ export function TutorClasses() {
                                     {cls.kind === "YTT_LIVE" ? "Join" : isLive ? "Rejoin" : "Start"}
                                   </Button>
                                 )}
-                                {/* {cls.state !== "PAST" && (
+                                {cls.state !== "PAST" && (
                                   <Button
                                     onClick={() => handleStartClassSfu(cls)}
                                     variant="outline"
@@ -417,7 +417,7 @@ export function TutorClasses() {
                                     <Play className="w-4 h-4 mr-1" />
                                     Join (New)
                                   </Button>
-                                )} */}
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
