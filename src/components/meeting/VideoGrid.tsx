@@ -52,6 +52,7 @@ const bestColumnCount = (
 
 export const VideoGrid = () => {
   const {
+    role,
     localStream,
     self,
     hostUserId,
@@ -190,7 +191,9 @@ export const VideoGrid = () => {
         // speaker keeps the full height; narrow screens fall back to the
         // horizontal strip above the speaker.
         <div className="flex h-full w-full flex-1 flex-col gap-4 overflow-hidden lg:flex-row-reverse">
-          {thumbnails.length > 0 && (
+          {/* Students only ever see the teacher in speaker view - the rail of
+              other participants is for the tutor. (Gallery still shows all.) */}
+          {role === "host" && thumbnails.length > 0 && (
             // mt-11 (not pt) keeps the rail clear of the Gallery/Speaker
             // toggle even when scrolled; pr-2 leaves a gutter so the
             // scrollbar never sits on top of the tiles.
