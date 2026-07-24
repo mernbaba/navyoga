@@ -38,6 +38,18 @@ export type SfuChatMessage = {
   timestamp: number;
 };
 
+// sfu:join-room either admits us into the class or - only while the yoga
+// shikshak (host) has yet to start it - parks us in the waiting room.
+export type SfuJoinResult =
+  | { status: "waiting"; waitingCount: number }
+  | {
+      status: "joined";
+      self: SfuParticipant;
+      participants: SfuParticipant[];
+      hostUserId: string | null;
+      rtpCapabilities: RtpCapabilities;
+    };
+
 export type SfuTransportParams = {
   id: string;
   iceParameters: IceParameters;
@@ -83,6 +95,11 @@ type SfuServerToClient = {
     isSharing: boolean;
   }) => void;
 
+  // ----- Waiting room -------------------------------------------------------
+  "sfu:waiting-update": (payload: { waitingCount: number }) => void;
+  // The host started the class - re-run sfu:join-room to be let in.
+  "sfu:host-joined": (payload: Record<string, never>) => void;
+
   "sfu:message-received": (payload: SfuChatMessage) => void;
   "sfu:mute-request": (payload: { mute: true }) => void;
   "sfu:removed-from-meeting": (payload: { message: string }) => void;
@@ -93,14 +110,7 @@ type SfuServerToClient = {
 type SfuClientToServer = {
   "sfu:join-room": (
     payload: { classId: string; name: string },
-    ack: (
-      res: AckOk<{
-        self: SfuParticipant;
-        participants: SfuParticipant[];
-        hostUserId: string | null;
-        rtpCapabilities: RtpCapabilities;
-      }>,
-    ) => void,
+    ack: (res: AckOk<SfuJoinResult>) => void,
   ) => void;
 
   "sfu:create-transport": (

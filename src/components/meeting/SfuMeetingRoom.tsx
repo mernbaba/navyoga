@@ -8,6 +8,7 @@ import { ControlBar } from "@/components/meeting/ControlBar";
 import { ParticipantList } from "@/components/meeting/ParticipantList";
 import { ChatPanel } from "@/components/meeting/ChatPanel";
 import { AudioUnlockOverlay } from "@/components/meeting/AudioUnlockOverlay";
+import { WaitingRoom } from "@/components/meeting/WaitingRoom";
 
 type Props = {
   classId: string;
@@ -22,6 +23,11 @@ type Props = {
 // against the SFU session with no changes.
 const SfuMeetingRoomShell = () => {
   const { connectionState, activePanel, isRecording } = useSfuMeeting();
+
+  // No host in the class yet - hold this student outside it entirely.
+  if (connectionState === "waiting") {
+    return <WaitingRoom />;
+  }
 
   if (connectionState === "connecting") {
     return (

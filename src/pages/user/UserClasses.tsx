@@ -482,12 +482,14 @@ function ActionButton({ action }: { action: Action }) {
             Join Live
           </Button>
         </Link>
+        {/* Experimental SFU entry point — hidden for now.
         <Link to={`/user/class-session/${action.classId}?mode=sfu`}>
           <Button variant="outline" className="w-full">
             <Radio className="w-4 h-4 mr-2" />
             Join Live (New)
           </Button>
         </Link>
+        */}
       </div>
     );
   }

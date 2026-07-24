@@ -406,6 +406,7 @@ export function TutorClasses() {
                                     {cls.kind === "YTT_LIVE" ? "Join" : isLive ? "Rejoin" : "Start"}
                                   </Button>
                                 )}
+                                {/* Experimental SFU entry point — hidden for now.
                                 {cls.state !== "PAST" && (
                                   <Button
                                     onClick={() => handleStartClassSfu(cls)}
@@ -418,6 +419,7 @@ export function TutorClasses() {
                                     Join (New)
                                   </Button>
                                 )}
+                                */}
                               </div>
                             </TableCell>
                           </TableRow>

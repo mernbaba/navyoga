@@ -32,6 +32,7 @@ import {
   emitWithAck,
   type SfuChatMessage,
   type SfuClientSocket,
+  type SfuJoinResult,
   type SfuParticipant,
   type SfuProducerSource,
   type SfuTransportParams,
@@ -85,7 +86,10 @@ export type SfuMeetingContextValue = {
   unreadChat: number;
   activePanel: ActivePanel;
   activeSpeaker: string | null;
-  connectionState: "connecting" | "joined" | "ended";
+  // "waiting" = held outside the class until the host starts it.
+  connectionState: "connecting" | "waiting" | "joined" | "ended";
+  // How many people are in the waiting room alongside us (self included).
+  waitingCount: number;
 
   toggleMute: () => void;
   toggleVideo: () => void;
@@ -131,8 +135,9 @@ export const SfuMeetingProvider = ({
   const [activePanel, setActivePanelState] = useState<ActivePanel>(null);
   const [activeSpeaker, setActiveSpeaker] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<
-    "connecting" | "joined" | "ended"
+    "connecting" | "waiting" | "joined" | "ended"
   >("connecting");
+  const [waitingCount, setWaitingCount] = useState(0);
 
   // Drives the recording upload progress shown in the tutor's "My Classes"
   // table. Optional so the meeting still works if mounted outside the provider.
@@ -1211,23 +1216,41 @@ export const SfuMeetingProvider = ({
     // moment the old socket dropped).
     let hasConnectedOnce = false;
     let joining = false;
+    // True while we're parked in the waiting room (class not started yet).
+    let waitingNow = false;
+    // A "host joined" that landed while a join was already in flight; replayed
+    // once that join settles so we can never get stranded in the waiting room.
+    let hostJoinedPending = false;
 
     // Join (or re-join) the room on the current socket: signalling handshake,
     // transports, then produce whatever local tracks are live and consume
-    // everything already in the room.
+    // everything already in the room. May instead land us in the waiting room.
     const joinSession = async (isRejoin: boolean) => {
       const socket = socketRef.current;
       if (!socket || cancelled) return;
       joining = true;
       try {
-        const joinRes = await emitWithAck<{
-          self: SfuParticipant;
-          participants: SfuParticipant[];
-          hostUserId: string | null;
-          rtpCapabilities: RtpCapabilities;
-        }>(socket, "sfu:join-room", { classId, name: displayName });
+        const joinRes = await emitWithAck<SfuJoinResult>(
+          socket,
+          "sfu:join-room",
+          { classId, name: displayName },
+        );
         if (cancelled) return;
 
+        // The class hasn't been started yet: we're outside it, with no
+        // transports and no producers, until the shikshak arrives. Nothing
+        // else to set up.
+        if (joinRes.status === "waiting") {
+          waitingNow = true;
+          setWaitingCount(joinRes.waitingCount);
+          setParticipantsSynced([]);
+          setSelf(null);
+          setHostUserId(null);
+          setConnectionState("waiting");
+          return;
+        }
+
+        waitingNow = false;
         setSelf(joinRes.self);
         setParticipantsSynced(joinRes.participants);
         setHostUserId(joinRes.hostUserId);
@@ -1306,7 +1329,30 @@ export const SfuMeetingProvider = ({
         }
       } finally {
         joining = false;
+        // Replay a host-joined that arrived mid-join.
+        if (hostJoinedPending) {
+          hostJoinedPending = false;
+          window.setTimeout(() => admitFromWaiting(), 0);
+        }
       }
+    };
+
+    // The host started the class while we were waiting: run the normal join
+    // again, this time straight in.
+    const admitFromWaiting = () => {
+      if (cancelled || teardownStartedRef.current || !waitingNow) return;
+      if (joining) {
+        hostJoinedPending = true;
+        return;
+      }
+      setConnectionState("connecting");
+      joinSession(true).catch((err) => {
+        console.error("[sfu] admit from waiting room failed", err);
+        if (cancelled || teardownStartedRef.current) return;
+        toast.error("Couldn't join the class");
+        teardown();
+        onLeaveRef.current();
+      });
     };
 
     const bootstrap = async () => {
@@ -1393,6 +1439,15 @@ export const SfuMeetingProvider = ({
         if (cancelled || teardownStartedRef.current) return;
         toast.message("Connection lost - reconnecting…");
       });
+
+      // Waiting room ---------------------------------------------------------
+      // We only ever enter the waiting room from the join ack; these keep it
+      // live and get us out of it.
+      socket.on("sfu:waiting-update", ({ waitingCount: count }) => {
+        setWaitingCount(count);
+      });
+
+      socket.on("sfu:host-joined", () => admitFromWaiting());
 
       // Server events -------------------------------------------------------
       socket.on("sfu:user-connected", ({ participant }) => {
@@ -1563,6 +1618,7 @@ export const SfuMeetingProvider = ({
       activePanel,
       activeSpeaker,
       connectionState,
+      waitingCount,
       toggleMute,
       toggleVideo,
       toggleScreenShare,
@@ -1592,6 +1648,7 @@ export const SfuMeetingProvider = ({
       activePanel,
       activeSpeaker,
       connectionState,
+      waitingCount,
       toggleMute,
       toggleVideo,
       toggleScreenShare,
