@@ -136,11 +136,17 @@ export const VideoGrid = () => {
           </div>
         )
       ) : (
-        <div className="flex h-full w-full flex-1 flex-col gap-4 overflow-hidden">
+        // Thumbnails sit in a vertical rail on the right (desktop) so the
+        // speaker keeps the full height; narrow screens fall back to the
+        // horizontal strip above the speaker.
+        <div className="flex h-full w-full flex-1 flex-col gap-4 overflow-hidden lg:flex-row-reverse">
           {thumbnails.length > 0 && (
-            <div className="flex h-28 items-center gap-3 overflow-x-auto px-2 py-1">
+            <div className="flex h-28 shrink-0 items-center gap-3 overflow-x-auto px-2 py-1 lg:h-full lg:w-52 lg:flex-col lg:items-stretch lg:overflow-x-hidden lg:overflow-y-auto lg:px-0 lg:pt-11 xl:w-60">
               {thumbnails.map((tile) => (
-                <div key={tile.id} className="h-24 w-40 flex-shrink-0">
+                <div
+                  key={tile.id}
+                  className="h-24 w-40 shrink-0 lg:h-auto lg:aspect-video lg:w-full"
+                >
                   <VideoTile {...tile} />
                 </div>
               ))}
