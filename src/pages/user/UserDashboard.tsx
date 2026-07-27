@@ -19,6 +19,8 @@ import { listMyLiveClasses } from "../../api/plans";
 import type { LiveClass } from "../../api/types";
 import { RenewPlanModal, type RenewCategory } from "../../components/RenewPlanModal";
 import { getRenewalPrompt, asPrompt, type RenewalPrompt } from "../../api/renewal";
+import { getMyClassAttendance } from "../../api/attendance";
+import type { MyClassAttendance } from "../../api/types";
 import {
   deriveStatus,
   selectUpcomingClasses,
@@ -60,6 +62,7 @@ const formatScheduled = (iso: string | null): { date: string; time: string } => 
 export function UserDashboard() {
   const [data, setData] = useState<StudentDashboard | null>(null);
   const [liveClasses, setLiveClasses] = useState<LiveClass[]>([]);
+  const [attendance, setAttendance] = useState<MyClassAttendance["summary"] | null>(null);
   const [enrolledModalOpen, setEnrolledModalOpen] = useState(false);
   // Recently-expired plans across all categories, shown one renew modal at a time.
   const [renewQueue, setRenewQueue] = useState<{ category: RenewCategory; prompt: RenewalPrompt }[]>([]);
@@ -127,6 +130,21 @@ export function UserDashboard() {
     };
   }, []);
 
+  // Basic class attendance (presence only) for the two attendance cards.
+  useEffect(() => {
+    let cancelled = false;
+    getMyClassAttendance(1)
+      .then((res) => {
+        if (!cancelled) setAttendance(res.summary);
+      })
+      .catch(() => {
+        // Non-fatal: cards fall back to zero.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const metrics = useMemo(() => {
     const m = data?.metrics;
     return [
@@ -140,12 +158,15 @@ export function UserDashboard() {
         gradient: "from-orange-500 to-red-500",
       },
       {
-        title: "Hours Completed",
+        title: "Classes Attended",
         to: "/user/attendance",
-        value: (m?.hoursCompleted ?? 0).toLocaleString(),
+        value: (attendance?.totalAttended ?? 0).toLocaleString(),
         icon: Clock,
         color: "#610981",
-        change: formatDiff(m?.hoursChangeWeek ?? 0, "this week"),
+        change:
+          attendance?.attendedThisMonth
+            ? `${attendance.attendedThisMonth} this month`
+            : "None this month",
         gradient: "from-purple-600 to-pink-600",
       },
       {
@@ -158,16 +179,18 @@ export function UserDashboard() {
         gradient: "from-green-500 to-teal-500",
       },
       {
-        title: "Attendance Rate",
+        title: "Attended This Month",
         to: "/user/attendance",
-        value: `${m?.attendanceRate ?? 0}%`,
+        value: (attendance?.attendedThisMonth ?? 0).toLocaleString(),
         icon: TrendingUp,
         color: "#f59e0b",
-        change: formatDiff(m?.attendanceImprovement ?? 0, "vs prev month"),
+        change: attendance?.lastAttendedAt
+          ? `Last on ${new Date(attendance.lastAttendedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+          : "No classes yet",
         gradient: "from-yellow-500 to-orange-500",
       },
     ];
-  }, [data]);
+  }, [data, attendance]);
 
   const enrolledBreakdown = useMemo(() => {
     const b = data?.metrics.enrolledBreakdown;

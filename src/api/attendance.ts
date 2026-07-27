@@ -3,6 +3,8 @@ import {
   unwrap,
   type ApiSuccess,
   type AttendanceStatus,
+  type ClassAttendanceRecord,
+  type MyClassAttendance,
   type FrontlineAttendance,
   type MyFrontlineAttendance,
   type MyOperationsAttendance,
@@ -35,6 +37,27 @@ export function listStudentAttendance(role: Role, params: StudentAttendanceListP
       method: "GET",
       url: "/api/attendance/students",
       params,
+    }),
+  );
+}
+
+/** Student self-service: the classes I've joined. */
+export function getMyClassAttendance(limit?: number) {
+  return unwrap<MyClassAttendance>(
+    authedRequest<ApiSuccess<MyClassAttendance>>("STUDENT", {
+      method: "GET",
+      url: "/api/attendance/students/me/classes",
+      ...(limit ? { params: { limit } } : {}),
+    }),
+  );
+}
+
+/** Student self-service: mark myself present for a live class (idempotent). */
+export function markMyClassAttendance(classId: string) {
+  return unwrap<ClassAttendanceRecord>(
+    authedRequest<ApiSuccess<ClassAttendanceRecord>>("STUDENT", {
+      method: "POST",
+      url: `/api/live/${classId}/attend`,
     }),
   );
 }

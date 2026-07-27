@@ -276,6 +276,30 @@ export type StudentAttendance = {
   };
 };
 
+/** One live class the student joined. Presence only — no time-spent tracking. */
+export type ClassAttendanceRecord = {
+  id: string;
+  joinedAt: string;
+  liveClass: {
+    id: string;
+    title: string;
+    yogaType: string;
+    scheduledAt: string | null;
+    duration: number;
+    tutor: { name: string } | null;
+    batch: { id: string; name: string } | null;
+  };
+};
+
+export type MyClassAttendance = {
+  summary: {
+    totalAttended: number;
+    attendedThisMonth: number;
+    lastAttendedAt: string | null;
+  };
+  records: ClassAttendanceRecord[];
+};
+
 export type TutorAttendance = {
   id: string;
   date: string;
