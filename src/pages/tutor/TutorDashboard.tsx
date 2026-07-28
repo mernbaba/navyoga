@@ -210,14 +210,24 @@ export function TutorDashboard() {
                       </p>
                     </div>
                     {!activeSession && (
-                      <Button
-                        onClick={() => handleStartClass(cls.id, cls.title)}
-                        className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
-                        size="sm"
-                      >
-                        <Play className="w-4 h-4 mr-1" />
-                        Start
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => handleStartClass(cls.id, cls.title)}
+                          className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
+                          size="sm"
+                        >
+                          <Play className="w-4 h-4 mr-1" />
+                          Start
+                        </Button>
+                        <Button
+                          onClick={() => navigate(`/tutor/video-session?classId=${cls.id}&mode=sfu`)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Play className="w-4 h-4 mr-1" />
+                          Start (New)
+                        </Button>
+                      </div>
                     )}
                   </div>
                 ))

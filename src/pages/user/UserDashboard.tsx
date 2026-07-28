@@ -419,20 +419,32 @@ export function UserDashboard() {
                               </Button>
                             </a>
                           ) : class_item.joinable ? (
-                            <Link to={`/user/class-session/${class_item.id}`}>
-                              <Button
-                                size="sm"
-                                className={`text-white shadow-lg ${class_item.isLive ? "bg-linear-to-r from-[#ef4444] to-[#f97316]" : "bg-linear-to-r from-[#610981] to-[#8b0fa8]"}`}
-                              >
-                                {class_item.isLive ? (
-                                  <>
-                                    <Radio className="w-4 h-4 mr-1" /> Join Live
-                                  </>
-                                ) : (
-                                  "Join"
-                                )}
-                              </Button>
-                            </Link>
+                            <div className="flex gap-2">
+                              <Link to={`/user/class-session/${class_item.id}`}>
+                                <Button
+                                  size="sm"
+                                  className={`text-white shadow-lg ${class_item.isLive ? "bg-linear-to-r from-[#ef4444] to-[#f97316]" : "bg-linear-to-r from-[#610981] to-[#8b0fa8]"}`}
+                                >
+                                  {class_item.isLive ? (
+                                    <>
+                                      <Radio className="w-4 h-4 mr-1" /> Join Live
+                                    </>
+                                  ) : (
+                                    "Join"
+                                  )}
+                                </Button>
+                              </Link>
+                              {class_item.isLive && (
+                                <Link to={`/user/class-session/${class_item.id}?mode=sfu`}>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                  >
+                                    <Radio className="w-4 h-4 mr-1" /> Join Live (New)
+                                  </Button>
+                                </Link>
+                              )}
+                            </div>
                           ) : (
                             <Button
                               size="sm"
