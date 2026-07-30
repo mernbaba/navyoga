@@ -12,6 +12,7 @@ export type RenewalPlan = {
   price: number;
   originalPrice: number | null;
   validity: number;
+  isTrialPlan: boolean;
 };
 
 export type RenewalPrompt = {

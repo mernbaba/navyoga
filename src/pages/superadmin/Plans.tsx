@@ -13,10 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog";
-import { Edit, IndianRupee, Zap, Tag, Check, Video, Radio, Heart, GraduationCap } from "lucide-react";
+import { Edit, IndianRupee, Zap, Tag, Check, Video, Radio, Heart, GraduationCap, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   listLivePlans,
+  createLivePlan,
   updateLivePlan,
   listSelfPacedPlans,
   updateSelfPacedPlan,
@@ -161,6 +162,10 @@ function LivePlansTab() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [editFeaturesRaw, setEditFeaturesRaw] = useState("");
 
+  const [creating, setCreating] = useState(false);
+  const [isCreatingPlan, setIsCreatingPlan] = useState(false);
+  const [createFeaturesRaw, setCreateFeaturesRaw] = useState("");
+
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
@@ -193,6 +198,8 @@ function LivePlansTab() {
         features: featuresFromString(editFeaturesRaw),
         recordingAccess: Number(fd.get("recordingAccess") || 0),
         batchRestricted: fd.get("batchRestricted") === "on",
+        hidden: fd.get("hidden") === "on",
+        isTrialPlan: fd.get("isTrialPlan") === "on",
       });
       toast.success("Plan updated");
       setEditing(null);
@@ -204,9 +211,44 @@ function LivePlansTab() {
     }
   };
 
+  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (isCreatingPlan) return;
+    setIsCreatingPlan(true);
+    const fd = new FormData(e.currentTarget);
+    try {
+      await createLivePlan({
+        name: String(fd.get("name") || ""),
+        description: String(fd.get("description") || "") || undefined,
+        validity: Number(fd.get("validity")),
+        price: Number(fd.get("price")),
+        originalPrice: fd.get("originalPrice") ? Number(fd.get("originalPrice")) : undefined,
+        features: featuresFromString(createFeaturesRaw),
+        recordingAccess: Number(fd.get("recordingAccess") || 0),
+        batchRestricted: fd.get("batchRestricted") === "on",
+        hidden: fd.get("hidden") === "on",
+        isTrialPlan: fd.get("isTrialPlan") === "on",
+      });
+      toast.success("Plan created");
+      setCreating(false);
+      setCreateFeaturesRaw("");
+      refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create plan.");
+    } finally {
+      setIsCreatingPlan(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <p className="text-muted-foreground text-sm">Validity-based access plans for the entire live-class catalog</p>
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-muted-foreground text-sm">Validity-based access plans for the entire live-class catalog</p>
+        <Button onClick={() => setCreating(true)} className="shrink-0">
+          <Plus className="w-4 h-4 mr-2" />
+          Create Plan
+        </Button>
+      </div>
 
       {isLoading && plans.length === 0 ? (
         <p className="text-center text-muted-foreground py-12">Loading...</p>
@@ -227,6 +269,16 @@ function LivePlansTab() {
               isActive={plan.isActive}
               badgeRow={
                 <div className="flex flex-wrap gap-1">
+                  {plan.isTrialPlan && (
+                    <Badge className="text-xs bg-[#ff691d] text-white border-0">
+                      Signup Trial Plan
+                    </Badge>
+                  )}
+                  {plan.hidden && (
+                    <Badge variant="secondary" className="text-xs">
+                      Hidden from users
+                    </Badge>
+                  )}
                   {plan.batchRestricted && (
                     <Badge variant="secondary" className="text-xs">
                       Batch Restricted
@@ -302,6 +354,28 @@ function LivePlansTab() {
                     className="relative inline-flex h-5 w-9 cursor-pointer items-center rounded-full bg-muted peer-checked:bg-primary transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4"
                   />
                 </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="font-normal">Hidden from users</Label>
+                    <p className="text-xs text-muted-foreground">Excluded from the public pricing page</p>
+                  </div>
+                  <input type="checkbox" name="hidden" defaultChecked={editing.hidden} className="sr-only peer" id="edit-live-hidden" />
+                  <label
+                    htmlFor="edit-live-hidden"
+                    className="relative inline-flex h-5 w-9 cursor-pointer items-center rounded-full bg-muted peer-checked:bg-primary transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="font-normal">Signup trial plan</Label>
+                    <p className="text-xs text-muted-foreground">Auto-granted to every new signup for 14 days. Only one plan can be marked as this.</p>
+                  </div>
+                  <input type="checkbox" name="isTrialPlan" defaultChecked={editing.isTrialPlan} className="sr-only peer" id="edit-live-isTrialPlan" />
+                  <label
+                    htmlFor="edit-live-isTrialPlan"
+                    className="relative inline-flex h-5 w-9 cursor-pointer items-center rounded-full bg-muted peer-checked:bg-primary transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4"
+                  />
+                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
@@ -309,6 +383,93 @@ function LivePlansTab() {
               </DialogFooter>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create dialog */}
+      <Dialog open={creating} onOpenChange={(open) => { if (!open) { setCreating(false); setCreateFeaturesRaw(""); } }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <form onSubmit={handleCreate}>
+            <DialogHeader>
+              <DialogTitle>Create Live Plan</DialogTitle>
+              <DialogDescription>Add a new validity-based live-class plan</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Name</Label>
+                <Input name="name" required maxLength={100} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Description</Label>
+                <Input name="description" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-2">
+                  <Label>Validity (days)</Label>
+                  <Input name="validity" type="number" min={1} required />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Price (₹)</Label>
+                  <Input name="price" type="number" min={0} required />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-2">
+                  <Label>Original Price (₹)</Label>
+                  <Input name="originalPrice" type="number" min={0} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Recording Access (days)</Label>
+                  <Input name="recordingAccess" type="number" min={0} defaultValue={0} />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Features <span className="text-muted-foreground text-xs">(one per line)</span></Label>
+                <textarea
+                  className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={createFeaturesRaw}
+                  onChange={(e) => setCreateFeaturesRaw(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="font-normal">Batch Restricted</Label>
+                  <p className="text-xs text-muted-foreground">Sādhakas must select a batch</p>
+                </div>
+                <input type="checkbox" name="batchRestricted" defaultChecked className="sr-only peer" id="create-live-batchRestricted" />
+                <label
+                  htmlFor="create-live-batchRestricted"
+                  className="relative inline-flex h-5 w-9 cursor-pointer items-center rounded-full bg-muted peer-checked:bg-primary transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="font-normal">Hidden from users</Label>
+                  <p className="text-xs text-muted-foreground">Excluded from the public pricing page</p>
+                </div>
+                <input type="checkbox" name="hidden" className="sr-only peer" id="create-live-hidden" />
+                <label
+                  htmlFor="create-live-hidden"
+                  className="relative inline-flex h-5 w-9 cursor-pointer items-center rounded-full bg-muted peer-checked:bg-primary transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="font-normal">Signup trial plan</Label>
+                  <p className="text-xs text-muted-foreground">Auto-granted to every new signup for 14 days. Only one plan can be marked as this.</p>
+                </div>
+                <input type="checkbox" name="isTrialPlan" className="sr-only peer" id="create-live-isTrialPlan" />
+                <label
+                  htmlFor="create-live-isTrialPlan"
+                  className="relative inline-flex h-5 w-9 cursor-pointer items-center rounded-full bg-muted peer-checked:bg-primary transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { setCreating(false); setCreateFeaturesRaw(""); }}>Cancel</Button>
+              <Button type="submit" disabled={isCreatingPlan}>{isCreatingPlan ? "Creating..." : "Create Plan"}</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

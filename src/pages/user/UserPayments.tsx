@@ -198,7 +198,7 @@ export function UserPayments() {
         ]);
         if (cancelled) return;
 
-        setLivePlans(live.filter((p) => p.isActive).map(livePlanToUi));
+        setLivePlans(live.filter((p) => p.isActive && !p.hidden).map(livePlanToUi));
         setSelfPacedPlans(selfPaced.filter((p) => p.isActive).map(selfPacedToUi));
         setYttSelfPacedPlans(yttRecorded.filter((p) => p.isActive).map(yttRecordedToUi));
         setYttLivePlans(yttLive.filter((p) => p.isActive).map(yttLiveToUi));

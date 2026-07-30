@@ -40,6 +40,8 @@ export type LivePlanBody = {
   recordingAccess?: number;
   isActive?: boolean;
   batchRestricted?: boolean;
+  hidden?: boolean;
+  isTrialPlan?: boolean;
 };
 
 export function listLivePlans(role: LoginRole = "STUDENT") {

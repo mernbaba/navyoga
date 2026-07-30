@@ -683,6 +683,8 @@ export type LivePlan = {
   recordingAccess: number;
   isActive: boolean;
   batchRestricted: boolean;
+  hidden: boolean;
+  isTrialPlan: boolean;
   createdAt: string;
   updatedAt: string;
 };

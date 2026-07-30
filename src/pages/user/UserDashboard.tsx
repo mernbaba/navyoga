@@ -13,10 +13,9 @@ import {
 import { Link, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import { toast } from "sonner";
-import { ImageWithFallback } from "../../components/Fallback/ImageWithFallback";
 import { getStudentDashboard, type StudentDashboard } from "../../api/dashboard";
-import { listMyLiveClasses } from "../../api/plans";
-import type { LiveClass } from "../../api/types";
+import { listMyLiveClasses, getMyLiveEnrollment } from "../../api/plans";
+import type { LiveClass, MyLiveEnrollmentResponse } from "../../api/types";
 import { RenewPlanModal, type RenewCategory } from "../../components/RenewPlanModal";
 import { getRenewalPrompt, asPrompt, type RenewalPrompt } from "../../api/renewal";
 import { getMyClassAttendance } from "../../api/attendance";
@@ -60,6 +59,7 @@ const formatScheduled = (iso: string | null): { date: string; time: string } => 
 
 export function UserDashboard() {
   const [data, setData] = useState<StudentDashboard | null>(null);
+  const [liveEnrollment, setLiveEnrollment] = useState<MyLiveEnrollmentResponse | null>(null);
   const [liveClasses, setLiveClasses] = useState<LiveClass[]>([]);
   const [attendance, setAttendance] = useState<MyClassAttendance["summary"] | null>(null);
   const [enrolledModalOpen, setEnrolledModalOpen] = useState(false);
@@ -85,6 +85,22 @@ export function UserDashboard() {
     };
   }, []);
 
+  // The student's current Live plan (trial or paid) — drives the "Your Plan"
+  // card that replaced the old static promo banner.
+  useEffect(() => {
+    let cancelled = false;
+    getMyLiveEnrollment()
+      .then((res) => {
+        if (!cancelled) setLiveEnrollment(res);
+      })
+      .catch(() => {
+        // Non-fatal: the card falls back to a generic "explore plans" CTA.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Cross-category "recently expired — renew?" prompts. Flatten every category
   // into a queue and surface one modal at a time.
   useEffect(() => {
@@ -94,7 +110,10 @@ export function UserDashboard() {
         if (cancelled) return;
         const queue: { category: RenewCategory; prompt: RenewalPrompt }[] = [];
         const live = asPrompt(rollup.live);
-        if (live) queue.push({ category: "live", prompt: live });
+        // A lapsed free trial is surfaced in the "Your Plan" card instead of
+        // the generic renew-modal — "Renew ₹0" would be nonsensical and would
+        // silently re-grant a free trial through the checkout path.
+        if (live && !live.plan.isTrialPlan) queue.push({ category: "live", prompt: live });
         const selfPaced = asPrompt(rollup.selfPaced);
         if (selfPaced) queue.push({ category: "self-paced", prompt: selfPaced });
         for (const p of rollup.yttLive) queue.push({ category: "ytt-live", prompt: p });
@@ -248,41 +267,81 @@ export function UserDashboard() {
     toast.success("Referral code copied to clipboard!");
   };
 
+  // Drives the "Your Plan" card: active trial/paid plan, a recently-lapsed
+  // trial/plan, or a plain "explore plans" fallback when there's nothing to
+  // report yet (or the fetch hasn't resolved).
+  const planCardInfo = useMemo(() => {
+    const enrollment = liveEnrollment?.enrolled ? liveEnrollment.enrollment : null;
+    if (enrollment) {
+      const isTrial = enrollment.plan.isTrialPlan;
+      const daysLeft = Math.max(
+        0,
+        Math.ceil((new Date(enrollment.endDate).getTime() - Date.now()) / 86_400_000),
+      );
+      return {
+        kind: "active" as const,
+        badge: isTrial ? "FREE TRIAL" : "ACTIVE PLAN",
+        title: isTrial ? `${daysLeft} day${daysLeft === 1 ? "" : "s"} left in your free trial` : enrollment.plan.name,
+        subtitle: isTrial
+          ? "Enjoy full access to live classes — pick a plan before it ends to keep going."
+          : `Valid till ${new Date(enrollment.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })} · ${daysLeft} day${daysLeft === 1 ? "" : "s"} left`,
+        cta: isTrial ? "Explore Plans" : "Manage Plan",
+      };
+    }
+
+    const recentlyExpired = liveEnrollment?.recentlyExpired ?? null;
+    if (recentlyExpired) {
+      const isTrial = recentlyExpired.plan.isTrialPlan;
+      return {
+        kind: "expired" as const,
+        badge: isTrial ? "TRIAL ENDED" : "PLAN ENDED",
+        title: isTrial ? "Your free trial has ended" : `Your ${recentlyExpired.plan.name} plan has ended`,
+        subtitle: "Choose a plan to keep your live class access going.",
+        cta: "Choose a Plan",
+      };
+    }
+
+    return {
+      kind: "none" as const,
+      badge: "GET STARTED",
+      title: "Explore our yoga plans",
+      subtitle: "Find the plan that fits your practice — live classes, recordings, and more.",
+      cta: "View Plans",
+    };
+  }, [liveEnrollment]);
+
   return (
     <div className="p-6 lg:p-8 min-h-screen bg-linear-to-br from-gray-50 via-white to-orange-50/30">
       <div className="space-y-6">
  
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl shadow-2xl group cursor-pointer"
+          className="relative overflow-hidden rounded-3xl shadow-2xl group cursor-pointer bg-linear-to-r from-[#610981] to-[#ff691d]"
         >
-          <Link to="/user/subscriptions">
-            <ImageWithFallback
-              src="https://images.unsplash.com/photo-1758599879927-f60878034fca?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b2dhJTIwd2VsbG5lc3MlMjBwcm9tb3Rpb24lMjBiYW5uZXJ8ZW58MXx8fHwxNzc0NTk0OTgzfDA&ixlib=rb-4.1.0&q=80&w=1080"
-              alt="Navyoga Wellness Special Promotion"
-              className="w-full h-48 md:h-64 lg:h-72 object-cover"
-            />
-            <div className="absolute inset-0 bg-linear-to-r from-black/60 via-black/40 to-transparent flex items-center">
-              <div className="p-8 md:p-12">
-                <Badge className="mb-4 bg-[#ff691d] text-white border-0 px-4 py-1.5">
-                  🎉 LIMITED TIME OFFER
-                </Badge>
-                <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 leading-tight">
-                  Get 20% OFF<br />on Annual Plans!
-                </h2>
-                <Button
-                  size="lg"
-                  className="bg-white hover:bg-white/90 text-[#610981] font-bold shadow-xl hover:shadow-2xl transition-all duration-300 group-hover:scale-105"
-                >
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Claim Offer Now
-                </Button>
-              </div>
-            </div>
+          <Link to="/user/subscriptions" className="block p-8 md:p-12">
+            <Badge className="mb-4 bg-white/20 text-white border-0 px-4 py-1.5 backdrop-blur">
+              {planCardInfo.kind === "active" ? (
+                <Crown className="w-3.5 h-3.5 mr-1.5" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+              )}
+              {planCardInfo.badge}
+            </Badge>
+            <h2 className="text-2xl md:text-4xl font-bold text-white mb-3 leading-tight">
+              {planCardInfo.title}
+            </h2>
+            <p className="text-white/85 mb-6 max-w-xl">{planCardInfo.subtitle}</p>
+            <Button
+              size="lg"
+              className="bg-white hover:bg-white/90 text-[#610981] font-bold shadow-xl hover:shadow-2xl transition-all duration-300 group-hover:scale-105"
+            >
+              <Sparkles className="w-5 h-5 mr-2" />
+              {planCardInfo.cta}
+            </Button>
           </Link>
         </motion.div>
- 
+
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {metrics.map((metric, index) => {
             const Icon = metric.icon;
