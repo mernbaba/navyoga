@@ -141,17 +141,18 @@ export function TutorClasses() {
     });
   }, [filteredClasses, statusTab]);
 
+  // Legacy mesh path. The "Join (Old)" button that calls this is commented
+  // out in the table below; keep this handler so re-enabling is a one-line
+  // uncomment.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleStartClass = (classItem: TutorAssignedClass) => {
     toast.success("Starting live session...");
     navigate(`/tutor/video-session?classId=${classItem.id}`);
   };
 
-  // Experimental mediasoup SFU path (isolated from the mesh). The "Join (New)"
-  // button that calls this is commented out in the table below; keep this
-  // handler so re-enabling is a one-line uncomment.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // SFU path — now the default for all Join buttons.
   const handleStartClassSfu = (classItem: TutorAssignedClass) => {
-    toast.success("Starting live session (SFU)...");
+    toast.success("Starting live session...");
     navigate(`/tutor/video-session?classId=${classItem.id}&mode=sfu`);
   };
 
@@ -163,7 +164,7 @@ export function TutorClasses() {
   const confirmStartSession = () => {
     if (selectedClass) {
       setSessionDialog(false);
-      handleStartClass(selectedClass);
+      handleStartClassSfu(selectedClass);
     }
   };
 
@@ -395,28 +396,29 @@ export function TutorClasses() {
                                 {cls.state === "PAST" ? (
                                   <span className="text-sm text-muted-foreground">-</span>
                                 ) : (
-                                  <Button
-                                    onClick={() => handleStartClass(cls)}
-                                    className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
-                                    size="sm"
-                                    disabled={!isJoinable(cls)}
-                                    title={!isJoinable(cls) ? `Available ${JOIN_WINDOW_MINUTES} minutes before class` : undefined}
-                                  >
-                                    <Play className="w-4 h-4 mr-1" />
-                                    {cls.kind === "YTT_LIVE" ? "Join" : isLive ? "Rejoin" : "Start"}
-                                  </Button>
-                                )}
-                                {cls.state !== "PAST" && (
-                                  <Button
-                                    onClick={() => handleStartClassSfu(cls)}
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!isJoinable(cls)}
-                                    title={!isJoinable(cls) ? `Available ${JOIN_WINDOW_MINUTES} minutes before class` : "Experimental SFU meeting"}
-                                  >
-                                    <Play className="w-4 h-4 mr-1" />
-                                    Join (New)
-                                  </Button>
+                                  <>
+                                    {/* Join (Old) — legacy mesh session, superseded by the SFU session below */}
+                                    {/* <Button
+                                      onClick={() => handleStartClass(cls)}
+                                      className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
+                                      size="sm"
+                                      disabled={!isJoinable(cls)}
+                                      title={!isJoinable(cls) ? `Available ${JOIN_WINDOW_MINUTES} minutes before class` : undefined}
+                                    >
+                                      <Play className="w-4 h-4 mr-1" />
+                                      {cls.kind === "YTT_LIVE" ? "Join (Old)" : isLive ? "Rejoin (Old)" : "Start (Old)"}
+                                    </Button> */}
+                                    <Button
+                                      onClick={() => handleStartClassSfu(cls)}
+                                      className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
+                                      size="sm"
+                                      disabled={!isJoinable(cls)}
+                                      title={!isJoinable(cls) ? `Available ${JOIN_WINDOW_MINUTES} minutes before class` : undefined}
+                                    >
+                                      <Play className="w-4 h-4 mr-1" />
+                                      {cls.kind === "YTT_LIVE" ? "Join" : isLive ? "Rejoin" : "Start"}
+                                    </Button>
+                                  </>
                                 )}
                               </div>
                             </TableCell>

@@ -561,7 +561,7 @@ function resolveAction(c: ClassWithCourse): Action {
 function ActionButton({ action }: { action: Action }) {
   if (action.kind === "join") {
     return (
-      <Link to={`/user/class-session/${action.classId}`}>
+      <Link to={`/user/class-session/${action.classId}?mode=sfu`}>
         <Button className="w-full bg-linear-to-r from-[#ef4444] to-[#f97316] text-white shadow-lg">
           <Radio className="w-4 h-4 mr-2" />
           Join Live

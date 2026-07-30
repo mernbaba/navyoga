@@ -60,10 +60,20 @@ export function TutorDashboard() {
     });
   }, []);
 
+  // Legacy mesh path. The "Start (Old)" button that calls this is commented
+  // out below; keep this handler so re-enabling is a one-line uncomment.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleStartClass = (classId: string, className?: string) => {
     if (className) setActiveSession(className);
     toast.success("Starting live session...");
     navigate(`/tutor/video-session?classId=${classId}`);
+  };
+
+  // SFU path — now the default for all Join/Start buttons.
+  const handleStartClassSfu = (classId: string, className?: string) => {
+    if (className) setActiveSession(className);
+    toast.success("Starting live session...");
+    navigate(`/tutor/video-session?classId=${classId}&mode=sfu`);
   };
 
   const handleEndClass = () => {
@@ -211,21 +221,22 @@ export function TutorDashboard() {
                     </div>
                     {!activeSession && (
                       <div className="flex gap-2">
-                        <Button
+                        {/* Start (Old) — legacy mesh session, superseded by the SFU session below */}
+                        {/* <Button
                           onClick={() => handleStartClass(cls.id, cls.title)}
                           className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
                           size="sm"
                         >
                           <Play className="w-4 h-4 mr-1" />
-                          Start
-                        </Button>
+                          Start (Old)
+                        </Button> */}
                         <Button
-                          onClick={() => navigate(`/tutor/video-session?classId=${cls.id}&mode=sfu`)}
-                          variant="outline"
+                          onClick={() => handleStartClassSfu(cls.id, cls.title)}
+                          className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
                           size="sm"
                         >
                           <Play className="w-4 h-4 mr-1" />
-                          Start (New)
+                          Start
                         </Button>
                       </div>
                     )}
