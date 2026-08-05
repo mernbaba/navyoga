@@ -40,6 +40,15 @@ export type SfuChatMessage = {
 
 // sfu:join-room either admits us into the class or - only while the yoga
 // shikshak (host) has yet to start it - parks us in the waiting room.
+// STUN/TURN servers the server tells us to use. Without a TURN relay a client
+// on symmetric NAT can finish signalling but never exchange media, which looks
+// exactly like "I'm in the class but nobody can see or hear me".
+export type SfuIceServer = {
+  urls: string | string[];
+  username?: string;
+  credential?: string;
+};
+
 export type SfuJoinResult =
   | { status: "waiting"; waitingCount: number }
   | {
@@ -48,6 +57,7 @@ export type SfuJoinResult =
       participants: SfuParticipant[];
       hostUserId: string | null;
       rtpCapabilities: RtpCapabilities;
+      iceServers?: SfuIceServer[];
     };
 
 export type SfuTransportParams = {
@@ -99,6 +109,9 @@ type SfuServerToClient = {
   "sfu:waiting-update": (payload: { waitingCount: number }) => void;
   // The host started the class - re-run sfu:join-room to be let in.
   "sfu:host-joined": (payload: Record<string, never>) => void;
+
+  // The room's host slot moved to the tutor the class is actually assigned to.
+  "sfu:host-changed": (payload: { hostUserId: string | null }) => void;
 
   "sfu:message-received": (payload: SfuChatMessage) => void;
   "sfu:mute-request": (payload: { mute: true }) => void;
@@ -171,6 +184,13 @@ type SfuClientToServer = {
     ack: (res: AckOk<{ ok: true }>) => void,
   ) => void;
 
+  // Read-only "has the class started yet?" poll, used as a safety net for the
+  // one-shot sfu:host-joined broadcast while sitting in the waiting room.
+  "sfu:waiting-status": (
+    payload: { classId: string },
+    ack: (res: AckOk<{ started: boolean; waitingCount: number }>) => void,
+  ) => void;
+
   "sfu:toggle-mute": (payload: { is_muted: boolean }) => void;
   "sfu:toggle-video": (payload: { is_video_off: boolean }) => void;
   "sfu:leave-room": () => void;
@@ -194,11 +214,26 @@ export const emitWithAck = <T>(
 ): Promise<T> =>
   new Promise<T>((resolve, reject) => {
     let settled = false;
+    const finish = () => {
+      settled = true;
+      window.clearTimeout(timer);
+      socket.off("disconnect", onDisconnect);
+    };
+    // A request in flight when the socket drops would otherwise sit here for the
+    // full timeout, holding the join flow open long enough for the reconnect
+    // that follows to be ignored. Fail it immediately instead so the caller can
+    // retry on the fresh connection.
+    const onDisconnect = () => {
+      if (settled) return;
+      finish();
+      reject(new Error(`${String(event)}: disconnected`));
+    };
     const timer = window.setTimeout(() => {
       if (settled) return;
-      settled = true;
+      finish();
       reject(new Error(`${String(event)} timed out`));
     }, timeoutMs);
+    socket.on("disconnect", onDisconnect);
 
     // socket.io types don't narrow the generic ack easily here; the runtime
     // shape is validated by the AckOk check below.
@@ -207,8 +242,7 @@ export const emitWithAck = <T>(
       payload,
       (res: AckOk<T>) => {
         if (settled) return;
-        settled = true;
-        window.clearTimeout(timer);
+        finish();
         if (res && typeof res === "object" && "error" in res) {
           reject(new Error((res as { error: string }).error));
         } else {

@@ -172,6 +172,17 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
     }
   }, [role]);
 
+  // Template create/update/delete now adds or removes the generated classes
+  // server-side, in the same request, so every mutation re-pulls this list.
+  const refreshGeneratedClasses = useCallback(async () => {
+    try {
+      const list = await listLiveClasses(role, { limit: 100 });
+      setGeneratedClasses(list.items.filter((c) => c.recurringId !== null));
+    } catch {
+      /* the list just stays stale until the next load */
+    }
+  }, [role]);
+
   useEffect(() => {
     load();
     listTutors(role, { limit: 100, status: "ACTIVE" })
@@ -229,6 +240,8 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
     if (form.daysOfWeek.length === 0) return toast.error("Select at least one day");
     if (!form.timeOfDay) return toast.error("Class time is required");
     if (!form.startDate) return toast.error("Start date is required");
+    if (!form.endDate) return toast.error("End date is required");
+    if (form.endDate < form.startDate) return toast.error("End date must be on or after the start date");
 
     setSaving(true);
     try {
@@ -240,9 +253,9 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
         daysOfWeek: form.daysOfWeek,
         timeOfDay: form.timeOfDay,
         startDate: new Date(form.startDate).toISOString(),
+        endDate: new Date(form.endDate).toISOString(),
         ...(form.description ? { description: form.description } : {}),
         ...(form.tutorId ? { tutorId: form.tutorId } : {}),
-        ...(form.endDate ? { endDate: new Date(form.endDate).toISOString() } : {}),
       };
 
       if (editingTemplate) {
@@ -253,22 +266,20 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
           batchId: form.batchId || null,
         });
         setTemplates((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-        toast.success("Recurring template updated");
+        toast.success(
+          `Template updated - ${updated.removedCount} upcoming class(es) replaced with ${updated.generatedCount}`,
+        );
       } else {
         const created = await createRecurringLiveClass(role, {
           ...payload,
           ...(form.batchId ? { batchId: form.batchId } : {}),
         });
         setTemplates((prev) => [created, ...prev]);
-        toast.success("Recurring template created - classes will be generated at midnight");
+        toast.success(`Template created - ${created.generatedCount} class(es) generated`);
       }
       setTemplateDialogOpen(false);
-      // Reload generated classes after a short delay to catch any immediate generation
-      setTimeout(() => {
-        listLiveClasses(role, { limit: 100 })
-          .then((list) => setGeneratedClasses(list.items.filter((c) => c.recurringId !== null)))
-          .catch(() => {});
-      }, 800);
+      // Classes are created synchronously by the API, so refresh straight away.
+      await refreshGeneratedClasses();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Save failed");
     } finally {
@@ -280,7 +291,13 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
     try {
       const updated = await updateRecurringLiveClass(role, t.id, { isActive: !t.isActive });
       setTemplates((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
-      toast.success(updated.isActive ? "Template activated" : "Template deactivated");
+      // Activating regenerates the schedule; deactivating clears the upcoming classes.
+      await refreshGeneratedClasses();
+      toast.success(
+        updated.isActive
+          ? `Template activated - ${updated.generatedCount} class(es) generated`
+          : `Template deactivated - ${updated.removedCount} upcoming class(es) removed`,
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to update");
     }
@@ -290,9 +307,10 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
     if (!deleteTemplateTarget) return;
     setDeletingTemplate(true);
     try {
-      await deleteRecurringLiveClass(role, deleteTemplateTarget.id);
+      const { removedCount } = await deleteRecurringLiveClass(role, deleteTemplateTarget.id);
       setTemplates((prev) => prev.filter((t) => t.id !== deleteTemplateTarget.id));
-      toast.success("Recurring template deleted");
+      await refreshGeneratedClasses();
+      toast.success(`Template deleted - ${removedCount} upcoming class(es) removed`);
       setDeleteTemplateTarget(null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Delete failed");
@@ -401,7 +419,8 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
               <div className="flex flex-col items-center justify-center py-12 rounded-2xl border border-dashed border-border/60">
                 <Radio className="w-10 h-10 mb-3 text-[#610981]/20" />
                 <p className="text-sm text-muted-foreground">
-                  No generated classes yet - they appear here after the cron runs at midnight
+                  No generated classes yet - create a template above and its classes appear here
+                  straight away
                 </p>
               </div>
             ) : (
@@ -545,16 +564,19 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="flex items-center gap-1">
-                  End Date
-                  <span className="text-[10px] text-muted-foreground font-normal">(optional)</span>
+                <Label>
+                  End Date <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   type="date"
                   value={form.endDate}
+                  min={form.startDate || undefined}
                   onChange={(e) => setField("endDate", e.target.value)}
                   className="h-9 rounded-xl bg-input-background/50"
                 />
+                <p className="text-[10px] text-muted-foreground">
+                  Classes are generated up to this date.
+                </p>
               </div>
             </div>
 
@@ -658,8 +680,9 @@ export function ClassesLiveRecurring({ role = "SUPERADMIN" }: ClassesLiveRecurri
           <AlertDialogHeader>
             <AlertDialogTitle>Delete recurring template?</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>"{deleteTemplateTarget?.title}"</strong> template will be removed. Already
-              generated classes will remain but won't be linked to this template.
+              <strong>"{deleteTemplateTarget?.title}"</strong> template and all of its upcoming
+              classes will be removed. Classes that already ran, or that a sādhaka has joined, are
+              kept for history.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

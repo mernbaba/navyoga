@@ -32,6 +32,7 @@ import {
   emitWithAck,
   type SfuChatMessage,
   type SfuClientSocket,
+  type SfuIceServer,
   type SfuJoinResult,
   type SfuParticipant,
   type SfuProducerSource,
@@ -151,6 +152,9 @@ export const SfuMeetingProvider = ({
   const deviceRef = useRef<Device | null>(null);
   const sendTransportRef = useRef<Transport | null>(null);
   const recvTransportRef = useRef<Transport | null>(null);
+  // STUN/TURN list handed to us by the server in the join ack, applied to both
+  // transports so restrictive networks can still relay media.
+  const iceServersRef = useRef<SfuIceServer[]>([]);
 
   // Local media
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -221,6 +225,9 @@ export const SfuMeetingProvider = ({
   const compositorTrackIdRef = useRef<string | null>(null);
   const syncRecordingSourcesRef = useRef<(() => void) | null>(null);
   const startRecordingRef = useRef<((auto?: boolean) => void) | null>(null);
+  // Set when a recording must be thrown away instead of uploaded (we lost the
+  // host slot to the tutor the class actually belongs to).
+  const discardRecordingRef = useRef(false);
 
   useEffect(() => {
     onLeaveRef.current = onLeave;
@@ -425,13 +432,18 @@ export const SfuMeetingProvider = ({
     const device = deviceRef.current;
     if (!socket || !device) return;
 
+    const iceServers = iceServersRef.current;
+
     // --- Send transport ---
     const sendParams = await emitWithAck<SfuTransportParams>(
       socket,
       "sfu:create-transport",
       { direction: "send" },
     );
-    const sendTransport = device.createSendTransport(sendParams);
+    const sendTransport = device.createSendTransport({
+      ...sendParams,
+      ...(iceServers.length > 0 ? { iceServers } : {}),
+    });
     sendTransport.on("connect", ({ dtlsParameters }, callback, errback) => {
       emitWithAck(socket, "sfu:connect-transport", {
         direction: "send",
@@ -461,7 +473,10 @@ export const SfuMeetingProvider = ({
       "sfu:create-transport",
       { direction: "recv" },
     );
-    const recvTransport = device.createRecvTransport(recvParams);
+    const recvTransport = device.createRecvTransport({
+      ...recvParams,
+      ...(iceServers.length > 0 ? { iceServers } : {}),
+    });
     recvTransport.on("connect", ({ dtlsParameters }, callback, errback) => {
       emitWithAck(socket, "sfu:connect-transport", {
         direction: "recv",
@@ -949,6 +964,15 @@ export const SfuMeetingProvider = ({
         recorderRef.current = null;
         setIsRecording(false);
 
+        // We auto-started a recording while holding the host slot, then the
+        // class's own tutor arrived and took it. The presign endpoint only
+        // accepts that tutor, so uploading would 403 - drop it silently.
+        if (discardRecordingRef.current) {
+          discardRecordingRef.current = false;
+          setIsRecordingBusy(false);
+          return;
+        }
+
         if (blob.size === 0) {
           setIsRecordingBusy(false);
           return;
@@ -1215,38 +1239,132 @@ export const SfuMeetingProvider = ({
     // that is a reconnect and triggers a full rejoin (the server forgot us the
     // moment the old socket dropped).
     let hasConnectedOnce = false;
-    let joining = false;
+    // Every join attempt takes an epoch. A newer attempt (reconnect, waiting-room
+    // admission) bumps it, and the older one abandons itself at its next await.
+    // Previously a single `joining` boolean gated the reconnect handler, so a
+    // join still in flight when the socket dropped swallowed the rejoin entirely
+    // and the user sat on "Connecting…" until the attempt timed out and threw
+    // them out of the class.
+    let joinEpoch = 0;
     // True while we're parked in the waiting room (class not started yet).
     let waitingNow = false;
-    // A "host joined" that landed while a join was already in flight; replayed
-    // once that join settles so we can never get stranded in the waiting room.
-    let hostJoinedPending = false;
+    let waitingPollTimer: number | null = null;
+    let retryTimer: number | null = null;
+    // Manual reconnect timer, used only when socket.io itself has given up
+    // (auth/middleware connect_error).
+    let reconnectTimer: number | null = null;
+    let retryAttempt = 0;
+    let hasJoinedOnce = false;
+
+    const clearTimer = (id: number | null) => {
+      if (id !== null) window.clearTimeout(id);
+    };
+
+    const stopWaitingPoll = () => {
+      clearTimer(waitingPollTimer);
+      waitingPollTimer = null;
+    };
+
+    const stopRetry = () => {
+      clearTimer(retryTimer);
+      retryTimer = null;
+    };
+
+    // Safety net for the waiting room. `sfu:host-joined` is broadcast ONCE, the
+    // instant the shikshak's join is processed - so anything that makes a client
+    // miss it (a reconnect, a join of our own still in flight, the room being
+    // rebuilt after a worker restart) used to leave students staring at the
+    // waiting screen for the whole class. Polling a cheap read-only status makes
+    // admission self-healing regardless of what happened to the broadcast.
+    const startWaitingPoll = () => {
+      stopWaitingPoll();
+      const tick = () => {
+        waitingPollTimer = null;
+        const socket = socketRef.current;
+        if (cancelled || teardownStartedRef.current || !waitingNow) return;
+        if (!socket || !socket.connected) {
+          waitingPollTimer = window.setTimeout(tick, 5000);
+          return;
+        }
+        emitWithAck<{ started: boolean; waitingCount: number }>(
+          socket,
+          "sfu:waiting-status",
+          { classId },
+          8000,
+        )
+          .then((status) => {
+            if (cancelled || teardownStartedRef.current || !waitingNow) return;
+            if (status.started) {
+              void attemptJoin("admitted from the waiting room");
+              return;
+            }
+            setWaitingCount(status.waitingCount);
+            waitingPollTimer = window.setTimeout(tick, 5000);
+          })
+          .catch(() => {
+            if (cancelled || teardownStartedRef.current || !waitingNow) return;
+            waitingPollTimer = window.setTimeout(tick, 5000);
+          });
+      };
+      waitingPollTimer = window.setTimeout(tick, 5000);
+    };
+
+    // A join attempt failed. NEVER eject the user for it: a single ack timeout
+    // or a transport hiccup used to call teardown() + onLeave() and dump the
+    // tutor back on the class list mid-session ("I get kicked out of the
+    // class"). Keep the meeting mounted and keep retrying instead.
+    const scheduleRetry = () => {
+      stopRetry();
+      retryAttempt += 1;
+      const delay = Math.min(1000 * 2 ** (retryAttempt - 1), 10000);
+      retryTimer = window.setTimeout(() => {
+        retryTimer = null;
+        if (cancelled || teardownStartedRef.current) return;
+        const socket = socketRef.current;
+        // Not connected? The socket's own 'connect' handler will start the join
+        // as soon as it is back - no point racing it here.
+        if (!socket || !socket.connected) return;
+        void attemptJoin("retry");
+      }, delay);
+    };
 
     // Join (or re-join) the room on the current socket: signalling handshake,
     // transports, then produce whatever local tracks are live and consume
     // everything already in the room. May instead land us in the waiting room.
-    const joinSession = async (isRejoin: boolean) => {
+    const attemptJoin = async (reason: string) => {
       const socket = socketRef.current;
-      if (!socket || cancelled) return;
-      joining = true;
+      if (!socket || cancelled || teardownStartedRef.current) return;
+
+      const epoch = ++joinEpoch;
+      const stale = () =>
+        epoch !== joinEpoch || cancelled || teardownStartedRef.current;
+
+      stopWaitingPoll();
+      stopRetry();
+      // Anything built on a previous connection/attempt is dead to the server;
+      // rebuild from scratch. Local capture (mic/camera/screen) is untouched.
+      if (hasJoinedOnce || deviceRef.current) resetMediaSession();
+
       try {
         const joinRes = await emitWithAck<SfuJoinResult>(
           socket,
           "sfu:join-room",
           { classId, name: displayName },
         );
-        if (cancelled) return;
+        if (stale()) return;
 
         // The class hasn't been started yet: we're outside it, with no
         // transports and no producers, until the shikshak arrives. Nothing
-        // else to set up.
+        // else to set up - except the poll that gets us back in.
         if (joinRes.status === "waiting") {
           waitingNow = true;
+          retryAttempt = 0;
           setWaitingCount(joinRes.waitingCount);
           setParticipantsSynced([]);
           setSelf(null);
           setHostUserId(null);
           setConnectionState("waiting");
+          startWaitingPoll();
           return;
         }
 
@@ -1254,39 +1372,44 @@ export const SfuMeetingProvider = ({
         setSelf(joinRes.self);
         setParticipantsSynced(joinRes.participants);
         setHostUserId(joinRes.hostUserId);
+        iceServersRef.current = joinRes.iceServers ?? [];
 
         const device = new Device();
         await device.load({ routerRtpCapabilities: joinRes.rtpCapabilities });
+        if (stale()) return;
         deviceRef.current = device;
 
         await createTransports();
-        if (cancelled) return;
+        if (stale()) return;
 
         setConnectionState("joined");
+        hasJoinedOnce = true;
+        retryAttempt = 0;
 
         // Publish the mic track (kept but muted). Producing it means remote
         // peers can hear us the instant we unmute - no renegotiation needed.
         const micTrack = localStreamRef.current?.getAudioTracks()[0];
         if (micTrack && device.canProduce("audio")) {
           await produceTrack(micTrack, "mic");
+          if (stale()) return;
         }
 
-        // After a rejoin the server re-created us with the default state
-        // (muted, camera off) - re-publish any live local video and re-sync
-        // the flags so the rest of the room sees the truth.
-        if (isRejoin) {
-          const camTrack = localStreamRef.current?.getVideoTracks()[0];
-          if (camTrack && device.canProduce("video")) {
-            await produceTrack(camTrack, "camera");
-            socket.emit("sfu:toggle-video", { is_video_off: false });
-          }
-          const screenTrack = screenStreamRef.current?.getVideoTracks()[0];
-          if (screenTrack && device.canProduce("video")) {
-            await produceTrack(screenTrack, "screen");
-          }
-          if (!isMutedRef.current) {
-            socket.emit("sfu:toggle-mute", { is_muted: false });
-          }
+        // The server always re-creates us with the default state (muted, camera
+        // off), so re-publish whatever is actually live locally and re-sync the
+        // flags. On a first join nothing is live and this is a no-op.
+        const camTrack = localStreamRef.current?.getVideoTracks()[0];
+        if (camTrack && camTrack.readyState === "live" && device.canProduce("video")) {
+          await produceTrack(camTrack, "camera");
+          if (stale()) return;
+          socket.emit("sfu:toggle-video", { is_video_off: false });
+        }
+        const screenTrack = screenStreamRef.current?.getVideoTracks()[0];
+        if (screenTrack && screenTrack.readyState === "live" && device.canProduce("video")) {
+          await produceTrack(screenTrack, "screen");
+          if (stale()) return;
+        }
+        if (!isMutedRef.current) {
+          socket.emit("sfu:toggle-mute", { is_muted: false });
         }
 
         // Consume every producer that already exists in the room.
@@ -1298,7 +1421,9 @@ export const SfuMeetingProvider = ({
             producerUserId: string;
           }[];
         }>(socket, "sfu:list-producers", {});
+        if (stale()) return;
         for (const p of producers) {
+          if (stale()) return;
           await consumeProducer(
             p.producerId,
             p.producerSocketId,
@@ -1312,6 +1437,7 @@ export const SfuMeetingProvider = ({
         const queued = pendingProducersRef.current;
         pendingProducersRef.current = [];
         for (const p of queued) {
+          if (stale()) return;
           await consumeProducer(
             p.producerId,
             p.producerSocketId,
@@ -1327,32 +1453,17 @@ export const SfuMeetingProvider = ({
         if (isHost && !recorderRef.current) {
           startRecordingRef.current?.(true);
         }
-      } finally {
-        joining = false;
-        // Replay a host-joined that arrived mid-join.
-        if (hostJoinedPending) {
-          hostJoinedPending = false;
-          window.setTimeout(() => admitFromWaiting(), 0);
+      } catch (err) {
+        if (stale()) return;
+        console.error(`[sfu] join (${reason}) failed`, err);
+        if (!waitingNow) setConnectionState("connecting");
+        // Surface it once rather than on every retry, so a flaky network
+        // doesn't bury the screen in toasts.
+        if (retryAttempt === 0) {
+          toast.message("Trouble reaching the class - retrying…");
         }
+        scheduleRetry();
       }
-    };
-
-    // The host started the class while we were waiting: run the normal join
-    // again, this time straight in.
-    const admitFromWaiting = () => {
-      if (cancelled || teardownStartedRef.current || !waitingNow) return;
-      if (joining) {
-        hostJoinedPending = true;
-        return;
-      }
-      setConnectionState("connecting");
-      joinSession(true).catch((err) => {
-        console.error("[sfu] admit from waiting room failed", err);
-        if (cancelled || teardownStartedRef.current) return;
-        toast.error("Couldn't join the class");
-        teardown();
-        onLeaveRef.current();
-      });
     };
 
     const bootstrap = async () => {
@@ -1409,8 +1520,21 @@ export const SfuMeetingProvider = ({
       }
       socketRef.current = socket;
 
+      // A connect_error from the namespace middleware (bad/expired token, CORS,
+      // server down) leaves socket.io with `active === false`: it gives up and
+      // will NOT reconnect on its own, so the meeting would sit dead on screen
+      // forever. Drive the retry ourselves.
       socket.on("connect_error", (err) => {
-        toast.error(`Connection failed: ${err.message}`);
+        if (cancelled || teardownStartedRef.current) return;
+        console.error("[sfu] connect_error", err);
+        if (socket.active) return; // socket.io is already retrying
+        if (reconnectTimer !== null) return;
+        toast.message("Reconnecting to the class…");
+        reconnectTimer = window.setTimeout(() => {
+          reconnectTimer = null;
+          if (cancelled || teardownStartedRef.current) return;
+          socket.connect();
+        }, 3000);
       });
       socket.on("sfu:error", (payload) => toast.error(payload.message));
 
@@ -1418,36 +1542,38 @@ export const SfuMeetingProvider = ({
       // but the server treated the drop as a leave and destroyed our mediasoup
       // state - so on every connect after the first, rebuild the session.
       socket.on("connect", () => {
+        if (cancelled || teardownStartedRef.current) return;
         if (!hasConnectedOnce) {
           hasConnectedOnce = true;
           return;
         }
-        if (cancelled || teardownStartedRef.current || joining) return;
         toast.message("Reconnected - rejoining the class…");
         setConnectionState("connecting");
-        resetMediaSession();
-        joinSession(true).catch((err) => {
-          console.error("[sfu] rejoin failed", err);
-          if (cancelled || teardownStartedRef.current) return;
-          toast.error("Couldn't rejoin the class");
-          teardown();
-          onLeaveRef.current();
-        });
+        // attemptJoin bumps the epoch, so it always supersedes an attempt that
+        // was still in flight when the connection dropped.
+        void attemptJoin("reconnect");
       });
 
       socket.on("disconnect", () => {
         if (cancelled || teardownStartedRef.current) return;
         toast.message("Connection lost - reconnecting…");
+        // Someone parked in the waiting room keeps that screen through a blip -
+        // nothing about their situation has changed.
+        if (!waitingNow) setConnectionState("connecting");
       });
 
       // Waiting room ---------------------------------------------------------
       // We only ever enter the waiting room from the join ack; these keep it
-      // live and get us out of it.
+      // live and get us out of it. The poll started alongside them is the
+      // backstop for a missed sfu:host-joined.
       socket.on("sfu:waiting-update", ({ waitingCount: count }) => {
         setWaitingCount(count);
       });
 
-      socket.on("sfu:host-joined", () => admitFromWaiting());
+      socket.on("sfu:host-joined", () => {
+        if (cancelled || teardownStartedRef.current || !waitingNow) return;
+        void attemptJoin("host joined");
+      });
 
       // Server events -------------------------------------------------------
       socket.on("sfu:user-connected", ({ participant }) => {
@@ -1463,6 +1589,27 @@ export const SfuMeetingProvider = ({
         setParticipantsSynced((prev) =>
           prev.filter((p) => p.socketId !== socketId),
         );
+      });
+
+      // The server resolved the class's assigned tutor and moved the host slot
+      // to them. Re-point the pinned tile / host controls, and pick up the
+      // auto-recording if it turns out WE are the host after all (a superadmin
+      // or an early second tutor may have been holding the slot until now).
+      socket.on("sfu:host-changed", ({ hostUserId: nextHost }) => {
+        if (cancelled || teardownStartedRef.current) return;
+        setHostUserId(nextHost);
+        const isHost = !!selfRef.current && selfRef.current.userId === nextHost;
+        if (isHost) {
+          // We are the class's tutor and have just taken the slot back.
+          if (!recorderRef.current) startRecordingRef.current?.(true);
+          return;
+        }
+        // We were holding the slot and auto-recording; the real tutor has
+        // arrived. Stop and discard - only they can upload for this class.
+        if (recorderRef.current) {
+          discardRecordingRef.current = true;
+          stopRecording();
+        }
       });
 
       socket.on("sfu:participant-update", ({ participants: list }) => {
@@ -1577,23 +1724,19 @@ export const SfuMeetingProvider = ({
         onLeaveRef.current();
       });
 
-      // Initial join.
-      try {
-        await joinSession(false);
-      } catch (err) {
-        console.error("[sfu] join flow failed", err);
-        toast.error(
-          err instanceof Error ? err.message : "Failed to join the class",
-        );
-        teardown();
-        onLeaveRef.current();
-      }
+      // Initial join. attemptJoin never throws - it retries internally rather
+      // than dropping the user out of the meeting.
+      await attemptJoin("initial");
     };
 
     bootstrap();
 
     return () => {
       cancelled = true;
+      stopWaitingPoll();
+      stopRetry();
+      clearTimer(reconnectTimer);
+      reconnectTimer = null;
       teardown();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

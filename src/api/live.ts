@@ -97,10 +97,10 @@ export type RecurringLiveClassCreateBody = {
   daysOfWeek: DayOfWeek[];
   timeOfDay: string;
   startDate: string;
+  endDate: string;
   description?: string;
   tutorId?: string;
   batchId?: string;
-  endDate?: string;
 };
 
 export type RecurringLiveClassUpdateBody = Partial<
@@ -120,9 +120,17 @@ export function listRecurringLiveClasses(role: Role) {
   );
 }
 
+// The backend materialises the whole schedule synchronously on create/update and
+// clears the upcoming instances on update/delete, so these return the counts.
+export type RecurringCreateResult = RecurringLiveClass & { generatedCount: number };
+export type RecurringUpdateResult = RecurringLiveClass & {
+  removedCount: number;
+  generatedCount: number;
+};
+
 export function createRecurringLiveClass(role: Role, body: RecurringLiveClassCreateBody) {
-  return unwrap<RecurringLiveClass>(
-    authedRequest<ApiSuccess<RecurringLiveClass>>(role, {
+  return unwrap<RecurringCreateResult>(
+    authedRequest<ApiSuccess<RecurringCreateResult>>(role, {
       method: "POST",
       url: "/api/live/recurring",
       data: body,
@@ -131,8 +139,8 @@ export function createRecurringLiveClass(role: Role, body: RecurringLiveClassCre
 }
 
 export function updateRecurringLiveClass(role: Role, id: string, body: RecurringLiveClassUpdateBody) {
-  return unwrap<RecurringLiveClass>(
-    authedRequest<ApiSuccess<RecurringLiveClass>>(role, {
+  return unwrap<RecurringUpdateResult>(
+    authedRequest<ApiSuccess<RecurringUpdateResult>>(role, {
       method: "PATCH",
       url: `/api/live/recurring/${id}`,
       data: body,
@@ -141,8 +149,8 @@ export function updateRecurringLiveClass(role: Role, id: string, body: Recurring
 }
 
 export function deleteRecurringLiveClass(role: Role, id: string) {
-  return unwrap<null>(
-    authedRequest<ApiSuccess<null>>(role, {
+  return unwrap<{ removedCount: number }>(
+    authedRequest<ApiSuccess<{ removedCount: number }>>(role, {
       method: "DELETE",
       url: `/api/live/recurring/${id}`,
     }),
