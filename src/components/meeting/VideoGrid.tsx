@@ -149,7 +149,7 @@ export const VideoGrid = () => {
           }`}
         >
           <LayoutGrid className="h-4 w-4" />
-          Gallery
+          <span className="hidden sm:inline">Gallery</span>
         </button>
         <button
           onClick={() => setViewMode("speaker")}
@@ -160,7 +160,7 @@ export const VideoGrid = () => {
           }`}
         >
           <User className="h-4 w-4" />
-          Speaker
+          <span className="hidden sm:inline">Speaker</span>
         </button>
       </div>
 

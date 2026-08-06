@@ -33,7 +33,7 @@ const SfuMeetingRoomShell = () => {
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-zinc-950 text-white">
         <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
-        <p className="text-sm text-zinc-400">Connecting to class… (SFU)</p>
+        <p className="text-sm text-zinc-400">Connecting to class…</p>
       </div>
     );
   }
@@ -53,9 +53,6 @@ const SfuMeetingRoomShell = () => {
             Navyoga Wellness
           </span>
         </div>
-        <span className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-          SFU
-        </span>
         {isRecording && (
           <div className="flex items-center gap-1.5 rounded-md border border-red-500/25 bg-red-500/10 px-2.5 py-1 backdrop-blur">
             <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
