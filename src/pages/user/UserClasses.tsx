@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/ta
 import { motion } from "motion/react";
 import { getMyLiveEnrollment, listMyLiveClasses } from "../../api/plans";
 import { RenewPlanModal } from "../../components/RenewPlanModal";
+import { RecordingPlayerModal } from "../../components/RecordingPlayerModal";
 import type { RenewalPrompt } from "../../api/renewal";
 import { formatISTDateTime, isWithinJoinWindow } from "../../lib/datetime";
 import { resolveMediaUrl } from "../../lib/media";
@@ -370,6 +371,7 @@ function ClassCard({ liveClass: c }: { liveClass: LiveClass }) {
   const difficultyColor = DIFFICULTY_COLOR[c.difficulty];
   const difficultyGradient = DIFFICULTY_GRADIENT[c.difficulty];
   const action = resolveAction(c);
+  const [playerOpen, setPlayerOpen] = useState(false);
 
   return (
     <Card className="group border-2 border-gray-100 hover:border-purple-200 shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden">
@@ -412,9 +414,19 @@ function ClassCard({ liveClass: c }: { liveClass: LiveClass }) {
             </p>
           </div>
 
-          <ActionButton action={action} />
+          <ActionButton action={action} onWatch={() => setPlayerOpen(true)} />
         </div>
       </CardContent>
+
+      {action.kind === "watch" && (
+        <RecordingPlayerModal
+          open={playerOpen}
+          onOpenChange={setPlayerOpen}
+          src={action.href}
+          title={c.title}
+          scheduledAt={c.scheduledAt}
+        />
+      )}
     </Card>
   );
 }
@@ -461,7 +473,7 @@ function resolveAction(c: LiveClass): Action {
   return { kind: "unavailable" };
 }
 
-function ActionButton({ action }: { action: Action }) {
+function ActionButton({ action, onWatch }: { action: Action; onWatch: () => void }) {
   if (action.kind === "join") {
     return (
       <div className="flex flex-col gap-2">
@@ -483,12 +495,13 @@ function ActionButton({ action }: { action: Action }) {
   }
   if (action.kind === "watch") {
     return (
-      <a href={action.href} target="_blank" rel="noopener noreferrer">
-        <Button className="w-full bg-linear-to-r from-[#10b981] to-[#14b8a6] text-white shadow-lg">
-          <Play className="w-4 h-4 mr-2" />
-          Watch Recording
-        </Button>
-      </a>
+      <Button
+        onClick={onWatch}
+        className="w-full bg-linear-to-r from-[#10b981] to-[#14b8a6] text-white shadow-lg"
+      >
+        <Play className="w-4 h-4 mr-2" />
+        Watch Recording
+      </Button>
     );
   }
   if (action.kind === "scheduled") {

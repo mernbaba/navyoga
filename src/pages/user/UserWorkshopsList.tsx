@@ -45,6 +45,7 @@ import type {
   WorkshopWithSessions,
 } from "../../api/types";
 import { resolveMediaUrl } from "../../lib/media";
+import { RecordingPlayerModal } from "../../components/RecordingPlayerModal";
 import { CouponInput, type CouponApplied } from "../../components/CouponInput";
 import { computeGstAddOn, useGstPercentage } from "../../lib/gst";
 
@@ -681,13 +682,13 @@ function SessionStateBadge({ state, mode }: { state: SessionState; mode: Worksho
 function SessionRow({ session, enrolled }: { session: WorkshopSession; enrolled: boolean }) {
   const state = getSessionState(session);
   const ended = state === "ended";
-  // After end, the live join link expires; only the recording (if any) is usable.
-  // The join link is an external URL; the recording is a stored path/URL that
-  // must be resolved to its CDN location before use.
-  const mediaHref = !ended && session.link
-    ? session.link
-    : resolveMediaUrl(session.video) ?? null;
-  const canSeeMedia = enrolled && mediaHref;
+  const [playerOpen, setPlayerOpen] = useState(false);
+  // Before end, "link" is the live meeting URL (external — Zoom/Meet — always
+  // opened in a new tab). After end, the recording is a stored path/URL played
+  // back inline in an embedded player instead of opening a new tab.
+  const joinHref = !ended ? session.link : null;
+  const recordingSrc = ended ? resolveMediaUrl(session.video) ?? null : null;
+  const canSeeMedia = enrolled && (joinHref || recordingSrc);
   return (
     <div className="flex items-center gap-3 p-3 rounded-lg border bg-white">
       <div className="w-8 h-8 rounded-full bg-purple-100 text-[#610981] font-semibold flex items-center justify-center text-xs">
@@ -701,18 +702,36 @@ function SessionRow({ session, enrolled }: { session: WorkshopSession; enrolled:
         </p>
       </div>
       <SessionStateBadge state={state} mode={session.mode} />
-      {canSeeMedia ? (
+      {canSeeMedia && recordingSrc ? (
+        <button
+          type="button"
+          onClick={() => setPlayerOpen(true)}
+          className="inline-flex items-center gap-1 text-xs font-medium text-[#610981] hover:underline"
+        >
+          <PlayCircle className="w-4 h-4" /> Recording
+        </button>
+      ) : canSeeMedia && joinHref ? (
         <a
-          href={mediaHref}
+          href={joinHref}
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center gap-1 text-xs font-medium text-[#610981] hover:underline"
         >
-          <PlayCircle className="w-4 h-4" /> {ended ? "Recording" : state === "live" ? "Join" : "Open"}
+          <PlayCircle className="w-4 h-4" /> {state === "live" ? "Join" : "Open"}
         </a>
       ) : ended ? (
         <span className="text-xs text-muted-foreground">No recording</span>
       ) : null}
+
+      {recordingSrc && (
+        <RecordingPlayerModal
+          open={playerOpen}
+          onOpenChange={setPlayerOpen}
+          src={recordingSrc}
+          title={session.title}
+          scheduledAt={session.scheduledAt}
+        />
+      )}
     </div>
   );
 }
