@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import {
   SfuMeetingProvider,
@@ -21,8 +22,26 @@ type Props = {
 // shared VideoGrid/ControlBar/ParticipantList/ChatPanel components read the
 // mesh MeetingContext, which SfuMeetingProvider also supplies - so they render
 // against the SFU session with no changes.
+// The retry loop in SfuMeetingContext deliberately never gives up on its own
+// (a single blip shouldn't eject anyone) - so if we've been stuck on
+// "connecting" this long, something isn't self-healing (stale auth, dead
+// network, server issue) and the user needs a way out that isn't refreshing
+// the tab.
+const STUCK_RECONNECT_MS = 15000;
+
 const SfuMeetingRoomShell = () => {
-  const { connectionState, activePanel, isRecording } = useSfuMeeting();
+  const { connectionState, activePanel, isRecording, leaveMeeting } =
+    useSfuMeeting();
+  const [stuck, setStuck] = useState(false);
+
+  useEffect(() => {
+    if (connectionState !== "connecting") {
+      setStuck(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setStuck(true), STUCK_RECONNECT_MS);
+    return () => window.clearTimeout(timer);
+  }, [connectionState]);
 
   // No host in the class yet - hold this student outside it entirely.
   if (connectionState === "waiting") {
@@ -34,6 +53,30 @@ const SfuMeetingRoomShell = () => {
       <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-zinc-950 text-white">
         <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
         <p className="text-sm text-zinc-400">Connecting to class…</p>
+        {stuck && (
+          <div className="mt-2 flex flex-col items-center gap-3">
+            <p className="max-w-xs text-center text-xs text-zinc-500">
+              This is taking longer than usual. You can keep waiting, or
+              leave and rejoin.
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-800"
+              >
+                Reload page
+              </button>
+              <button
+                type="button"
+                onClick={leaveMeeting}
+                className="rounded-md border border-red-800 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-950"
+              >
+                Leave class
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

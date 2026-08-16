@@ -253,9 +253,10 @@ export const emitWithAck = <T>(
   });
 
 export const connectSfuSocket = (role: MeetingRoleClient): SfuClientSocket => {
-  const token =
+  const readToken = () =>
     role === "host" ? getRoleToken("TUTOR") : getRoleToken("STUDENT");
-  if (!token) {
+
+  if (!readToken()) {
     throw new Error(
       `Missing auth token for role ${role}. User must be logged in.`,
     );
@@ -264,8 +265,14 @@ export const connectSfuSocket = (role: MeetingRoleClient): SfuClientSocket => {
   // Note the "/sfu" namespace suffix on the URL - this connects to the
   // dedicated mediasoup namespace, NOT the default mesh namespace.
   return io(`${API_BASE_URL}/sfu`, {
-    auth: { token },
-    transports: ["websocket"],
+    // A function, not a static object: socket.io calls this fresh on every
+    // (re)connect attempt, so a token that rotated/expired mid-session is
+    // re-read from storage instead of the client hammering the server with
+    // the same now-dead token forever.
+    auth: (cb) => cb({ token: readToken() }),
+    // Match the server's fallback (index.ts) so a wifi/cellular handoff that
+    // can't complete a websocket upgrade can still ride through on polling.
+    transports: ["websocket", "polling"],
     autoConnect: true,
   }) as SfuClientSocket;
 };
