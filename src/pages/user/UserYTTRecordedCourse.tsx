@@ -282,6 +282,10 @@ export function UserYTTRecordedCourse() {
                 src={resolveMediaUrl(currentClass.video)}
                 poster={resolveMediaUrl(currentClass.thumbnail) ?? FALLBACK_POSTER}
                 controls
+                controlsList="nodownload noremoteplayback"
+                disablePictureInPicture
+                disableRemotePlayback
+                onContextMenu={(e) => e.preventDefault()}
               />
             ) : (
               <div

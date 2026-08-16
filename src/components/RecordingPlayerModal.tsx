@@ -68,6 +68,10 @@ export function RecordingPlayerModal({
               className="max-h-[70vh] w-full"
               src={src}
               controls
+              controlsList="nodownload noremoteplayback"
+              disablePictureInPicture
+              disableRemotePlayback
+              onContextMenu={(e) => e.preventDefault()}
               autoPlay
             />
           )}
