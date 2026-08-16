@@ -35,7 +35,7 @@ import { listMyYTTLiveEnrollments } from "../../api/yttLive";
 import { listMyYTTRecordedEnrollments } from "../../api/yttRecorded";
 import type { InitiatePaymentInput } from "../../api/payments";
 import { listBatches } from "../../api/batches";
-import type { LivePlan, SelfPacedPlan, YTTPlan, Batch } from "../../api/types";
+import type { LivePlan, MyLiveEnrollment, SelfPacedPlan, YTTPlan, Batch } from "../../api/types";
 import { CouponInput, type CouponApplied } from "../../components/CouponInput";
 import type { CouponValidateBody } from "../../api/coupons";
 import { computeGstAddOn, useGstPercentage } from "../../lib/gst";
@@ -177,6 +177,11 @@ export function UserPayments() {
   const [selectedBatchId, setSelectedBatchId] = useState<string>("");
   const [isLoadingBatches, setIsLoadingBatches] = useState(false);
   const [activeLivePlanId, setActiveLivePlanId] = useState<string | null>(null);
+  // Full enrollment (incl. embedded plan) rather than just the planId, so the
+  // "current plan" for upgrade purposes can be resolved even when that plan is
+  // `hidden` from the public list — e.g. the free signup trial plan, which is
+  // always hidden but still needs to be upgradeable to a real plan.
+  const [activeLiveEnrollment, setActiveLiveEnrollment] = useState<MyLiveEnrollment | null>(null);
   const [activeSelfPacedPlanId, setActiveSelfPacedPlanId] = useState<string | null>(null);
   const [activeYttLiveKeys, setActiveYttLiveKeys] = useState<Set<string>>(new Set());
   const [activeYttRecordedKeys, setActiveYttRecordedKeys] = useState<Set<string>>(new Set());
@@ -224,12 +229,12 @@ export function UserPayments() {
         listMyYTTRecordedEnrollments(),
       ]);
       setActiveLivePlanId(liveData.enrollment?.planId ?? null);
+      setActiveLiveEnrollment(liveData.enrollment ?? null);
       setActiveSelfPacedPlanId(selfPacedData.subscription?.planId ?? null);
       setActiveYttLiveKeys(new Set(yttLiveData.map((e) => `${e.planId}:${e.courseId}`)));
       setActiveYttRecordedKeys(new Set(yttRecordedData.map((e) => `${e.planId}:${e.courseId}`)));
 
       const expiry: Record<string, string> = {};
-      if (liveData.enrollment) expiry["live"] = liveData.enrollment.endDate;
       if (selfPacedData.subscription) expiry["self-paced"] = selfPacedData.subscription.expiresAt;
       for (const e of yttLiveData) expiry[`${e.planId}:${e.courseId}`] = e.expiresAt;
       for (const e of yttRecordedData) expiry[`${e.planId}:${e.courseId}`] = e.expiresAt;
@@ -276,13 +281,17 @@ const isSubscribed = (plan: UiPlan): boolean => {
   // the category isn't locked. For YTT, only an enrollment on the *same course*
   // counts (a different course is a fresh purchase, not an upgrade).
   const currentActiveFor = (plan: UiPlan): { plan: UiPlan; expiresAt: string } | null => {
-    const list = plansForCategory(plan.category);
     if (plan.category === "live") {
-      if (!activeLivePlanId) return null;
-      const cur = list.find((p) => p.id === activeLivePlanId);
-      const expiresAt = activeExpiry["live"];
-      return cur && expiresAt ? { plan: cur, expiresAt } : null;
+      // Resolved straight from the enrollment's embedded plan, not looked up in
+      // `livePlans` — the active plan may be `hidden` (the free trial), which
+      // would otherwise make it unfindable and block the upgrade path.
+      if (!activeLiveEnrollment) return null;
+      return {
+        plan: livePlanToUi(activeLiveEnrollment.plan),
+        expiresAt: activeLiveEnrollment.endDate,
+      };
     }
+    const list = plansForCategory(plan.category);
     if (plan.category === "self-paced") {
       if (!activeSelfPacedPlanId) return null;
       const cur = list.find((p) => p.id === activeSelfPacedPlanId);
@@ -303,6 +312,12 @@ const isSubscribed = (plan: UiPlan): boolean => {
   // a resolvable current plan in the same course.
   const isUpgradeTarget = (plan: UiPlan): boolean =>
     isCategoryLocked(plan.category) && !isSubscribed(plan) && currentActiveFor(plan) !== null;
+
+  // Live-only: the student's current plan is the free signup trial, so this is
+  // really their first real subscription rather than a plan swap - copy should
+  // read "Subscribe", not "Upgrade".
+  const isTrialUpgrade = (plan: UiPlan): boolean =>
+    plan.category === "live" && isUpgradeTarget(plan) && activeLiveEnrollment?.plan.isTrialPlan === true;
 
   // Rupee credit for the unused time on the current plan, prorated over its
   // validity - mirrors the backend computeUpgradeBase. remainingDays uses ceil
@@ -345,7 +360,13 @@ const [isEnrolling, setIsEnrolling] = useState(false);
     const locked = isCategoryLocked(plan.category);
     const upgrade = isUpgradeTarget(plan);
     const disabled = locked && !upgrade;
-    const label = upgrade ? "Upgrade to this plan" : disabled ? "Active on another plan" : buyLabel;
+    const label = !upgrade
+      ? disabled
+        ? "Active on another plan"
+        : buyLabel
+      : isTrialUpgrade(plan)
+        ? "Subscribe Now"
+        : "Upgrade to this plan";
     return (
       <Button
         className={`w-full py-6 text-base font-semibold rounded-xl ${extraClass}`}
@@ -956,14 +977,18 @@ const [isEnrolling, setIsEnrolling] = useState(false);
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle style={{ color: '#ff691d' }}>
-              {selectedPlan && isUpgradeTarget(selectedPlan)
-                ? `Upgrade to ${selectedPlan.name}`
-                : `Subscribe to ${selectedPlan?.name}`}
+              {selectedPlan && isTrialUpgrade(selectedPlan)
+                ? `Subscribe to ${selectedPlan.name}`
+                : selectedPlan && isUpgradeTarget(selectedPlan)
+                  ? `Upgrade to ${selectedPlan.name}`
+                  : `Subscribe to ${selectedPlan?.name}`}
             </DialogTitle>
             <DialogDescription>
-              {selectedPlan && isUpgradeTarget(selectedPlan)
-                ? "Your current plan's unused days are credited towards this upgrade."
-                : "Review your plan details and confirm your subscription"}
+              {selectedPlan && isTrialUpgrade(selectedPlan)
+                ? "Your free trial ends automatically once this plan starts."
+                : selectedPlan && isUpgradeTarget(selectedPlan)
+                  ? "Your current plan's unused days are credited towards this upgrade."
+                  : "Review your plan details and confirm your subscription"}
             </DialogDescription>
           </DialogHeader>
           {selectedPlan && (() => {
