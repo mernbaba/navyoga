@@ -141,20 +141,20 @@ export function UserLayout() {
             </SheetContent>
           </Sheet>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="bg-linear-to-br from-[#610981] to-[#8b0fa8] rounded-xl shadow-lg hidden sm:block overflow-hidden">
               <img src="https://navyoga.in/wp-content/uploads/2024/12/navyoga-light.svg" alt="Navyoga" className="w-10 h-10 object-contain" />
             </div>
-            <div>
-              <h1 className="font-semibold text-lg" style={{ color: '#ff691d' }}>Navyoga Wellness</h1>
+            <div className="min-w-0">
+              <h1 className="font-semibold text-lg truncate" style={{ color: '#ff691d' }}>Navyoga Wellness</h1>
               <Badge variant="secondary" className="text-xs hidden sm:inline-flex">Sādhaka Portal</Badge>
             </div>
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-3 shrink-0">
             {user?.name && (
-              <div className="hidden lg:flex items-center gap-2 pl-1">
-                <Avatar className="size-8">
+              <div className="flex items-center gap-1.5 sm:gap-2 pl-1">
+                <Avatar className="size-7 sm:size-8">
                   <AvatarImage
                     src={resolveAvatarUrl(user.avatar)}
                     alt={user.name}
@@ -164,7 +164,7 @@ export function UserLayout() {
                     {user.name.trim().charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium text-foreground max-w-[160px] truncate">
+                <span className="text-xs sm:text-sm font-medium text-foreground max-w-17.5 sm:max-w-40 truncate">
                   {user.name}
                 </span>
               </div>
