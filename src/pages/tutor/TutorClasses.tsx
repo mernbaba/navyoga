@@ -323,9 +323,20 @@ export function TutorClasses() {
                               {upload && (
                                 <div className="mt-2 w-full max-w-[220px]">
                                   {upload.status === "error" ? (
-                                    <p className="text-xs text-rose-600">
-                                      Recording upload failed
-                                    </p>
+                                    <div className="space-y-1">
+                                      <p className="text-xs text-rose-600">
+                                        {upload.error ?? "Recording upload failed"}
+                                      </p>
+                                      {upload.retry && (
+                                        <button
+                                          type="button"
+                                          onClick={upload.retry}
+                                          className="text-xs font-medium text-primary hover:underline"
+                                        >
+                                          Retry upload
+                                        </button>
+                                      )}
+                                    </div>
                                   ) : upload.status === "done" ? (
                                     <p className="text-xs text-green-600">
                                       Recording uploaded
@@ -336,7 +347,9 @@ export function TutorClasses() {
                                         <span>
                                           {upload.status === "saving"
                                             ? "Finalizing recording…"
-                                            : "Uploading recording…"}
+                                            : upload.status === "retrying"
+                                              ? "Connection issue - retrying…"
+                                              : "Uploading recording…"}
                                         </span>
                                         <span className="tabular-nums font-medium">
                                           {upload.progress}%

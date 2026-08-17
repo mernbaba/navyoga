@@ -66,6 +66,11 @@ const GUEST_VIDEO_CONSTRAINTS: MediaTrackConstraints = {
   frameRate: { ideal: 15, max: 15 },
 };
 
+// Backoff schedule for automatic recording-upload retries (network drops,
+// stalled connections). See uploadRecording for why each attempt re-presigns
+// and restarts from byte 0 rather than resuming.
+const UPLOAD_RETRY_DELAYS_MS = [3000, 8000, 20000];
+
 export type ActivePanel = "participants" | "chat" | null;
 
 // Deliberately identical to the mesh MeetingContextValue so the shared UI
@@ -855,6 +860,13 @@ export const SfuMeetingProvider = ({
     compositorTrackIdRef.current = null;
   }, []);
 
+  // Retry-with-backoff for the recording upload: covers a tutor's WiFi
+  // dropping, a router hiccup, or a stalled connection mid multi-GB PUT.
+  // Each attempt re-presigns (the previous URL may be close to its expiry
+  // after a long stalled upload) and retries from byte 0 - S3 presigned PUTs
+  // aren't resumable, so a partial attempt can't be continued, only redone.
+  // Only survives while this tab stays open; a closed/crashed tab still
+  // loses the in-memory blob like before.
   const uploadRecording = useCallback(
     async (blob: Blob, mime: string) => {
       const cid = classId;
@@ -863,55 +875,68 @@ export const SfuMeetingProvider = ({
       const filename = `recording.${ext}`;
       const store = recordingUploadsRef.current;
 
+      const attemptUpload = async (attempt: number): Promise<void> => {
+        try {
+          const presign = await requestTutorRecordingPresign(cid, {
+            filename,
+            contentType,
+          });
+
+          // XMLHttpRequest (not fetch) so we get byte-level upload.onprogress -
+          // essential for multi-GB recordings where the PUT can take minutes.
+          await new Promise<void>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open("PUT", presign.url, true);
+            xhr.setRequestHeader("Content-Type", contentType);
+
+            xhr.upload.onprogress = (event) => {
+              if (!event.lengthComputable) return;
+              store?.setProgress(cid, (event.loaded / event.total) * 100);
+            };
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                store?.setProgress(cid, 100);
+                resolve();
+              } else {
+                reject(new Error(`Recording upload failed (${xhr.status})`));
+              }
+            };
+            xhr.onerror = () => reject(new Error("Network error during upload"));
+            xhr.onabort = () => reject(new Error("Recording upload cancelled"));
+            xhr.send(blob);
+          });
+
+          // Bytes are in S3; now persist the path onto the class (this also
+          // overwrites/replaces whatever recording was saved before).
+          store?.setStatus(cid, "saving");
+          await saveTutorRecording(cid, presign.storePath);
+
+          store?.setStatus(cid, "done");
+          // Clear the row's progress shortly after success so it doesn't linger.
+          window.setTimeout(() => store?.clearUpload(cid), 5000);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "Upload failed";
+          if (attempt <= UPLOAD_RETRY_DELAYS_MS.length) {
+            const delay = UPLOAD_RETRY_DELAYS_MS[attempt - 1];
+            store?.setStatus(cid, "retrying", `${message} - retrying…`);
+            await new Promise((resolve) => window.setTimeout(resolve, delay));
+            store?.setProgress(cid, 0);
+            return attemptUpload(attempt + 1);
+          }
+          // Automatic retries exhausted - hand the tutor a manual retry that
+          // re-runs the whole cycle from this same in-memory blob.
+          store?.setStatus(cid, "error", message, () => {
+            store?.startUpload(cid, blob.size);
+            void attemptUpload(1);
+          });
+          throw err;
+        }
+      };
+
       // Register the upload up front so the "My Classes" table shows it (at 0%)
       // the instant the class ends, before the presign round-trip resolves.
       store?.startUpload(cid, blob.size);
-
-      try {
-        const presign = await requestTutorRecordingPresign(cid, {
-          filename,
-          contentType,
-        });
-
-        // XMLHttpRequest (not fetch) so we get byte-level upload.onprogress -
-        // essential for multi-GB recordings where the PUT can take minutes.
-        await new Promise<void>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open("PUT", presign.url, true);
-          xhr.setRequestHeader("Content-Type", contentType);
-
-          xhr.upload.onprogress = (event) => {
-            if (!event.lengthComputable) return;
-            store?.setProgress(cid, (event.loaded / event.total) * 100);
-          };
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              store?.setProgress(cid, 100);
-              resolve();
-            } else {
-              reject(new Error("Recording upload failed"));
-            }
-          };
-          xhr.onerror = () => reject(new Error("Recording upload failed"));
-          xhr.onabort = () => reject(new Error("Recording upload cancelled"));
-          xhr.send(blob);
-        });
-
-        // Bytes are in S3; now persist the path onto the class.
-        store?.setStatus(cid, "saving");
-        await saveTutorRecording(cid, presign.storePath);
-
-        store?.setStatus(cid, "done");
-        // Clear the row's progress shortly after success so it doesn't linger.
-        window.setTimeout(() => store?.clearUpload(cid), 5000);
-      } catch (err) {
-        store?.setStatus(
-          cid,
-          "error",
-          err instanceof Error ? err.message : "Upload failed",
-        );
-        throw err;
-      }
+      await attemptUpload(1);
     },
     [classId],
   );
@@ -971,9 +996,11 @@ export const SfuMeetingProvider = ({
         recorderRef.current = null;
         setIsRecording(false);
 
-        // We auto-started a recording while holding the host slot, then the
-        // class's own tutor arrived and took it. The presign endpoint only
-        // accepts that tutor, so uploading would 403 - drop it silently.
+        // Discard rather than upload when: (a) we auto-started a recording
+        // while holding the host slot and the class's own tutor then took it
+        // back (the presign endpoint only accepts that tutor, so uploading
+        // would 403), or (b) this stop came from leaving/being removed/an
+        // implicit unmount rather than the host pressing "End class for all".
         if (discardRecordingRef.current) {
           discardRecordingRef.current = false;
           setIsRecordingBusy(false);
@@ -1208,6 +1235,10 @@ export const SfuMeetingProvider = ({
   }, [setParticipantsSynced]);
 
   const leaveMeeting = useCallback(() => {
+    // A voluntary "Leave class" is not "End class" - only the end-class flow
+    // (sfu:meeting-ended, below) finalizes and uploads the recording. Leaving
+    // discards whatever's been recorded so far rather than uploading it.
+    discardRecordingRef.current = true;
     teardown();
     onLeaveRef.current();
   }, [teardown]);
@@ -1722,11 +1753,16 @@ export const SfuMeetingProvider = ({
 
       socket.on("sfu:removed-from-meeting", (data) => {
         toast.error(data.message);
+        // Forced removal isn't "End class" either - discard rather than upload.
+        discardRecordingRef.current = true;
         teardown();
         onLeaveRef.current();
       });
       socket.on("sfu:meeting-ended", (data) => {
         toast.message(data.message);
+        // The one and only path that finalizes and uploads the recording -
+        // the server broadcasts this to everyone (including the host) only
+        // when the host presses "End class for all".
         teardown();
         onLeaveRef.current();
       });
@@ -1744,6 +1780,10 @@ export const SfuMeetingProvider = ({
       stopRetry();
       clearTimer(reconnectTimer);
       reconnectTimer = null;
+      // An implicit unmount (browser back, route change) without an explicit
+      // "Leave"/"End class" action first is still not "End class" - discard.
+      // A no-op if leaveMeeting/sfu:meeting-ended already tore this down.
+      discardRecordingRef.current = true;
       teardown();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

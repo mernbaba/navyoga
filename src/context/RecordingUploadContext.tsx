@@ -15,7 +15,12 @@ import {
 // straight from the tutor's browser to S3, so the percentage is only knowable
 // here. Closing the tab loses it (the upload aborts too). Nothing is persisted.
 
-export type RecordingUploadStatus = "uploading" | "saving" | "done" | "error";
+export type RecordingUploadStatus =
+  | "uploading"
+  | "retrying"
+  | "saving"
+  | "done"
+  | "error";
 
 export type RecordingUpload = {
   classId: string;
@@ -25,6 +30,9 @@ export type RecordingUpload = {
   // Total bytes being uploaded, for showing a human size next to the percent.
   totalBytes: number;
   error?: string;
+  // Present once automatic retries are exhausted - lets the UI offer a manual
+  // "Retry" that re-runs the upload from the same in-memory blob.
+  retry?: () => void;
 };
 
 type RecordingUploadContextValue = {
@@ -36,6 +44,7 @@ type RecordingUploadContextValue = {
     classId: string,
     status: RecordingUploadStatus,
     error?: string,
+    retry?: () => void,
   ) => void;
   clearUpload: (classId: string) => void;
 };
@@ -57,6 +66,15 @@ export const RecordingUploadProvider = ({
     }));
   }, []);
 
+  const clearUpload = useCallback((classId: string) => {
+    setUploads((prev) => {
+      if (!prev[classId]) return prev;
+      const next = { ...prev };
+      delete next[classId];
+      return next;
+    });
+  }, []);
+
   const setProgress = useCallback((classId: string, progress: number) => {
     setUploads((prev) => {
       const current = prev[classId];
@@ -68,24 +86,20 @@ export const RecordingUploadProvider = ({
   }, []);
 
   const setStatus = useCallback(
-    (classId: string, status: RecordingUploadStatus, error?: string) => {
+    (
+      classId: string,
+      status: RecordingUploadStatus,
+      error?: string,
+      retry?: () => void,
+    ) => {
       setUploads((prev) => {
         const current = prev[classId];
         if (!current) return prev;
-        return { ...prev, [classId]: { ...current, status, error } };
+        return { ...prev, [classId]: { ...current, status, error, retry } };
       });
     },
     [],
   );
-
-  const clearUpload = useCallback((classId: string) => {
-    setUploads((prev) => {
-      if (!prev[classId]) return prev;
-      const next = { ...prev };
-      delete next[classId];
-      return next;
-    });
-  }, []);
 
   const getUpload = useCallback(
     (classId: string) => uploads[classId],
