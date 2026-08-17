@@ -85,7 +85,10 @@ const livePlanToUi = (p: LivePlan): UiPlan => ({
   price: toNumber(p.price),
   originalPrice: optionalNumber(p.originalPrice),
   popular: false,
-  features: p.features,
+  features:
+    p.recordingAccess > 0
+      ? [`${p.recordingAccess}-day recording access per class`, ...p.features]
+      : p.features,
   color: COLOR_DEFAULT,
   category: "live",
 });

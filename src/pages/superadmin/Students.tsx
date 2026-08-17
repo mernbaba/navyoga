@@ -38,6 +38,19 @@ type ActiveFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
 type StudentsAdminRole = "SUPERADMIN" | "OPERATIONS";
 
+// A student counts as INACTIVE for filtering/stats purposes if their account
+// is disabled OR their most recent Live subscription has lapsed — expired is
+// treated as a subtype of inactive here, not a separate bucket. The Status
+// column still labels expired rows distinctly (see isRowExpired below) since
+// that's more informative for an admin at a glance.
+function isStudentActive(student: Student): boolean {
+  if (!student.isActive) return false;
+  if (student.subscriptionEndDate && new Date(student.subscriptionEndDate).getTime() < Date.now()) {
+    return false;
+  }
+  return true;
+}
+
 export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } = {}) {
   const [students, setStudents] = useState<Student[]>([]);
   const [total, setTotal] = useState(0);
@@ -100,7 +113,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
   }, [debouncedQuery, page, refreshKey, role]);
 
   const visibleStudents = students.filter((s) =>
-    activeFilter === "ALL" ? true : activeFilter === "ACTIVE" ? s.isActive : !s.isActive,
+    activeFilter === "ALL" ? true : activeFilter === "ACTIVE" ? isStudentActive(s) : !isStudentActive(s),
   );
 
   const refetch = () => setRefreshKey((k) => k + 1);
@@ -305,11 +318,11 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
         </Card>
         <Card>
           <CardHeader><CardTitle>Active (page)</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-semibold text-green-500">{students.filter((s) => s.isActive).length}</div></CardContent>
+          <CardContent><div className="text-3xl font-semibold text-green-500">{students.filter(isStudentActive).length}</div></CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle>Inactive (page)</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-semibold text-muted-foreground">{students.filter((s) => !s.isActive).length}</div></CardContent>
+          <CardContent><div className="text-3xl font-semibold text-muted-foreground">{students.filter((s) => !isStudentActive(s)).length}</div></CardContent>
         </Card>
       </div>
 
@@ -362,7 +375,10 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                 ) : visibleStudents.length === 0 ? (
                   <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No sādhakas found.</TableCell></TableRow>
                 ) : (
-                  visibleStudents.map((student, index) => (
+                  visibleStudents.map((student, index) => {
+                    const subscriptionEnd = student.subscriptionEndDate ? new Date(student.subscriptionEndDate) : null;
+                    const isExpired = !!subscriptionEnd && subscriptionEnd.getTime() < Date.now();
+                    return (
                     <TableRow key={student.id}>
                       <TableCell className="text-muted-foreground text-sm">#{(page - 1) * 20 + index + 1}</TableCell>
                       <TableCell>{student.name}</TableCell>
@@ -385,7 +401,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                       </TableCell>
                       <TableCell>
                         {student.subscriptionStartDate && student.subscriptionEndDate ? (
-                          <span className="text-sm">
+                          <span className={`text-sm ${isExpired ? "text-destructive" : ""}`}>
                             {new Date(student.subscriptionStartDate).toLocaleDateString()} &ndash; {new Date(student.subscriptionEndDate).toLocaleDateString()}
                           </span>
                         ) : (
@@ -393,7 +409,14 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={student.isActive ? "default" : "secondary"}>{student.isActive ? "ACTIVE" : "INACTIVE"}</Badge>
+                        {isExpired ? (
+                          <div className="flex flex-col gap-1">
+                            <Badge variant="destructive">INACTIVE</Badge>
+                            <span className="text-xs text-muted-foreground">Ended {subscriptionEnd!.toLocaleDateString()}</span>
+                          </div>
+                        ) : (
+                          <Badge variant={student.isActive ? "default" : "destructive"}>{student.isActive ? "ACTIVE" : "INACTIVE"}</Badge>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -403,7 +426,8 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

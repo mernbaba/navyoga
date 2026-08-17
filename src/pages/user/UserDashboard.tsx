@@ -20,6 +20,7 @@ import { RenewPlanModal, type RenewCategory } from "../../components/RenewPlanMo
 import { getRenewalPrompt, asPrompt, type RenewalPrompt } from "../../api/renewal";
 import { getMyClassAttendance } from "../../api/attendance";
 import type { MyClassAttendance } from "../../api/types";
+import { getCachedUser } from "../../lib/session";
 import {
   deriveStatus,
   selectUpcomingClasses,
@@ -67,6 +68,8 @@ export function UserDashboard() {
   const [renewQueue, setRenewQueue] = useState<{ category: RenewCategory; prompt: RenewalPrompt }[]>([]);
   const [renewIndex, setRenewIndex] = useState(0);
   const navigate = useNavigate();
+
+  const studentName = getCachedUser("STUDENT")?.name?.split(" ")[0] ?? "Sādhaka";
 
   useEffect(() => {
     let cancelled = false;
@@ -313,33 +316,44 @@ export function UserDashboard() {
   return (
     <div className="p-6 lg:p-8 min-h-screen bg-linear-to-br from-gray-50 via-white to-orange-50/30">
       <div className="space-y-6">
- 
+
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl shadow-2xl group cursor-pointer bg-linear-to-r from-[#610981] to-[#ff691d]"
+          className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#610981] to-[#8b0fa8] p-6 sm:p-8 text-white shadow-2xl shadow-[#ffac96]/30"
         >
-          <Link to="/user/subscriptions" className="block p-8 md:p-12">
-            <Badge className="mb-4 bg-white/20 text-white border-0 px-4 py-1.5 backdrop-blur">
-              {planCardInfo.kind === "active" ? (
-                <Crown className="w-3.5 h-3.5 mr-1.5" />
-              ) : (
-                <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-              )}
-              {planCardInfo.badge}
-            </Badge>
-            <h2 className="text-2xl md:text-4xl font-bold text-white mb-3 leading-tight">
-              {planCardInfo.title}
-            </h2>
-            <p className="text-white/85 mb-6 max-w-xl">{planCardInfo.subtitle}</p>
-            <Button
-              size="lg"
-              className="bg-white hover:bg-white/90 text-[#610981] font-bold shadow-xl hover:shadow-2xl transition-all duration-300 group-hover:scale-105"
-            >
-              <Sparkles className="w-5 h-5 mr-2" />
-              {planCardInfo.cta}
-            </Button>
-          </Link>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#ff691d]/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#ffac96]/20 rounded-full blur-3xl" />
+          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <Badge variant="secondary" className="mb-3 bg-white/20 text-white border-0">
+                Sādhaka
+              </Badge>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">Welcome back, {studentName}! 🧘</h1>
+              <p className="text-white/80 text-base sm:text-lg">Ready to continue your yoga journey today?</p>
+            </div>
+            <Link to="/user/subscriptions" className="group block lg:min-w-72">
+              <div className="relative overflow-hidden rounded-2xl bg-white/15 backdrop-blur-sm border-2 border-white/25 p-5 shadow-lg transition-all duration-300 hover:bg-white/20 hover:border-white/40">
+                <div className="flex items-center justify-between mb-3">
+                  <Badge className="bg-white/20 text-white border-0 text-[10px] px-2 py-0.5">
+                    {planCardInfo.kind === "active" ? (
+                      <Crown className="w-3 h-3 mr-1" />
+                    ) : (
+                      <Sparkles className="w-3 h-3 mr-1" />
+                    )}
+                    {planCardInfo.badge}
+                  </Badge>
+                  <ChevronRight className="w-4 h-4 text-white/70 transition-transform group-hover:translate-x-0.5" />
+                </div>
+                <p className="text-lg font-bold leading-tight mb-1">{planCardInfo.title}</p>
+                <p className="text-xs text-white/75 mb-4">{planCardInfo.subtitle}</p>
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold bg-white text-[#610981] rounded-full px-3 py-1.5 shadow-md">
+                  <Sparkles className="w-3 h-3" />
+                  {planCardInfo.cta}
+                </span>
+              </div>
+            </Link>
+          </div>
         </motion.div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
