@@ -135,7 +135,7 @@ export function TutorAttendance() {
       color: "#a855f7",
     },
     {
-      title: "Avg Attendance Rate",
+      title: "My Attendance Rate",
       value: isLoadingDashboard ? "-" : `${dashboard?.avgAttendanceRate ?? 0}%`,
       icon: TrendingUp,
       color: "#ff691d",
