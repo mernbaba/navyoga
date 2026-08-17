@@ -932,12 +932,19 @@ export const SfuMeetingProvider = ({
       }
 
       const mime = pickRecordingMime();
+      // Cap bitrate so recordings stay a predictable, streamable size - left
+      // uncapped, browsers pick a heuristic bitrate that can put an hour-long
+      // class at 1.5-2GB+, which is slow to fetch even over a CDN.
+      const bitrateOptions = {
+        videoBitsPerSecond: 1_500_000,
+        audioBitsPerSecond: 96_000,
+      };
       let recorder: MediaRecorder;
       try {
-        recorder = new MediaRecorder(stream, { mimeType: mime });
+        recorder = new MediaRecorder(stream, { mimeType: mime, ...bitrateOptions });
       } catch {
         try {
-          recorder = new MediaRecorder(stream);
+          recorder = new MediaRecorder(stream, bitrateOptions);
         } catch {
           stopCompositor();
           if (!auto) toast.error("Couldn't start recording");
