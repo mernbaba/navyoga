@@ -351,7 +351,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                   <TableHead>Name</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Batch</TableHead>
-                  <TableHead>Join Date</TableHead>
+                  <TableHead>Live Yoga Subscription</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -383,7 +383,15 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                           <span className="text-muted-foreground text-sm">-</span>
                         )}
                       </TableCell>
-                      <TableCell>{new Date(student.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {student.subscriptionStartDate && student.subscriptionEndDate ? (
+                          <span className="text-sm">
+                            {new Date(student.subscriptionStartDate).toLocaleDateString()} &ndash; {new Date(student.subscriptionEndDate).toLocaleDateString()}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={student.isActive ? "default" : "secondary"}>{student.isActive ? "ACTIVE" : "INACTIVE"}</Badge>
                       </TableCell>

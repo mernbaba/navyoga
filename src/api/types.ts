@@ -159,6 +159,10 @@ export type StudentUser = {
   // Active Live-subscription batches (present on the list endpoint). Empty when
   // the student has no active Live enrollment; absent on single-student fetches.
   batches?: { id: string; name: string }[];
+  // Span of the student's active Live-subscription enrollment(s) (present on the
+  // list endpoint). Null when there's no active Live enrollment.
+  subscriptionStartDate?: string | null;
+  subscriptionEndDate?: string | null;
 };
 
 export type Tutor = TutorUser;
