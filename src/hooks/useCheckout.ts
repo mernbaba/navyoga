@@ -3,6 +3,7 @@ import { useRazorpay } from "react-razorpay";
 import {
   initiatePayment,
   verifyPayment,
+  getPaymentStatus,
   type InitiatePaymentInput,
 } from "../api/payments";
 
@@ -65,11 +66,39 @@ export function useCheckout() {
                 });
                 resolve();
               } catch (err) {
-                reject(err);
+                // Razorpay already confirmed the payment (we're in its success
+                // handler) — a thrown error here means our own /verify call
+                // failed (dropped network, etc.), not that the payment failed.
+                // Ask the backend to check directly with Razorpay before
+                // surfacing an error the user would wrongly read as "charged
+                // but nothing happened."
+                const reconciled = await getPaymentStatus(
+                  "STUDENT",
+                  paymentData.paymentRecordId,
+                ).catch(() => null);
+                if (reconciled?.status === "PAID") {
+                  resolve();
+                } else {
+                  reject(err);
+                }
               }
             },
             modal: {
-              ondismiss: () => reject(new Error(DISMISSED)),
+              // A dismiss can, in rare cases (e.g. the browser backgrounding
+              // mid-redirect), fire after Razorpay has actually captured the
+              // payment. Confirm with the backend before treating it as a
+              // cancelled checkout.
+              ondismiss: () => {
+                void getPaymentStatus("STUDENT", paymentData.paymentRecordId)
+                  .catch(() => null)
+                  .then((reconciled) => {
+                    if (reconciled?.status === "PAID") {
+                      resolve();
+                    } else {
+                      reject(new Error(DISMISSED));
+                    }
+                  });
+              },
             },
           });
           rzp.open();
