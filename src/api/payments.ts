@@ -82,3 +82,17 @@ export function verifyPayment(role: Role, data: VerifyPaymentInput) {
     }),
   );
 }
+
+// Refreshes a payment's status. If it's still PENDING, the backend checks
+// directly with Razorpay (instead of waiting for the reconciliation cron) —
+// use this when a checkout attempt's own verify call couldn't be trusted
+// (dropped network after the Razorpay handler fired, or the checkout modal
+// was dismissed but may have actually completed).
+export function getPaymentStatus(role: Role, paymentRecordId: string) {
+  return unwrap<PaymentRecord>(
+    authedRequest<ApiSuccess<PaymentRecord>>(role, {
+      method: "GET",
+      url: `/api/payments/${paymentRecordId}/status`,
+    }),
+  );
+}
