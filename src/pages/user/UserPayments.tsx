@@ -333,6 +333,16 @@ const isSubscribed = (plan: UiPlan): boolean => {
     return Math.round(credit * 100) / 100;
   };
 
+  // Whole days left on the free trial - mirrors the backend's daysRemaining.
+  // The trial is free, so instead of a price credit these days are added on
+  // top of the new plan's validity (see resolveProductPrice's trial branch).
+  const trialBonusDaysFor = (plan: UiPlan): number => {
+    if (!isTrialUpgrade(plan) || !activeLiveEnrollment) return 0;
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const remainingMs = new Date(activeLiveEnrollment.endDate).getTime() - Date.now();
+    return Math.max(0, Math.ceil(remainingMs / msPerDay));
+  };
+
 const [isEnrolling, setIsEnrolling] = useState(false);
   const checkout = useCheckout();
   const [appliedCoupon, setAppliedCoupon] = useState<CouponApplied | null>(null);
@@ -470,10 +480,14 @@ const [isEnrolling, setIsEnrolling] = useState(false);
       }
 
       // Both "paid" and "free" (100%-off coupon fulfilled inline) are successes.
+      // isTrialUpgrade implies upgrading, so it must be checked first.
+      const bonusDays = trialBonusDaysFor(selectedPlan);
       toast.success(
-        upgrading
-          ? `Successfully upgraded to ${selectedPlan.name}!`
-          : `Successfully subscribed to ${selectedPlan.name}!`,
+        isTrialUpgrade(selectedPlan) && bonusDays > 0
+          ? `Successfully subscribed to ${selectedPlan.name}! +${bonusDays} bonus day${bonusDays === 1 ? "" : "s"} from your trial.`
+          : upgrading
+            ? `Successfully upgraded to ${selectedPlan.name}!`
+            : `Successfully subscribed to ${selectedPlan.name}!`,
       );
       setAppliedCoupon(null);
       void fetchSubscriptions();
@@ -985,7 +999,9 @@ const [isEnrolling, setIsEnrolling] = useState(false);
             </DialogTitle>
             <DialogDescription>
               {selectedPlan && isTrialUpgrade(selectedPlan)
-                ? "Your free trial ends automatically once this plan starts."
+                ? trialBonusDaysFor(selectedPlan) > 0
+                  ? `Your remaining ${trialBonusDaysFor(selectedPlan)} trial day${trialBonusDaysFor(selectedPlan) === 1 ? "" : "s"} will be added on top of this plan's duration.`
+                  : "Your free trial ends automatically once this plan starts."
                 : selectedPlan && isUpgradeTarget(selectedPlan)
                   ? "Your current plan's unused days are credited towards this upgrade."
                   : "Review your plan details and confirm your subscription"}
@@ -998,6 +1014,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
             // matching the backend's charged amount.
             const upgrading = isUpgradeTarget(selectedPlan);
             const credit = upgrading ? upgradeCreditFor(selectedPlan) : 0;
+            const bonusDays = trialBonusDaysFor(selectedPlan);
             const afterCredit = Math.max(0, selectedPlan.price - credit);
             const discountedBase = appliedCoupon
               ? Math.max(0, afterCredit - appliedCoupon.discountAmount)
@@ -1028,6 +1045,12 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                     <div className="flex items-center justify-between text-sm text-green-700">
                       <span>Credit for unused days</span>
                       <span>− ₹{formatINR(credit)}</span>
+                    </div>
+                  )}
+                  {bonusDays > 0 && (
+                    <div className="flex items-center justify-between text-sm text-green-700">
+                      <span>Bonus days from your trial</span>
+                      <span>+ {bonusDays} day{bonusDays === 1 ? "" : "s"}</span>
                     </div>
                   )}
                   {appliedCoupon && (

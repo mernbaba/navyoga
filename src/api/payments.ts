@@ -35,6 +35,10 @@ export type InitiatePaymentResponse = {
   amountCharged?: number;
   originalAmount?: number;
   discountAmount?: number;
+  isUpgrade?: boolean;
+  // LIVE trial→paid only: unused trial days added on top of the new plan's
+  // validity instead of being credited as a discount (the trial is free).
+  bonusDays?: number;
 };
 
 export type VerifyPaymentInput = {
@@ -56,6 +60,7 @@ export type PaymentRecord = {
   yttRecordedEnrollmentId: string | null;
   workshopEnrollmentId: string | null;
   eventEnrollmentId: string | null;
+  meta?: { isUpgrade?: boolean; bonusDays?: number } | null;
 };
 
 export function initiatePayment(role: Role, data: InitiatePaymentInput) {

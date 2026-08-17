@@ -30,6 +30,10 @@ export type CouponValidateResponse = {
   originalAmount: number;
   discountAmount: number;
   finalAmount: number;
+  isUpgrade?: boolean;
+  // LIVE trial→paid only: unused trial days added on top of the new plan's
+  // validity instead of being credited as a discount (the trial is free).
+  bonusDays?: number;
 };
 
 export function validateCoupon(role: Role, body: CouponValidateBody) {
