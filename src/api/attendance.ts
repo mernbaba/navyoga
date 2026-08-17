@@ -27,11 +27,7 @@ export type AttendanceListParams = {
   limit?: number;
 };
 
-export type StudentAttendanceListParams = AttendanceListParams & {
-  subscriptionClassId?: string;
-};
-
-export function listStudentAttendance(role: Role, params: StudentAttendanceListParams = {}) {
+export function listStudentAttendance(role: Role, params: AttendanceListParams = {}) {
   return unwrap<PaginatedAttendance<StudentAttendance>>(
     authedRequest<ApiSuccess<PaginatedAttendance<StudentAttendance>>>(role, {
       method: "GET",

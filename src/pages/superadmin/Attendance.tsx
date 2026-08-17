@@ -82,7 +82,6 @@ const categoryMeta: Record<AttendanceCategory, {
 const statusPill: Record<AttendanceStatus, string> = {
   PRESENT: "bg-[#3d0d4d] text-white",
   ABSENT: "bg-[#ff6b6b] text-white",
-  LATE: "bg-gray-200 text-gray-700",
 };
 
 const formatDate = (iso: string) => formatISTDate(iso, "-");
@@ -93,7 +92,6 @@ const emptySummary: AttendanceSummary = {
   total: 0,
   present: 0,
   absent: 0,
-  late: 0,
   attendanceRate: 0,
 };
 
@@ -152,9 +150,7 @@ export function Attendance() {
       case "users":
         return [
           { label: "Sādhaka Name", getValue: (r) => (r as StudentAttendance).student?.name ?? "-" },
-          { label: "Class", getValue: (r) => (r as StudentAttendance).subscriptionClass?.title ?? "-" },
           { label: "Date", getValue: (r) => formatDate(r.date) },
-          { label: "Time", getValue: (r) => formatTime((r as StudentAttendance).subscriptionClass?.scheduledAt) },
         ];
       case "tutors":
         return [

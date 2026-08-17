@@ -241,13 +241,12 @@ export type Notification = {
   updatedAt: string;
 };
 
-export type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE";
+export type AttendanceStatus = "PRESENT" | "ABSENT";
 
 export type AttendanceSummary = {
   total: number;
   present: number;
   absent: number;
-  late: number;
   attendanceRate: number;
 };
 
@@ -267,13 +266,6 @@ export type StudentAttendance = {
   createdAt: string;
   updatedAt: string;
   student: { id: string; name: string };
-  subscriptionClass: {
-    id: string;
-    classId: string;
-    title: string;
-    yogaType: string;
-    scheduledAt: string;
-  };
 };
 
 /** One live class the student joined. Presence only — no time-spent tracking. */
