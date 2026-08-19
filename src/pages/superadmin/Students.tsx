@@ -321,7 +321,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
           <CardContent><div className="text-3xl font-semibold text-green-500">{students.filter(isStudentActive).length}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Inactive (page)</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Expired (page)</CardTitle></CardHeader>
           <CardContent><div className="text-3xl font-semibold text-muted-foreground">{students.filter((s) => !isStudentActive(s)).length}</div></CardContent>
         </Card>
       </div>
@@ -351,7 +351,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
               <SelectContent>
                 <SelectItem value="ALL">All statuses</SelectItem>
                 <SelectItem value="ACTIVE">ACTIVE</SelectItem>
-                <SelectItem value="INACTIVE">INACTIVE</SelectItem>
+                <SelectItem value="INACTIVE">EXPIRED</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -411,11 +411,11 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                       <TableCell>
                         {isExpired ? (
                           <div className="flex flex-col gap-1">
-                            <Badge variant="destructive">INACTIVE</Badge>
+                            <Badge variant="destructive">EXPIRED</Badge>
                             <span className="text-xs text-muted-foreground">Ended {subscriptionEnd!.toLocaleDateString()}</span>
                           </div>
                         ) : (
-                          <Badge variant={student.isActive ? "default" : "destructive"}>{student.isActive ? "ACTIVE" : "INACTIVE"}</Badge>
+                          <Badge variant={student.isActive ? "default" : "destructive"}>{student.isActive ? "ACTIVE" : "EXPIRED"}</Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -486,7 +486,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="true">ACTIVE</SelectItem>
-                      <SelectItem value="false">INACTIVE</SelectItem>
+                      <SelectItem value="false">EXPIRED</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
