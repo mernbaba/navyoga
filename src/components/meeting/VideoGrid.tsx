@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { LayoutGrid, User, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { LayoutGrid, Maximize2, Minimize2, User, X } from "lucide-react";
 import { useMeeting } from "@/context/MeetingContext";
 import { VideoTile } from "@/components/meeting/VideoTile";
 
@@ -15,40 +15,10 @@ type Tile = {
   isScreenShare: boolean;
 };
 
-// Gap between gallery tiles, in px - must stay in sync with the `gap-4` class
-// on the grid, since the column search below reasons about real pixels.
-const GALLERY_GAP = 16;
-const TILE_ASPECT = 16 / 9;
-
-// Pick the column count that makes every tile as large as possible while the
-// whole grid still fits the container - no scrolling, everyone on screen. Tries
-// each candidate and scores it by the area of the largest 16:9 box that fits in
-// one cell (Meet/Zoom do the same); the widest tiles win.
-const bestColumnCount = (
-  count: number,
-  width: number,
-  height: number,
-): number => {
-  if (count <= 1) return 1;
-  // Before the container has been measured, fall back to a square-ish grid.
-  if (width <= 0 || height <= 0) return Math.ceil(Math.sqrt(count));
-
-  let bestCols = 1;
-  let bestArea = 0;
-  for (let cols = 1; cols <= count; cols++) {
-    const rows = Math.ceil(count / cols);
-    const cellW = (width - GALLERY_GAP * (cols - 1)) / cols;
-    const cellH = (height - GALLERY_GAP * (rows - 1)) / rows;
-    if (cellW <= 0 || cellH <= 0) continue;
-    const tileW = Math.min(cellW, cellH * TILE_ASPECT);
-    const area = tileW * (tileW / TILE_ASPECT);
-    if (area > bestArea) {
-      bestArea = area;
-      bestCols = cols;
-    }
-  }
-  return bestCols;
-};
+// Gallery view always lays tiles out in a fixed 3-column grid on web - no
+// dynamic column search, so the layout stays predictable regardless of class
+// size or window size.
+const GALLERY_COLS = 3;
 
 export const VideoGrid = () => {
   const {
@@ -65,20 +35,9 @@ export const VideoGrid = () => {
   const [viewMode, setViewMode] = useState<"gallery" | "speaker">("speaker");
   // Tile id blown up in the focus modal (gallery view), null when closed.
   const [focusedId, setFocusedId] = useState<string | null>(null);
-  const galleryRef = useRef<HTMLDivElement | null>(null);
-  const [gallerySize, setGallerySize] = useState({ width: 0, height: 0 });
-
-  // Measure the gallery area so the tile grid can be sized to fit it exactly.
-  useEffect(() => {
-    const el = galleryRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect;
-      setGallerySize({ width, height });
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [viewMode]);
+  // How gallery tiles fill their cell: "cover" stretches/crops to fill it
+  // edge-to-edge, "contain" fits the whole frame with letterboxing instead.
+  const [galleryFit, setGalleryFit] = useState<"cover" | "contain">("cover");
 
   // Escape closes the focus modal.
   useEffect(() => {
@@ -130,12 +89,7 @@ export const VideoGrid = () => {
     ? (allTiles.find((t) => t.id === focusedId) ?? null)
     : null;
 
-  const galleryCols = bestColumnCount(
-    allTiles.length,
-    gallerySize.width,
-    gallerySize.height,
-  );
-  const galleryRows = Math.ceil(allTiles.length / galleryCols);
+  const galleryRows = Math.ceil(allTiles.length / GALLERY_COLS) || 1;
 
   return (
     <div className="relative flex h-full w-full flex-1 flex-col overflow-hidden bg-zinc-950 p-4">
@@ -162,14 +116,38 @@ export const VideoGrid = () => {
           <User className="h-4 w-4" />
           <span className="hidden sm:inline">Speaker</span>
         </button>
+        {viewMode === "gallery" && (
+          <>
+            <div className="mx-0.5 h-5 w-px bg-zinc-700" />
+            <button
+              onClick={() =>
+                setGalleryFit((f) => (f === "cover" ? "contain" : "cover"))
+              }
+              title={
+                galleryFit === "cover"
+                  ? "Fit video (show full frame)"
+                  : "Stretch video (fill tile)"
+              }
+              className="flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold tracking-wide text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
+            >
+              {galleryFit === "cover" ? (
+                <Minimize2 className="h-4 w-4" />
+              ) : (
+                <Maximize2 className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">
+                {galleryFit === "cover" ? "Fit" : "Stretch"}
+              </span>
+            </button>
+          </>
+        )}
       </div>
 
       {viewMode === "gallery" ? (
-        // Everyone fits the frame: the grid is sized to the measured area and
-        // never scrolls - tiles shrink as the class grows. Click a tile to open
-        // it full-size in the focus modal.
+        // Everyone fits the frame: fixed 3-column grid, never scrolls - tiles
+        // shrink as the class grows. Click a tile to open it full-size in the
+        // focus modal.
         <div
-          ref={galleryRef}
           // px/pb leave room for the host tile's glow, which the overflow-hidden
           // would otherwise slice off at the edges of the grid.
           className="h-full w-full flex-1 overflow-hidden px-1 pb-1 pt-11"
@@ -177,13 +155,17 @@ export const VideoGrid = () => {
           <div
             className="grid h-full w-full gap-4"
             style={{
-              gridTemplateColumns: `repeat(${galleryCols}, minmax(0, 1fr))`,
+              gridTemplateColumns: `repeat(${GALLERY_COLS}, minmax(0, 1fr))`,
               gridTemplateRows: `repeat(${galleryRows}, minmax(0, 1fr))`,
             }}
           >
             {allTiles.map((tile) => (
               <div key={tile.id} className="min-h-0 min-w-0">
-                <VideoTile {...tile} onClick={() => setFocusedId(tile.id)} />
+                <VideoTile
+                  {...tile}
+                  fit={galleryFit}
+                  onClick={() => setFocusedId(tile.id)}
+                />
               </div>
             ))}
           </div>

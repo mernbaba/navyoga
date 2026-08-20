@@ -10,7 +10,7 @@ import { getTutorDashboard } from "../../api/tutorDashboard";
 import { getMyTutorUserReferrals, getMyTutorTutorReferrals } from "../../api/referrals";
 import type { TutorDashboardStats } from "../../api/types";
 import { getCachedUser } from "../../lib/session";
-import { formatISTTime } from "../../lib/datetime";
+import { formatISTTime, isWithinJoinWindow, JOIN_WINDOW_MINUTES } from "../../lib/datetime";
 
 type RecentReferral = {
   id: string;
@@ -234,6 +234,12 @@ export function TutorDashboard() {
                           onClick={() => handleStartClassSfu(cls.id, cls.title)}
                           className="bg-linear-to-r from-[#610981] to-[#8b0fa8] hover:from-[#7a0a9f] hover:to-[#a312ca]"
                           size="sm"
+                          disabled={!isWithinJoinWindow({ scheduledAt: cls.scheduledAt, durationMinutes: cls.duration })}
+                          title={
+                            !isWithinJoinWindow({ scheduledAt: cls.scheduledAt, durationMinutes: cls.duration })
+                              ? `Available ${JOIN_WINDOW_MINUTES} minutes before class`
+                              : undefined
+                          }
                         >
                           <Play className="w-4 h-4 mr-1" />
                           Start
