@@ -13,6 +13,7 @@ import type {
   Transport,
   Producer,
   Consumer,
+  IceParameters,
   RtpCapabilities,
   RtpParameters,
 } from "mediasoup-client/types";
@@ -65,6 +66,14 @@ const GUEST_VIDEO_CONSTRAINTS: MediaTrackConstraints = {
   height: { ideal: 360, max: 360 },
   frameRate: { ideal: 15, max: 15 },
 };
+
+// Fixed id for every connection-status toast (connect_error / disconnect /
+// reconnect / retry). A flapping network used to fire a fresh toast.message()
+// on every blip - stacking a wall of "Connection lost…" / "Reconnected…"
+// toasts that read as "constantly reconnecting" even once a single retry
+// would have recovered. Reusing one id makes sonner update that one toast in
+// place instead.
+const CONNECTION_TOAST_ID = "sfu-connection-status";
 
 // Backoff schedule for automatic recording-upload retries (network drops,
 // stalled connections). See uploadRecording for why each attempt re-presigns
@@ -160,6 +169,30 @@ export const SfuMeetingProvider = ({
   // STUN/TURN list handed to us by the server in the join ack, applied to both
   // transports so restrictive networks can still relay media.
   const iceServersRef = useRef<SfuIceServer[]>([]);
+
+  // ICE recovery: a DTLS-connected transport can still lose its actual media
+  // path (a wifi/cellular handoff invalidates the old candidates) with no
+  // socket.io disconnect at all, since signalling and media travel
+  // separately. connectionstatechange on the transports is what detects this;
+  // these track the recovery-in-progress state per direction so a flapping
+  // network doesn't fire overlapping restarts, and cap the attempts before
+  // falling back to a full rejoin. Reset whenever transports are rebuilt.
+  const iceGraceTimersRef = useRef<Record<"send" | "recv", number | null>>({
+    send: null,
+    recv: null,
+  });
+  const iceRestartInFlightRef = useRef<Record<"send" | "recv", boolean>>({
+    send: false,
+    recv: false,
+  });
+  const iceRestartAttemptsRef = useRef<Record<"send" | "recv", number>>({
+    send: 0,
+    recv: 0,
+  });
+  // Set by the bootstrap effect once attemptJoin exists, so code defined
+  // outside that effect (the transport ICE-state handlers below) can trigger
+  // the same full-rejoin fallback it uses for a dead socket.
+  const rejoinRef = useRef<((reason: string) => void) | null>(null);
 
   // Local media
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -430,6 +463,97 @@ export const SfuMeetingProvider = ({
     [attachConsumerTrack],
   );
 
+  const MAX_ICE_RESTART_ATTEMPTS = 2;
+
+  const clearIceGraceTimer = (direction: "send" | "recv") => {
+    const timers = iceGraceTimersRef.current;
+    if (timers[direction] !== null) {
+      window.clearTimeout(timers[direction]!);
+      timers[direction] = null;
+    }
+  };
+
+  // Reset all ICE-recovery bookkeeping - called whenever transports are torn
+  // down/rebuilt (resetMediaSession/teardown) so stale timers from a closed
+  // transport can never fire a restart against its replacement.
+  const resetIceRecoveryState = useCallback(() => {
+    clearIceGraceTimer("send");
+    clearIceGraceTimer("recv");
+    iceRestartInFlightRef.current = { send: false, recv: false };
+    iceRestartAttemptsRef.current = { send: 0, recv: 0 };
+  }, []);
+
+  // Ask the server for fresh ICE parameters and restart the transport's ICE
+  // locally. Much cheaper than a full rejoin, and it's exactly what's needed
+  // after a network handoff: it re-gathers candidates for the CURRENT
+  // interface instead of retrying the same dead ones. Falls back to a full
+  // rejoin if the restart itself fails or we've already retried this
+  // transport too many times without recovering.
+  const attemptIceRestart = useCallback(
+    async (direction: "send" | "recv", transport: Transport) => {
+      if (iceRestartInFlightRef.current[direction]) return;
+      const socket = socketRef.current;
+      // No live socket to ask - the socket 'connect' handler already drives a
+      // full rejoin once it's back, no point racing it here.
+      if (!socket || !socket.connected) return;
+      const isCurrentTransport =
+        transport === sendTransportRef.current ||
+        transport === recvTransportRef.current;
+      if (transport.closed || !isCurrentTransport) return;
+
+      if (iceRestartAttemptsRef.current[direction] >= MAX_ICE_RESTART_ATTEMPTS) {
+        console.warn(`[sfu] ICE restart (${direction}) exhausted - falling back to full rejoin`);
+        rejoinRef.current?.("ice-restart-exhausted");
+        return;
+      }
+
+      iceRestartInFlightRef.current[direction] = true;
+      iceRestartAttemptsRef.current[direction] += 1;
+      try {
+        const { iceParameters } = await emitWithAck<{
+          iceParameters: IceParameters;
+        }>(socket, "sfu:restart-ice", { direction }, 8000);
+        if (transport.closed) return;
+        await transport.restartIce({ iceParameters });
+      } catch (err) {
+        console.error(`[sfu] ICE restart (${direction}) failed`, err);
+        rejoinRef.current?.("ice-restart-failed");
+      } finally {
+        iceRestartInFlightRef.current[direction] = false;
+      }
+    },
+    [],
+  );
+
+  // Wired to each transport's connectionstatechange. This is the ONLY signal
+  // that catches a network handoff: connect-transport only exchanges DTLS
+  // parameters and never waits on the real media path, so signalling can say
+  // "joined" while the actual ICE connection is dead.
+  const handleTransportConnectionState = useCallback(
+    (direction: "send" | "recv", transport: Transport, state: string) => {
+      if (state === "connected") {
+        clearIceGraceTimer(direction);
+        iceRestartAttemptsRef.current[direction] = 0;
+        return;
+      }
+      if (state === "failed") {
+        clearIceGraceTimer(direction);
+        void attemptIceRestart(direction, transport);
+        return;
+      }
+      if (state === "disconnected") {
+        // Mid-handoff blips often self-heal within a couple seconds; give the
+        // browser's own ICE a brief window before paying for a restart.
+        if (iceGraceTimersRef.current[direction] !== null) return;
+        iceGraceTimersRef.current[direction] = window.setTimeout(() => {
+          iceGraceTimersRef.current[direction] = null;
+          void attemptIceRestart(direction, transport);
+        }, 3000);
+      }
+    },
+    [attemptIceRestart],
+  );
+
   // Create both send and recv transports and wire their connect/produce
   // callbacks to the signalling channel.
   const createTransports = useCallback(async () => {
@@ -470,6 +594,9 @@ export const SfuMeetingProvider = ({
           .catch((e) => errback(e as Error));
       },
     );
+    sendTransport.on("connectionstatechange", (state) => {
+      handleTransportConnectionState("send", sendTransport, state);
+    });
     sendTransportRef.current = sendTransport;
 
     // --- Recv transport ---
@@ -490,8 +617,11 @@ export const SfuMeetingProvider = ({
         .then(() => callback())
         .catch((e) => errback(e as Error));
     });
+    recvTransport.on("connectionstatechange", (state) => {
+      handleTransportConnectionState("recv", recvTransport, state);
+    });
     recvTransportRef.current = recvTransport;
-  }, []);
+  }, [handleTransportConnectionState]);
 
   // Produce a specific local track on the send transport under a logical source.
   const produceTrack = useCallback(
@@ -1145,7 +1275,8 @@ export const SfuMeetingProvider = ({
     sendTransportRef.current = null;
     recvTransportRef.current = null;
     deviceRef.current = null;
-  }, [destroyRemote]);
+    resetIceRecoveryState();
+  }, [destroyRemote, resetIceRecoveryState]);
 
   const teardown = useCallback(() => {
     if (teardownStartedRef.current) return;
@@ -1209,6 +1340,7 @@ export const SfuMeetingProvider = ({
     sendTransportRef.current = null;
     recvTransportRef.current = null;
     deviceRef.current = null;
+    resetIceRecoveryState();
 
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((t) => t.stop());
@@ -1232,7 +1364,7 @@ export const SfuMeetingProvider = ({
     setSelf(null);
     setHostUserId(null);
     setConnectionState("ended");
-  }, [setParticipantsSynced]);
+  }, [setParticipantsSynced, resetIceRecoveryState]);
 
   const leaveMeeting = useCallback(() => {
     // A voluntary "Leave class" is not "End class" - only the end-class flow
@@ -1423,6 +1555,7 @@ export const SfuMeetingProvider = ({
         setConnectionState("joined");
         hasJoinedOnce = true;
         retryAttempt = 0;
+        toast.dismiss(CONNECTION_TOAST_ID);
 
         // Publish the mic track (kept but muted). Producing it means remote
         // peers can hear us the instant we unmute - no renegotiation needed.
@@ -1498,10 +1631,21 @@ export const SfuMeetingProvider = ({
         // Surface it once rather than on every retry, so a flaky network
         // doesn't bury the screen in toasts.
         if (retryAttempt === 0) {
-          toast.message("Trouble reaching the class - retrying…");
+          toast.message("Trouble reaching the class - retrying…", {
+            id: CONNECTION_TOAST_ID,
+          });
         }
         scheduleRetry();
       }
+    };
+
+    // Lets the transport-level ICE recovery handlers (defined outside this
+    // effect, wired in createTransports) fall back to the same full rejoin
+    // this effect uses for a dead socket, without needing attemptJoin itself
+    // passed around.
+    rejoinRef.current = (reason: string) => {
+      if (cancelled || teardownStartedRef.current || waitingNow) return;
+      void attemptJoin(reason);
     };
 
     const bootstrap = async () => {
@@ -1567,7 +1711,9 @@ export const SfuMeetingProvider = ({
         console.error("[sfu] connect_error", err);
         if (socket.active) return; // socket.io is already retrying
         if (reconnectTimer !== null) return;
-        toast.message("Reconnecting to the class…");
+        toast.message("Reconnecting to the class…", {
+          id: CONNECTION_TOAST_ID,
+        });
         reconnectTimer = window.setTimeout(() => {
           reconnectTimer = null;
           if (cancelled || teardownStartedRef.current) return;
@@ -1585,7 +1731,9 @@ export const SfuMeetingProvider = ({
           hasConnectedOnce = true;
           return;
         }
-        toast.message("Reconnected - rejoining the class…");
+        toast.message("Reconnected - rejoining the class…", {
+          id: CONNECTION_TOAST_ID,
+        });
         setConnectionState("connecting");
         // attemptJoin bumps the epoch, so it always supersedes an attempt that
         // was still in flight when the connection dropped.
@@ -1594,7 +1742,9 @@ export const SfuMeetingProvider = ({
 
       socket.on("disconnect", () => {
         if (cancelled || teardownStartedRef.current) return;
-        toast.message("Connection lost - reconnecting…");
+        toast.message("Connection lost - reconnecting…", {
+          id: CONNECTION_TOAST_ID,
+        });
         // Someone parked in the waiting room keeps that screen through a blip -
         // nothing about their situation has changed.
         if (!waitingNow) setConnectionState("connecting");
@@ -1776,6 +1926,7 @@ export const SfuMeetingProvider = ({
 
     return () => {
       cancelled = true;
+      rejoinRef.current = null;
       stopWaitingPoll();
       stopRetry();
       clearTimer(reconnectTimer);

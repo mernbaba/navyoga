@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import {
   SfuMeetingProvider,
@@ -28,18 +28,43 @@ type Props = {
 // network, server issue) and the user needs a way out that isn't refreshing
 // the tab.
 const STUCK_RECONNECT_MS = 15000;
+// How long connectionState must stay off "connecting" before we consider the
+// session genuinely recovered and forget how long the user was stuck.
+const STABLE_RESET_MS = 5000;
 
 const SfuMeetingRoomShell = () => {
   const { connectionState, activePanel, isRecording, leaveMeeting } =
     useSfuMeeting();
   const [stuck, setStuck] = useState(false);
+  // When the current run of trouble started - kept across brief flickers back
+  // to "joined" so a flapping network can't hide from the stuck banner.
+  const disruptionStartRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (connectionState !== "connecting") {
-      setStuck(false);
-      return;
+    if (connectionState === "connecting") {
+      if (disruptionStartRef.current === null) {
+        disruptionStartRef.current = Date.now();
+      }
+      const elapsed = Date.now() - disruptionStartRef.current;
+      const remaining = Math.max(STUCK_RECONNECT_MS - elapsed, 0);
+      if (remaining === 0) {
+        setStuck(true);
+        return;
+      }
+      const timer = window.setTimeout(() => setStuck(true), remaining);
+      return () => window.clearTimeout(timer);
     }
-    const timer = window.setTimeout(() => setStuck(true), STUCK_RECONNECT_MS);
+
+    // Not "connecting" right now, but don't erase the disruption clock (and
+    // the "stuck" escape hatch) the instant it clears - a network that keeps
+    // bouncing between "joined" and "connecting" for seconds at a time used
+    // to reset this on every brief recovery, so the 15s banner could never
+    // appear no matter how long the user was actually stuck reconnecting.
+    // Only forget once we've been stable for a real stretch.
+    const timer = window.setTimeout(() => {
+      disruptionStartRef.current = null;
+      setStuck(false);
+    }, STABLE_RESET_MS);
     return () => window.clearTimeout(timer);
   }, [connectionState]);
 

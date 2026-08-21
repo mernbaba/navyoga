@@ -136,6 +136,11 @@ type SfuClientToServer = {
     ack: (res: AckOk<{ ok: true }>) => void,
   ) => void;
 
+  "sfu:restart-ice": (
+    payload: { direction: "send" | "recv" },
+    ack: (res: AckOk<{ iceParameters: IceParameters }>) => void,
+  ) => void;
+
   "sfu:produce": (
     payload: {
       kind: MediaKind;
