@@ -7,7 +7,10 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { isRoleAuthenticated, loginWithRole, setRoleAuth } from "../../lib/auth";
+import { getPlatform } from "../../api/platform";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
+
+const DEFAULT_SUPPORT_EMAIL = "support@navyogaacademy.com";
 
 export type LoginRole = "SUPERADMIN" | "TUTOR" | "OPERATIONS" | "FRONTLINE" | "STUDENT";
 
@@ -52,6 +55,7 @@ export function RoleLoginPage({ role }: { role: LoginRole }) {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [supportEmail, setSupportEmail] = useState(DEFAULT_SUPPORT_EMAIL);
 
   const config = loginPageConfig[role];
 
@@ -60,6 +64,22 @@ export function RoleLoginPage({ role }: { role: LoginRole }) {
       navigate(config.destination, { replace: true });
     }
   }, [role, config.destination, navigate]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPlatform()
+      .then((platform) => {
+        if (!cancelled && platform.email) {
+          setSupportEmail(platform.email);
+        }
+      })
+      .catch(() => {
+        // Keep the default support email if the platform settings can't be loaded.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -205,21 +225,20 @@ export function RoleLoginPage({ role }: { role: LoginRole }) {
           transition={{ delay: 0.4, duration: 0.5 }}
           className="text-center mt-8"
         >
-          {role === "STUDENT" ? (
-            <p className="text-sm text-gray-600">
+          {role === "STUDENT" && (
+            <p className="text-sm text-gray-600 mb-2">
               Don't have an account?{" "}
               <Link to="/register" className="font-semibold hover:underline" style={{ color: "#610981" }}>
                 Sign up
               </Link>
             </p>
-          ) : (
-            <p className="text-sm text-gray-600">
-              Need help with access?{" "}
-              <a href="mailto:support@navyogaacademy.com" className="font-semibold hover:underline" style={{ color: "#610981" }}>
-                Contact support
-              </a>
-            </p>
           )}
+          <p className="text-sm text-gray-600">
+            {role === "STUDENT" ? "Having trouble signing in?" : "Need help with access?"}{" "}
+            <a href={`mailto:${supportEmail}`} className="font-semibold hover:underline" style={{ color: "#610981" }}>
+              Contact support
+            </a>
+          </p>
         </motion.div>
 
         <motion.div
