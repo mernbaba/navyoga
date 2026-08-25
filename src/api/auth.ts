@@ -55,6 +55,19 @@ export type RoleUser = {
   STUDENT: StudentUser;
 };
 
+// Validates a student token that arrived in a URL rather than from a login.
+// The marketing site finishes signup, payment and password setup against the BE
+// itself, then bounces the buyer to /onboard?token=<token>. The token is passed
+// explicitly instead of through authedRequest so nothing is written to the
+// browser session until it has proved itself.
+export function getStudentByToken(token: string) {
+  return unwrap<StudentUser>(
+    apiClient.get<ApiSuccess<StudentUser>>("/api/auth/student/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  );
+}
+
 export function getMe<R extends Role>(role: R) {
   return unwrap<RoleUser[R]>(
     authedRequest<ApiSuccess<RoleUser[R]>>(role, {

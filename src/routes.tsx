@@ -32,6 +32,7 @@ import { Plans } from "./pages/superadmin/Plans";
 import { Settings } from "./pages/superadmin/Settings";
 import { UserLogin } from "./pages/auth/UserLogin";
 import { UserRegister } from "./pages/auth/UserRegister";
+import { Onboard } from "./pages/auth/Onboard";
 import { SuperAdminLogin } from "./pages/auth/SuperAdminLogin";
 import { TutorLogin } from "./pages/auth/TutorLogin";
 import { OperationsLogin } from "./pages/auth/OperationsLogin";
@@ -105,6 +106,13 @@ export const router = createBrowserRouter([
   {
     path: "/login-minimal",
     element: <UserLogin />,
+  },
+  // Hand-off landing for the marketing-site funnel: that codebase runs signup,
+  // payment and password setup against the BE, then sends the buyer here with
+  // the student token so this app can adopt the session and let them in.
+  {
+    path: "/onboard",
+    element: <Onboard />,
   },
   {
     path: "/login/superadmin",
