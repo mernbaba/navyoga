@@ -29,8 +29,8 @@ export function ScrollToTopButton() {
   return (
     <button
       onClick={scrollToTop}
-      className="fixed bottom-6 right-6 z-50 p-3 rounded-full shadow-lg 
-                 bg-[#ff691d] hover:bg-[#ff7f3a] text-white 
+      className="fixed bottom-20 right-6 z-50 p-3 rounded-full shadow-lg
+                 bg-[#ff691d] hover:bg-[#ff7f3a] text-white
                  transition-all duration-300"
     >
       <ArrowUp className="w-5 h-5" />

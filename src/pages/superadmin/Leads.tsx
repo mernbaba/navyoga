@@ -13,7 +13,22 @@ import { toast } from "sonner";
 import { listLeads, createLead, updateLead, deleteLead, getLeadStats, type LeadStats } from "../../api/leads";
 import { listFrontline } from "../../api/frontline";
 import type { FrontlineAgentRow, Lead, LeadSource, LeadStatus, Role } from "../../api/types";
-import { PHONE_PATTERN, PHONE_TITLE, PHONE_MIN_LENGTH, PHONE_MAX_LENGTH, sanitizePhone, handlePhoneInput } from "../../lib/phone";
+import { PHONE_PATTERN, PHONE_TITLE, PHONE_MIN_LENGTH, PHONE_MAX_LENGTH, sanitizePhone, handlePhoneInput, isValidPhone } from "../../lib/phone";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type AddLeadErrors = Partial<Record<"name" | "email" | "phone" | "interest", string>>;
+
+function validateAddLeadForm(form: { name: string; email: string; phone: string; interest: string }): AddLeadErrors {
+  const errors: AddLeadErrors = {};
+  if (!form.name.trim()) errors.name = "Full name is required.";
+  if (!form.email.trim()) errors.email = "Email is required.";
+  else if (!EMAIL_PATTERN.test(form.email.trim())) errors.email = "Enter a valid email address.";
+  if (!form.phone.trim()) errors.phone = "Phone is required.";
+  else if (!isValidPhone(form.phone)) errors.phone = `Phone must be ${PHONE_MIN_LENGTH}-${PHONE_MAX_LENGTH} digits.`;
+  if (!form.interest.trim()) errors.interest = "Interest is required.";
+  return errors;
+}
 
 // Sentinel used by the assignee <Select>s, since Radix Select cannot hold an empty-string value.
 const UNASSIGNED = "__unassigned__";
@@ -70,6 +85,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
     notes: "",
     assignedToId: UNASSIGNED,
   });
+  const [addErrors, setAddErrors] = useState<AddLeadErrors>({});
 
   const [editing, setEditing] = useState<Lead | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -175,6 +191,15 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
   const handleAdd = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isAdding) return;
+    const errors = validateAddLeadForm(addForm);
+    if (Object.keys(errors).length > 0) {
+      setAddErrors(errors);
+      const firstInvalid = (["name", "email", "phone", "interest"] as const).find((field) => errors[field]);
+      if (firstInvalid) document.getElementById(firstInvalid)?.focus();
+      toast.error("Please fix the highlighted fields.");
+      return;
+    }
+    setAddErrors({});
     setIsAdding(true);
     try {
       await createLead(role, {
@@ -193,9 +218,20 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
       toast.success("Lead added successfully");
       setIsAddOpen(false);
       setAddForm({ name: "", email: "", phone: "", source: "WEBSITE", page: "", interest: "", location: "", notes: "", assignedToId: UNASSIGNED });
+      setAddErrors({});
       refetch();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to add lead.");
+      const message = error instanceof Error ? error.message : "Failed to add lead.";
+      const duplicateField = /this email already exists/i.test(message)
+        ? "email"
+        : /this phone already exists/i.test(message)
+          ? "phone"
+          : undefined;
+      if (duplicateField) {
+        setAddErrors((prev) => ({ ...prev, [duplicateField]: message }));
+        document.getElementById(duplicateField)?.focus();
+      }
+      toast.error(message);
     } finally {
       setIsAdding(false);
     }
@@ -256,14 +292,20 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
           <h1 className="text-3xl font-semibold" style={{ color: '#ff691d' }}>Leads</h1>
           <p className="text-muted-foreground mt-1">Manage potential students and inquiries</p>
         </div>
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <Dialog
+          open={isAddOpen}
+          onOpenChange={(open) => {
+            setIsAddOpen(open);
+            if (!open) setAddErrors({});
+          }}
+        >
           <DialogTrigger asChild>
             <Button>
               <Plus className="w-4 h-4 mr-2" />Add Lead
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
-            <form onSubmit={handleAdd}>
+            <form onSubmit={handleAdd} noValidate>
               <DialogHeader>
                 <DialogTitle>Add New Lead</DialogTitle>
                 <DialogDescription>Enter the details of the new lead</DialogDescription>
@@ -271,15 +313,53 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
-                  <Input id="name" value={addForm.name} onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} required maxLength={100} />
+                  <Input
+                    id="name"
+                    value={addForm.name}
+                    onChange={(e) => {
+                      setAddForm({ ...addForm, name: e.target.value });
+                      if (addErrors.name) setAddErrors({ ...addErrors, name: undefined });
+                    }}
+                    required
+                    maxLength={100}
+                    aria-invalid={!!addErrors.name}
+                  />
+                  {addErrors.name && <p className="text-xs text-red-500">{addErrors.name}</p>}
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} />
+                  <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={addForm.email}
+                    onChange={(e) => {
+                      setAddForm({ ...addForm, email: e.target.value });
+                      if (addErrors.email) setAddErrors({ ...addErrors, email: undefined });
+                    }}
+                    required
+                    aria-invalid={!!addErrors.email}
+                  />
+                  {addErrors.email && <p className="text-xs text-red-500">{addErrors.email}</p>}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="phone">Phone <span className="text-red-500">*</span></Label>
-                  <Input id="phone" type="tel" inputMode="numeric" pattern={PHONE_PATTERN} title={PHONE_TITLE} value={addForm.phone} onChange={(e) => setAddForm({ ...addForm, phone: sanitizePhone(e.target.value) })} required minLength={PHONE_MIN_LENGTH} maxLength={PHONE_MAX_LENGTH} />
+                  <Input
+                    id="phone"
+                    type="tel"
+                    inputMode="numeric"
+                    pattern={PHONE_PATTERN}
+                    title={PHONE_TITLE}
+                    value={addForm.phone}
+                    onChange={(e) => {
+                      setAddForm({ ...addForm, phone: sanitizePhone(e.target.value) });
+                      if (addErrors.phone) setAddErrors({ ...addErrors, phone: undefined });
+                    }}
+                    required
+                    minLength={PHONE_MIN_LENGTH}
+                    maxLength={PHONE_MAX_LENGTH}
+                    aria-invalid={!!addErrors.phone}
+                  />
+                  {addErrors.phone && <p className="text-xs text-red-500">{addErrors.phone}</p>}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="source">Source <span className="text-red-500">*</span></Label>
@@ -295,8 +375,19 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                   <Input id="add-page" value={addForm.page} onChange={(e) => setAddForm({ ...addForm, page: e.target.value })} placeholder="e.g., /yoga-live, /home" />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="interest">Interest</Label>
-                  <Input id="interest" value={addForm.interest} onChange={(e) => setAddForm({ ...addForm, interest: e.target.value })} placeholder="e.g., Hatha Yoga - beginner" />
+                  <Label htmlFor="interest">Interest <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="interest"
+                    value={addForm.interest}
+                    onChange={(e) => {
+                      setAddForm({ ...addForm, interest: e.target.value });
+                      if (addErrors.interest) setAddErrors({ ...addErrors, interest: undefined });
+                    }}
+                    placeholder="e.g., Hatha Yoga - beginner"
+                    required
+                    aria-invalid={!!addErrors.interest}
+                  />
+                  {addErrors.interest && <p className="text-xs text-red-500">{addErrors.interest}</p>}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="location">Location</Label>
@@ -322,7 +413,16 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsAddOpen(false);
+                    setAddErrors({});
+                  }}
+                >
+                  Cancel
+                </Button>
                 <Button type="submit" disabled={isAdding}>{isAdding ? "Adding..." : "Add Lead"}</Button>
               </DialogFooter>
             </form>
