@@ -14,6 +14,12 @@ export type LiveClassListParams = {
   tutorId?: string;
   batchId?: string;
   q?: string;
+  // "Today"/"Tomorrow"/"Yesterday" filter: the calendar date the client
+  // resolved in its own timezone (YYYY-MM-DD), plus that timezone's UTC
+  // offset in minutes (Date#getTimezoneOffset) so the server can compute the
+  // matching UTC range without knowing the visitor's timezone itself.
+  localDate?: string;
+  tzOffsetMinutes?: number;
   page?: number;
   limit?: number;
 };

@@ -87,6 +87,31 @@ const DIFFICULTY_CONFIG: Record<ClassDifficulty, { label: string; color: string 
 // visible to every paid live yoga user regardless of their batch.
 const ALL_BATCHES = "__ALL_BATCHES__";
 
+// Sentinel Select value for the tutor filter's "All Tutors" option, since
+// Radix Select cannot hold an empty-string value.
+const ALL_TUTORS = "__ALL_TUTORS__";
+
+const DAY_FILTERS = ["ALL", "YESTERDAY", "TODAY", "TOMORROW"] as const;
+type DayFilter = (typeof DAY_FILTERS)[number];
+const DAY_FILTER_LABELS: Record<DayFilter, string> = {
+  ALL: "All",
+  YESTERDAY: "Yesterday",
+  TODAY: "Today",
+  TOMORROW: "Tomorrow",
+};
+
+// Local calendar date (YYYY-MM-DD) `daysFromToday` days from today, read off
+// the browser's own clock/timezone — paired with its UTC offset so the
+// server can resolve the matching UTC range (see LiveClassListParams).
+function localDateOffset(daysFromToday: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + daysFromToday);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 const BLANK_FORM = {
   title: "",
   yogaType: "",
@@ -132,6 +157,8 @@ export function ClassesLive() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [tutorFilter, setTutorFilter] = useState(ALL_TUTORS);
+  const [dayFilter, setDayFilter] = useState<DayFilter>("TODAY");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [view, setView] = useState<"card" | "table">("card");
@@ -153,6 +180,15 @@ export function ClassesLive() {
     setLoading(true);
     listLiveClasses(role, {
       q: debouncedSearch || undefined,
+      tutorId: tutorFilter === ALL_TUTORS ? undefined : tutorFilter,
+      ...(dayFilter === "ALL"
+        ? {}
+        : {
+            localDate: localDateOffset(
+              dayFilter === "YESTERDAY" ? -1 : dayFilter === "TOMORROW" ? 1 : 0,
+            ),
+            tzOffsetMinutes: new Date().getTimezoneOffset(),
+          }),
       page,
       limit: LIMIT,
     })
@@ -162,7 +198,7 @@ export function ClassesLive() {
       })
       .catch((e) => toast.error(e instanceof Error ? e.message : "Failed to load classes"))
       .finally(() => setLoading(false));
-  }, [role, debouncedSearch, page]);
+  }, [role, debouncedSearch, tutorFilter, dayFilter, page]);
 
   useEffect(() => {
     load();
@@ -185,6 +221,10 @@ export function ClassesLive() {
     }, 300);
     return () => clearTimeout(h);
   }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [tutorFilter, dayFilter]);
 
   const totalPages = Math.max(1, Math.ceil(total / LIMIT));
 
@@ -310,9 +350,6 @@ export function ClassesLive() {
           <h1 className="text-2xl font-bold" style={{ color: "#610981" }}>
             Live Classes
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Schedule and manage live yoga sessions with tutors
-          </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button
@@ -363,6 +400,18 @@ export function ClassesLive() {
           )}
         </div>
 
+        <Select value={tutorFilter} onValueChange={setTutorFilter}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="All Tutors" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_TUTORS}>All Tutors</SelectItem>
+            {tutors.map((t) => (
+              <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         {/* View toggle */}
         <div className="ml-auto inline-flex items-center rounded-xl border bg-white/60 p-0.5">
           <button
@@ -392,6 +441,25 @@ export function ClassesLive() {
             Table
           </button>
         </div>
+      </div>
+
+      {/* Day filter */}
+      <div className="inline-flex items-center rounded-xl border bg-white/60 p-0.5 w-fit">
+        {DAY_FILTERS.map((df) => (
+          <button
+            key={df}
+            type="button"
+            onClick={() => setDayFilter(df)}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+              dayFilter === df
+                ? "bg-[#610981] text-white shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {DAY_FILTER_LABELS[df]}
+          </button>
+        ))}
       </div>
 
       {/* Content */}
