@@ -208,6 +208,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
       toast.success("Subscription updated");
       const subs = await listStudentEnrollments(role, subStudent.id);
       setEnrollments(subs);
+      refetch();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update subscription.");
     } finally {
@@ -231,6 +232,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
       toast.success("Subscription granted");
       const subs = await listStudentEnrollments(role, subStudent.id);
       setEnrollments(subs);
+      refetch();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to grant subscription.");
       throw error; // let the form keep its values open on failure

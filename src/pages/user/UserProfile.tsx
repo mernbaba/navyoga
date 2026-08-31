@@ -337,7 +337,16 @@ export function UserProfile() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="bloodgroup">Blood Group</Label>
-                  <Input id="bloodgroup" value={bloodGroup} onChange={(e) => setBloodGroup(e.target.value)} disabled={isLoading} />
+                  <Select value={bloodGroup} onValueChange={setBloodGroup} disabled={isLoading}>
+                    <SelectTrigger id="bloodgroup" className="w-full">
+                      <SelectValue placeholder="Select blood group" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
+                        <SelectItem key={bg} value={bg}>{bg}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="emergency">Emergency Contact</Label>
