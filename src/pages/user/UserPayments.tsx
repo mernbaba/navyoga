@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import { Check, Crown, Zap, Shield, Calendar, GraduationCap, Heart } from "lucide-react";
+import { Check, Clock, Crown, Zap, Shield, Calendar, GraduationCap, Heart } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -311,28 +311,53 @@ const isSubscribed = (plan: UiPlan): boolean => {
     return cur && expiresAt ? { plan: cur, expiresAt } : null;
   };
 
-  // An upgrade is a locked category + a card that is NOT the current plan, with
-  // a resolvable current plan in the same course.
-  const isUpgradeTarget = (plan: UiPlan): boolean =>
+  // A plan switch is a locked category + a card that is NOT the current plan,
+  // with a resolvable current plan in the same course. Whether that switch is
+  // worth making is a separate question - see switchKindFor.
+  const isSwitchTarget = (plan: UiPlan): boolean =>
     isCategoryLocked(plan.category) && !isSubscribed(plan) && currentActiveFor(plan) !== null;
 
   // Live-only: the student's current plan is the free signup trial, so this is
   // really their first real subscription rather than a plan swap - copy should
   // read "Subscribe", not "Upgrade".
-  const isTrialUpgrade = (plan: UiPlan): boolean =>
-    plan.category === "live" && isUpgradeTarget(plan) && activeLiveEnrollment?.plan.isTrialPlan === true;
+  const isTrialSwitch = (plan: UiPlan): boolean =>
+    plan.category === "live" && isSwitchTarget(plan) && activeLiveEnrollment?.plan.isTrialPlan === true;
+
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+  // Whole days still left on the current plan in this card's category. ceil so
+  // a partial final day counts in the student's favour, clamped to the plan's
+  // validity - mirrors the backend's quotePlanSwitch.
+  const remainingDaysFor = (plan: UiPlan): number => {
+    const current = currentActiveFor(plan);
+    if (!current || current.plan.validity <= 0) return 0;
+    const rawDays = Math.ceil((new Date(current.expiresAt).getTime() - Date.now()) / MS_PER_DAY);
+    return Math.min(Math.max(rawDays, 0), current.plan.validity);
+  };
+
+  type SwitchKind = "none" | "trial" | "upgrade" | "downgrade";
+
+  // What moving to `plan` would actually do to the student, in their terms.
+  //
+  // Buying a plan mid-term REPLACES the running one: the new term starts today
+  // and lasts the new plan's validity, because the unused days were already
+  // paid back as a price credit. So a Yearly subscriber with 300 days left who
+  // picks Monthly ends up with 30 days, not 330 - the other 270 are gone, and
+  // the credit above the Monthly price is forfeited rather than refunded. That
+  // is a downgrade however it is labelled, so it must never be offered behind
+  // an "Upgrade" button. The backend refuses the same case with a 409.
+  const switchKindFor = (plan: UiPlan): SwitchKind => {
+    if (!isSwitchTarget(plan)) return "none";
+    if (isTrialSwitch(plan)) return "trial"; // trial days are carried over, never lost
+    return plan.validity < remainingDaysFor(plan) ? "downgrade" : "upgrade";
+  };
 
   // Rupee credit for the unused time on the current plan, prorated over its
-  // validity - mirrors the backend computeUpgradeBase. remainingDays uses ceil
-  // and is clamped to [0, oldValidity].
+  // validity - mirrors the backend's quotePlanSwitch.
   const upgradeCreditFor = (plan: UiPlan): number => {
     const current = currentActiveFor(plan);
     if (!current || current.plan.validity <= 0) return 0;
-    const msPerDay = 24 * 60 * 60 * 1000;
-    const remainingMs = new Date(current.expiresAt).getTime() - Date.now();
-    const rawDays = Math.ceil(remainingMs / msPerDay);
-    const remainingDays = Math.min(Math.max(rawDays, 0), current.plan.validity);
-    const credit = (remainingDays / current.plan.validity) * current.plan.price;
+    const credit = (remainingDaysFor(plan) / current.plan.validity) * current.plan.price;
     return Math.round(credit * 100) / 100;
   };
 
@@ -340,21 +365,40 @@ const isSubscribed = (plan: UiPlan): boolean => {
   // The trial is free, so instead of a price credit these days are added on
   // top of the new plan's validity (see resolveProductPrice's trial branch).
   const trialBonusDaysFor = (plan: UiPlan): number => {
-    if (!isTrialUpgrade(plan) || !activeLiveEnrollment) return 0;
-    const msPerDay = 24 * 60 * 60 * 1000;
+    if (!isTrialSwitch(plan) || !activeLiveEnrollment) return 0;
     const remainingMs = new Date(activeLiveEnrollment.endDate).getTime() - Date.now();
-    return Math.max(0, Math.ceil(remainingMs / msPerDay));
+    return Math.max(0, Math.ceil(remainingMs / MS_PER_DAY));
+  };
+
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+
+  const dayLabel = (n: number) => `${n} day${n === 1 ? "" : "s"}`;
+
+  // Why a shorter plan is held back, said in the student's own numbers rather
+  // than as a bare "unavailable".
+  const downgradeNoteFor = (plan: UiPlan): string | null => {
+    const current = currentActiveFor(plan);
+    if (!current) return null;
+    return (
+      `You're on ${current.plan.name} till ${formatDate(current.expiresAt)} ` +
+      `(${dayLabel(remainingDaysFor(plan))} left). Moving to ${plan.name} now would ` +
+      `replace that with ${dayLabel(plan.validity)}, so we've kept the time you paid for. ` +
+      `You can switch once your current plan ends.`
+    );
   };
 
 const [isEnrolling, setIsEnrolling] = useState(false);
   const checkout = useCheckout();
   const [appliedCoupon, setAppliedCoupon] = useState<CouponApplied | null>(null);
 
-  // Shared CTA renderer for a plan card. Three states:
-  //  - current plan        → non-interactive "Your Current Plan" block
-  //  - locked + upgradeable → enabled "Upgrade to this plan"
-  //  - locked, not upgradeable (e.g. data still loading) → disabled
-  //  - unlocked            → the domain's normal buy label
+  // Shared CTA renderer for a plan card. Five states:
+  //  - current plan            → non-interactive "Your Current Plan" block
+  //  - trial → paid            → enabled "Subscribe Now"
+  //  - upgrade                 → enabled "Upgrade to this plan"
+  //  - downgrade               → disabled, dated, with the reason spelled out
+  //  - locked, unresolvable (e.g. data still loading) → disabled
+  //  - unlocked                → the domain's normal buy label
   // `bg` builds the enabled background (flat colour or gradient per domain).
   const renderPlanCta = (
     plan: UiPlan,
@@ -370,16 +414,37 @@ const [isEnrolling, setIsEnrolling] = useState(false);
         </div>
       );
     }
+    const kind = switchKindFor(plan);
+
+    // Shorter plan than what's already paid for. Rather than dress it up as an
+    // upgrade, say when it opens up and why it's closed until then.
+    if (kind === "downgrade") {
+      const current = currentActiveFor(plan);
+      return (
+        <div className="space-y-2">
+          <Button
+            className={`w-full py-6 text-base font-semibold rounded-xl ${extraClass}`}
+            style={{ background: "#9ca3af", color: "white" }}
+            disabled
+          >
+            <Clock className="w-5 h-5 mr-2" />
+            {current ? `Available from ${formatDate(current.expiresAt)}` : "Available later"}
+          </Button>
+          <p className="text-xs text-muted-foreground leading-relaxed">{downgradeNoteFor(plan)}</p>
+        </div>
+      );
+    }
+
     const locked = isCategoryLocked(plan.category);
-    const upgrade = isUpgradeTarget(plan);
-    const disabled = locked && !upgrade;
-    const label = !upgrade
-      ? disabled
-        ? "Active on another plan"
-        : buyLabel
-      : isTrialUpgrade(plan)
+    const disabled = locked && kind === "none";
+    const label =
+      kind === "trial"
         ? "Subscribe Now"
-        : "Upgrade to this plan";
+        : kind === "upgrade"
+          ? "Upgrade to this plan"
+          : disabled
+            ? "Active on another plan"
+            : buyLabel;
     return (
       <Button
         className={`w-full py-6 text-base font-semibold rounded-xl ${extraClass}`}
@@ -387,13 +452,21 @@ const [isEnrolling, setIsEnrolling] = useState(false);
         onClick={() => handleUpgrade(plan)}
         disabled={disabled}
       >
-        {upgrade && <Crown className="w-5 h-5 mr-2" />}
+        {kind === "upgrade" && <Crown className="w-5 h-5 mr-2" />}
         {label}
       </Button>
     );
   };
 
   const handleUpgrade = (plan: UiPlan) => {
+    // Belt-and-braces: the downgrade CTA renders disabled, so this can only be
+    // reached if that ever regresses. Never open checkout on a plan that would
+    // shorten the student's access.
+    if (switchKindFor(plan) === "downgrade") {
+      const note = downgradeNoteFor(plan);
+      if (note) toast.info(note);
+      return;
+    }
     setSelectedPlan(plan);
     setShowUpgradeDialog(true);
     setAppliedCoupon(null);
@@ -419,7 +492,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
     if (!selectedPlan) return null;
     // Preview the coupon against the upgrade base when this is an upgrade, so
     // the displayed discount matches the eventual charge.
-    const isUpgrade = isUpgradeTarget(selectedPlan) || undefined;
+    const isUpgrade = switchKindFor(selectedPlan) !== "none" || undefined;
     switch (selectedPlan.category) {
       case "live":
         if (!selectedBatchId) return null;
@@ -455,13 +528,13 @@ const [isEnrolling, setIsEnrolling] = useState(false);
       return;
     }
 
-    const upgrading = isUpgradeTarget(selectedPlan);
+    const kind = switchKindFor(selectedPlan);
     setIsEnrolling(true);
     setShowUpgradeDialog(false);
 
     try {
       const couponCode = appliedCoupon?.code;
-      const isUpgrade = upgrading || undefined; // omit the field for fresh purchases
+      const isUpgrade = kind !== "none" || undefined; // omit the field for fresh purchases
       const paymentInput: InitiatePaymentInput = (() => {
         switch (selectedPlan.category) {
           case "live":
@@ -483,12 +556,13 @@ const [isEnrolling, setIsEnrolling] = useState(false);
       }
 
       // Both "paid" and "free" (100%-off coupon fulfilled inline) are successes.
-      // isTrialUpgrade implies upgrading, so it must be checked first.
+      // Only a real move up is called an upgrade; a trial converting is a first
+      // subscription. ("downgrade" never reaches here - it can't be bought.)
       const bonusDays = trialBonusDaysFor(selectedPlan);
       toast.success(
-        isTrialUpgrade(selectedPlan) && bonusDays > 0
+        kind === "trial" && bonusDays > 0
           ? `Successfully subscribed to ${selectedPlan.name}! +${bonusDays} bonus day${bonusDays === 1 ? "" : "s"} from your trial.`
-          : upgrading
+          : kind === "upgrade"
             ? `Successfully upgraded to ${selectedPlan.name}!`
             : `Successfully subscribed to ${selectedPlan.name}!`,
       );
@@ -994,19 +1068,17 @@ const [isEnrolling, setIsEnrolling] = useState(false);
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle style={{ color: '#ff691d' }}>
-              {selectedPlan && isTrialUpgrade(selectedPlan)
-                ? `Subscribe to ${selectedPlan.name}`
-                : selectedPlan && isUpgradeTarget(selectedPlan)
-                  ? `Upgrade to ${selectedPlan.name}`
-                  : `Subscribe to ${selectedPlan?.name}`}
+              {selectedPlan && switchKindFor(selectedPlan) === "upgrade"
+                ? `Upgrade to ${selectedPlan.name}`
+                : `Subscribe to ${selectedPlan?.name}`}
             </DialogTitle>
             <DialogDescription>
-              {selectedPlan && isTrialUpgrade(selectedPlan)
+              {selectedPlan && switchKindFor(selectedPlan) === "trial"
                 ? trialBonusDaysFor(selectedPlan) > 0
                   ? `Your remaining ${trialBonusDaysFor(selectedPlan)} trial day${trialBonusDaysFor(selectedPlan) === 1 ? "" : "s"} will be added on top of this plan's duration.`
                   : "Your free trial ends automatically once this plan starts."
-                : selectedPlan && isUpgradeTarget(selectedPlan)
-                  ? "Your current plan's unused days are credited towards this upgrade."
+                : selectedPlan && switchKindFor(selectedPlan) === "upgrade"
+                  ? `Your current plan's unused days are credited below. Your new term starts today and runs for ${selectedPlan.validity} days.`
                   : "Review your plan details and confirm your subscription"}
             </DialogDescription>
           </DialogHeader>
@@ -1015,8 +1087,8 @@ const [isEnrolling, setIsEnrolling] = useState(false);
             // unused-time credit is subtracted from the base first; then the
             // coupon discounts the remaining base; then GST is added on top -
             // matching the backend's charged amount.
-            const upgrading = isUpgradeTarget(selectedPlan);
-            const credit = upgrading ? upgradeCreditFor(selectedPlan) : 0;
+            const switching = switchKindFor(selectedPlan) !== "none";
+            const credit = switching ? upgradeCreditFor(selectedPlan) : 0;
             const bonusDays = trialBonusDaysFor(selectedPlan);
             const afterCredit = Math.max(0, selectedPlan.price - credit);
             const discountedBase = appliedCoupon
@@ -1044,7 +1116,7 @@ const [isEnrolling, setIsEnrolling] = useState(false);
                       <span>₹{formatINR(selectedPlan.price)}</span>
                     </span>
                   </div>
-                  {upgrading && credit > 0 && (
+                  {switching && credit > 0 && (
                     <div className="flex items-center justify-between text-sm text-green-700">
                       <span>Credit for unused days</span>
                       <span>− ₹{formatINR(credit)}</span>
