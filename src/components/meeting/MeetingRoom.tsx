@@ -39,7 +39,10 @@ const MeetingRoomShell = () => {
               className="h-full w-full object-contain"
             />
           </div>
-          <span className="text-sm font-semibold text-white drop-shadow">
+          {/* Phones only have room for the logo mark: the wordmark shares
+              this row with the view toggle and the two collide in gallery
+              mode. */}
+          <span className="hidden text-sm font-semibold text-white drop-shadow sm:inline">
             Navyoga Wellness
           </span>
         </div>

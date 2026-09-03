@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { LayoutGrid, Maximize2, Minimize2, User, X } from "lucide-react";
 import { useMeeting } from "@/context/MeetingContext";
 import { VideoTile } from "@/components/meeting/VideoTile";
@@ -15,10 +15,16 @@ type Tile = {
   isScreenShare: boolean;
 };
 
-// Gallery view always lays tiles out in a fixed 3-column grid on web - no
-// dynamic column search, so the layout stays predictable regardless of class
-// size or window size.
+// Gallery view always lays tiles out in a fixed 3-column grid on landscape
+// screens (desktop) - no dynamic column search, so the layout stays
+// predictable regardless of class size or window size.
 const GALLERY_COLS = 3;
+// Portrait screens (phones, tablets held upright) can't take 3 columns: a
+// single row of 3 stretched to the full height turns every tile into a tall
+// sliver a few finger-widths wide. Two people stack on top of each other,
+// three or more go two across; rows share the height until they'd drop below
+// a readable minimum, then the grid scrolls instead of shrinking further.
+const GALLERY_COLS_PORTRAIT = 2;
 
 export const VideoGrid = () => {
   const {
@@ -90,9 +96,13 @@ export const VideoGrid = () => {
     : null;
 
   const galleryRows = Math.ceil(allTiles.length / GALLERY_COLS) || 1;
+  // Only go two across once there are more tiles than columns - one or two
+  // people stack full-width instead.
+  const galleryColsPortrait =
+    allTiles.length > GALLERY_COLS_PORTRAIT ? GALLERY_COLS_PORTRAIT : 1;
 
   return (
-    <div className="relative flex h-full w-full flex-1 flex-col overflow-hidden bg-zinc-950 p-4">
+    <div className="relative flex h-full w-full flex-1 flex-col overflow-hidden bg-zinc-950 px-2 py-4 sm:px-4">
       <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/80 px-1.5 py-1 backdrop-blur-md">
         <button
           onClick={() => setViewMode("gallery")}
@@ -149,15 +159,22 @@ export const VideoGrid = () => {
         // focus modal.
         <div
           // px/pb leave room for the host tile's glow, which the overflow-hidden
-          // would otherwise slice off at the edges of the grid.
-          className="h-full w-full flex-1 overflow-hidden px-1 pb-1 pt-11"
+          // would otherwise slice off at the edges of the grid. Portrait
+          // scrolls vertically once the rows hit their minimum height.
+          className="h-full w-full flex-1 overflow-hidden px-1 pb-1 pt-12 portrait:overflow-y-auto"
         >
           <div
-            className="grid h-full w-full gap-4"
-            style={{
-              gridTemplateColumns: `repeat(${GALLERY_COLS}, minmax(0, 1fr))`,
-              gridTemplateRows: `repeat(${galleryRows}, minmax(0, 1fr))`,
-            }}
+            // Track templates are passed as CSS variables rather than inline
+            // grid-template-* styles: an inline style would always beat the
+            // portrait variant below, which needs to swap both templates.
+            className="grid h-full w-full grid-cols-(--gallery-cols) grid-rows-(--gallery-rows) gap-2 sm:gap-4 portrait:grid-cols-(--gallery-cols-portrait) portrait:grid-rows-none portrait:auto-rows-[minmax(10rem,1fr)]"
+            style={
+              {
+                "--gallery-cols": `repeat(${GALLERY_COLS}, minmax(0, 1fr))`,
+                "--gallery-rows": `repeat(${galleryRows}, minmax(0, 1fr))`,
+                "--gallery-cols-portrait": `repeat(${galleryColsPortrait}, minmax(0, 1fr))`,
+              } as CSSProperties
+            }
           >
             {allTiles.map((tile) => (
               <div key={tile.id} className="min-h-0 min-w-0">
@@ -178,10 +195,11 @@ export const VideoGrid = () => {
           {/* Students only ever see the teacher in speaker view - the rail of
               other participants is for the tutor. (Gallery still shows all.) */}
           {role === "host" && thumbnails.length > 0 && (
-            // mt-11 (not pt) keeps the rail clear of the Gallery/Speaker
-            // toggle even when scrolled; pr-2 leaves a gutter so the
-            // scrollbar never sits on top of the tiles.
-            <div className="flex h-28 shrink-0 items-center gap-3 overflow-x-auto px-2 py-1 lg:mt-11 lg:h-auto lg:w-56 lg:flex-col lg:items-stretch lg:overflow-x-hidden lg:overflow-y-auto lg:py-0 lg:pl-0 lg:pr-2 lg:scrollbar-thin lg:[scrollbar-color:var(--color-zinc-700)_transparent] xl:w-64">
+            // mt-12 (not pt) keeps the strip/rail clear of the brand block
+            // and the Gallery/Speaker toggle even when scrolled - on phones
+            // the horizontal strip used to run underneath both; pr-2 leaves a
+            // gutter so the scrollbar never sits on top of the tiles.
+            <div className="mt-12 flex h-28 shrink-0 items-center gap-3 overflow-x-auto overflow-y-hidden px-2 py-1 lg:h-auto lg:w-56 lg:flex-col lg:items-stretch lg:overflow-x-hidden lg:overflow-y-auto lg:py-0 lg:pl-0 lg:pr-2 lg:scrollbar-thin lg:[scrollbar-color:var(--color-zinc-700)_transparent] xl:w-64">
               {thumbnails.map((tile) => (
                 <div
                   key={tile.id}

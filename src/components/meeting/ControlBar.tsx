@@ -40,7 +40,7 @@ export const ControlBar = () => {
   };
 
   return (
-    <div className="relative flex h-20 items-center justify-between border-t border-zinc-800 bg-zinc-900 px-6 select-none">
+    <div className="relative flex h-20 items-center justify-between border-t border-zinc-800 bg-zinc-900 px-3 select-none sm:px-6">
       <div className="hidden w-[25%] items-center gap-3 sm:flex">
         <div>
           <div className="text-xs font-bold uppercase tracking-wider text-zinc-400">
@@ -52,10 +52,10 @@ export const ControlBar = () => {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 md:gap-3">
+      <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
         <button
           onClick={toggleMute}
-          className={`flex h-14 w-14 flex-col items-center justify-center rounded-xl transition-all duration-150 active:scale-95 ${
+          className={`flex h-12 w-12 flex-col items-center justify-center rounded-xl transition-all duration-150 active:scale-95 sm:h-14 sm:w-14 ${
             isMuted
               ? "bg-red-500/15 text-red-400 hover:bg-red-500/25"
               : "text-white hover:bg-zinc-800"
@@ -69,7 +69,7 @@ export const ControlBar = () => {
 
         <button
           onClick={toggleVideo}
-          className={`flex h-14 w-14 flex-col items-center justify-center rounded-xl transition-all duration-150 active:scale-95 ${
+          className={`flex h-12 w-12 flex-col items-center justify-center rounded-xl transition-all duration-150 active:scale-95 sm:h-14 sm:w-14 ${
             isVideoOff
               ? "bg-red-500/15 text-red-400 hover:bg-red-500/25"
               : "text-white hover:bg-zinc-800"
@@ -88,7 +88,7 @@ export const ControlBar = () => {
         {isHost && (
           <button
             onClick={() => toggleScreenShare()}
-            className={`flex h-14 w-14 flex-col items-center justify-center rounded-xl transition-all duration-150 active:scale-95 ${
+            className={`flex h-12 w-12 flex-col items-center justify-center rounded-xl transition-all duration-150 active:scale-95 sm:h-14 sm:w-14 ${
               isScreenSharing
                 ? "bg-[var(--primary)]/20 text-[var(--primary)] hover:bg-[var(--primary)]/30"
                 : "text-white hover:bg-zinc-800"
@@ -106,7 +106,7 @@ export const ControlBar = () => {
             onClick={toggleRecording}
             disabled={isRecordingBusy}
             title={isRecording ? "Stop recording" : "Record this class"}
-            className={`flex h-14 w-14 flex-col items-center justify-center rounded-xl transition-all duration-150 active:scale-95 ${
+            className={`flex h-12 w-12 flex-col items-center justify-center rounded-xl transition-all duration-150 active:scale-95 sm:h-14 sm:w-14 ${
               isRecording
                 ? "bg-red-500/15 text-red-400 hover:bg-red-500/25"
                 : "text-white hover:bg-zinc-800"
@@ -126,10 +126,10 @@ export const ControlBar = () => {
         )}
       </div>
 
-      <div className="flex w-[25%] items-center justify-end gap-2 md:gap-3">
+      <div className="flex items-center justify-end gap-1 sm:w-[25%] sm:gap-2 md:gap-3">
         <button
           onClick={() => togglePanel("participants")}
-          className={`relative rounded-lg p-2.5 transition hover:bg-zinc-800 ${
+          className={`relative rounded-lg p-2 transition hover:bg-zinc-800 sm:p-2.5 ${
             activePanel === "participants"
               ? "bg-[var(--primary)]/15 text-[var(--primary)]"
               : "text-zinc-400 hover:text-white"
@@ -143,7 +143,7 @@ export const ControlBar = () => {
 
         <button
           onClick={() => togglePanel("chat")}
-          className={`relative rounded-lg p-2.5 transition hover:bg-zinc-800 ${
+          className={`relative rounded-lg p-2 transition hover:bg-zinc-800 sm:p-2.5 ${
             activePanel === "chat"
               ? "bg-[var(--primary)]/15 text-[var(--primary)]"
               : "text-zinc-400 hover:text-white"
@@ -157,13 +157,18 @@ export const ControlBar = () => {
           )}
         </button>
 
-        <div className="relative ml-2">
+        <div className="relative ml-1 sm:ml-2">
           <button
             onClick={() => setShowLeaveMenu((v) => !v)}
-            className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-xs font-bold text-white transition active:scale-95 hover:bg-red-600"
+            aria-label={isHost ? "End or leave class" : "Leave class"}
+            // Icon-only square on phones: next to the four class controls
+            // the label had no room and wrapped onto two lines.
+            className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-500 text-xs font-bold text-white transition active:scale-95 hover:bg-red-600 sm:h-auto sm:w-auto sm:gap-2 sm:px-4 sm:py-2"
           >
             <PhoneOff className="h-4 w-4" />
-            {isHost ? "End / Leave" : "Leave"}
+            <span className="hidden whitespace-nowrap sm:inline">
+              {isHost ? "End / Leave" : "Leave"}
+            </span>
           </button>
 
           {showLeaveMenu && (
