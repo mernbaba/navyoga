@@ -44,6 +44,7 @@ import { TutorAttendance } from "./pages/tutor/TutorAttendance";
 import { TutorReferrals } from "./pages/tutor/TutorReferrals";
 import { TutorSettings } from "./pages/tutor/TutorSettings";
 import { VideoSession } from "./pages/tutor/VideoSession";
+import { RoomPreview } from "./pages/dev/RoomPreview";
 import { FrontlineDashboard } from "./pages/frontline/FrontlineDashboard";
 import { FrontlineLeads } from "./pages/frontline/FrontlineLeads";
 import { FrontlineCallLog } from "./pages/frontline/FrontlineCallLog";
@@ -283,6 +284,11 @@ export const router = createBrowserRouter([
       { path: "ytt-recorded/:courseId", Component: UserYTTRecordedCourse },
     ],
   },
+  // Layout harness for the live-class room - dev server only, never routed in
+  // a production build. See src/pages/dev/RoomPreview.tsx for the query params.
+  ...(import.meta.env.DEV
+    ? [{ path: "/dev/room-preview", Component: RoomPreview }]
+    : []),
   {
     path: "*",
     element: <NotFound />,
