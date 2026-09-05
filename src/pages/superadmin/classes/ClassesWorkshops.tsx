@@ -513,7 +513,7 @@ export function ClassesWorkshops() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button variant={modeFilter === "ALL" ? "default" : "outline"} size="sm" onClick={() => setModeFilter("ALL")}>
               All
             </Button>
@@ -540,7 +540,7 @@ export function ClassesWorkshops() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border rounded-lg overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
@@ -682,7 +682,7 @@ export function ClassesWorkshops() {
                 className="min-h-20 max-h-40"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label htmlFor="ws-yoga">Yoga Type <span className="text-red-500">*</span></Label>
                 <Input id="ws-yoga" value={form.yogaType} onChange={(e) => setForm({ ...form, yogaType: e.target.value })} placeholder="e.g. Vinyasa, Hatha" />
@@ -692,7 +692,7 @@ export function ClassesWorkshops() {
                 <Input id="ws-instructor" value={form.instructorName} onChange={(e) => setForm({ ...form, instructorName: e.target.value })} placeholder="optional · for guest instructors" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>Mode <span className="text-red-500">*</span></Label>
                 <Select value={form.mode} onValueChange={(v: WorkshopMode) => setForm({ ...form, mode: v })}>
@@ -712,7 +712,7 @@ export function ClassesWorkshops() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label htmlFor="ws-price">Price (₹) <span className="text-red-500">*</span></Label>
                 <Input
@@ -735,7 +735,7 @@ export function ClassesWorkshops() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label htmlFor="ws-start">Start Date</Label>
                 <Input id="ws-start" type="datetime-local" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
@@ -868,7 +868,7 @@ export function ClassesWorkshops() {
             />
           </div>
 
-          <div className="flex-1 overflow-y-auto border rounded-lg mt-2">
+          <div className="flex-1 overflow-y-auto overflow-x-auto border rounded-lg mt-2">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">

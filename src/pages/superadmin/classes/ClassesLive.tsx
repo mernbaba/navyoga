@@ -345,13 +345,13 @@ export function ClassesLive() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: "#610981" }}>
             Live Classes
           </h1>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             onClick={() => setBatchesDialogOpen(true)}
@@ -381,9 +381,9 @@ export function ClassesLive() {
       </div>
 
       {/* Filter bar */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10 pointer-events-none" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:flex-1 sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-700 z-10 pointer-events-none" />
           <Input
             className="pl-9 pr-8"
             placeholder="Search classes..."
@@ -400,51 +400,53 @@ export function ClassesLive() {
           )}
         </div>
 
-        <Select value={tutorFilter} onValueChange={setTutorFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="All Tutors" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_TUTORS}>All Tutors</SelectItem>
-            {tutors.map((t) => (
-              <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap items-center gap-3">
+          <Select value={tutorFilter} onValueChange={setTutorFilter}>
+            <SelectTrigger className="flex-1 sm:w-48">
+              <SelectValue placeholder="All Tutors" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_TUTORS}>All Tutors</SelectItem>
+              {tutors.map((t) => (
+                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        {/* View toggle */}
-        <div className="ml-auto inline-flex items-center rounded-xl border bg-white/60 p-0.5">
-          <button
-            type="button"
-            onClick={() => setView("card")}
-            className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
-              view === "card"
-                ? "bg-[#610981] text-white shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <LayoutGrid className="w-3.5 h-3.5" />
-            Cards
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("table")}
-            className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
-              view === "table"
-                ? "bg-[#610981] text-white shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <TableIcon className="w-3.5 h-3.5" />
-            Table
-          </button>
+          {/* View toggle */}
+          <div className="inline-flex items-center rounded-xl border bg-white/60 p-0.5 shrink-0 sm:ml-auto">
+            <button
+              type="button"
+              onClick={() => setView("card")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                view === "card"
+                  ? "bg-[#610981] text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              Cards
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("table")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                view === "table"
+                  ? "bg-[#610981] text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <TableIcon className="w-3.5 h-3.5" />
+              Table
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Day filter */}
-      <div className="inline-flex items-center rounded-xl border bg-white/60 p-0.5 w-fit">
+      <div className="flex flex-wrap items-center gap-1 rounded-xl border bg-white/60 p-0.5 w-fit max-w-full">
         {DAY_FILTERS.map((df) => (
           <button
             key={df}
@@ -560,7 +562,7 @@ export function ClassesLive() {
             </div>
 
             {/* Yoga Type + Difficulty */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>
                   Yoga Type <span className="text-red-500">*</span>
@@ -905,7 +907,7 @@ function LiveClassCard({
             )}
           </div>
 
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
             <button
               onClick={onEdit}
               className="p-1.5 rounded-lg hover:bg-[#610981]/10 text-[#610981] transition-colors"
@@ -993,7 +995,7 @@ function LiveClassTable({
   onDelete: (cls: LiveClass) => void;
 }) {
   return (
-    <div className="rounded-2xl border bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden">
+    <div className="rounded-2xl border bg-white/80 backdrop-blur-sm shadow-sm overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-[#610981]/5 hover:bg-[#610981]/5">
@@ -1079,7 +1081,7 @@ function LiveClassTable({
                   )}
                 </TableCell>
                 <TableCell>
-                  <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => onEdit(cls)}
                       className="p-1.5 rounded-lg hover:bg-[#610981]/10 text-[#610981] transition-colors"

@@ -184,7 +184,7 @@ export function ClassesSelfPaced() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold">Self Paced</h1>
           <p className="text-muted-foreground mt-1">Manage self-paced video classes</p>
@@ -645,7 +645,7 @@ function ClassFormView({
           placeholder="e.g. Sun Salutation - Part 1"
         />
       </div>
-      <div className={showThumbnail ? "grid grid-cols-2 gap-3" : ""}>
+      <div className={showThumbnail ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : ""}>
         <div className="space-y-1">
           <Label htmlFor="cf-dur">Duration (min) *</Label>
           <Input

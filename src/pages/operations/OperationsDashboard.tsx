@@ -111,14 +111,14 @@ export function OperationsDashboard() {
     <div className="p-6 lg:p-8">
       <div className="space-y-6">
  
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-semibold" style={{ color: '#ff691d' }}>Operations Dashboard</h1>
             <p className="text-muted-foreground mt-1">Manage business operations and team activities</p>
           </div>
 
           {/* Compact attendance widget */}
-          <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl border-2 bg-white shadow-sm shrink-0" style={{ borderColor }}>
+          <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 rounded-2xl border-2 bg-white shadow-sm sm:shrink-0" style={{ borderColor }}>
             <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-1">Attendance</p>

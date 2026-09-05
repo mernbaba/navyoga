@@ -199,7 +199,7 @@ export function FinancialsCoupons() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="code">Coupon Code <span className="text-red-500">*</span></Label>
                     <Input
@@ -237,7 +237,7 @@ export function FinancialsCoupons() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="discountType">Discount Type <span className="text-red-500">*</span></Label>
                     <Select name="discountType" defaultValue={editingCoupon?.discountType || "PERCENTAGE"}>
@@ -265,7 +265,7 @@ export function FinancialsCoupons() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="minPurchase">Min Purchase Amount (₹) <span className="text-red-500">*</span></Label>
                     <Input
@@ -293,7 +293,7 @@ export function FinancialsCoupons() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="usageLimit">Usage Limit <span className="text-red-500">*</span></Label>
                     <Input
@@ -341,7 +341,7 @@ export function FinancialsCoupons() {
                 <div className="grid gap-2">
                   <Label>Applicable Plan Types</Label>
                   <p className="text-xs text-muted-foreground -mt-1">Leave all unchecked to apply to every plan type.</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1">
                     {APPLICABLE_TYPES.map((t) => {
                       const checked = applicableTo.includes(t.value);
                       return (
@@ -439,7 +439,7 @@ export function FinancialsCoupons() {
         <CardContent>
           <div className="mb-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none z-10" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 w-4 h-4 pointer-events-none z-10" />
               <Input
                 placeholder="Search by coupon code or status..."
                 value={couponSearchQuery}
@@ -450,6 +450,7 @@ export function FinancialsCoupons() {
           </div>
 
           <div className="border rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -588,6 +589,7 @@ export function FinancialsCoupons() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </div>
         </CardContent>
       </Card>

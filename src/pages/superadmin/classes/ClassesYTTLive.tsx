@@ -241,7 +241,7 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="course-yoga">Yoga Type *</Label>
               <Input
@@ -491,7 +491,7 @@ function ClassFormDialog({ open, courseId, initial, onClose, onSaved }: ClassFor
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="cls-yoga">Yoga Type *</Label>
               <Input
@@ -661,7 +661,7 @@ function CourseClasses({ courseId }: CourseClassesProps) {
           <CardTitle className="text-base">Live Sessions</CardTitle>
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10 pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-700 z-10 pointer-events-none" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -909,7 +909,7 @@ export function ClassesYTTLive() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: BRAND }}>YTT Live</h1>
           <p className="text-muted-foreground text-sm mt-1">Yoga Teacher Training - live batch courses</p>

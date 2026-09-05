@@ -423,7 +423,7 @@ export function ClassesEvents() {
   return (
     <div className="space-y-6">
       {/* ── Header ── */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <div className="w-8 h-8 rounded-lg bg-linear-to-br from-[#610981] to-[#8b0fa8] flex items-center justify-center shadow-md shadow-[#ffac96]/40">
@@ -497,7 +497,7 @@ export function ClassesEvents() {
         <CardContent className="pt-4 pb-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 w-4 h-4 z-10 pointer-events-none" />
               <Input
                 placeholder="Search by title or location..."
                 value={searchQuery}
@@ -833,7 +833,7 @@ export function ClassesEvents() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-1.5">
                   <Label htmlFor="ev-date">
                     Date & Time <span className="text-red-500">*</span>
@@ -884,7 +884,7 @@ export function ClassesEvents() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-1.5">
                   <Label htmlFor="ev-capacity">
                     Capacity <span className="text-red-500">*</span>
@@ -1156,7 +1156,7 @@ export function ClassesEvents() {
           </DialogHeader>
 
           <div className="relative mt-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 w-4 h-4 z-10 pointer-events-none" />
             <Input
               placeholder="Search by name, email or phone..."
               value={enrollmentsSearch}
@@ -1169,7 +1169,7 @@ export function ClassesEvents() {
             />
           </div>
 
-          <div className="flex-1 overflow-y-auto border rounded-lg mt-2">
+          <div className="flex-1 overflow-y-auto overflow-x-auto border rounded-lg mt-2">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">

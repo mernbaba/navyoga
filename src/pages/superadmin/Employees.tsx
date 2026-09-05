@@ -186,7 +186,7 @@ function OperationsTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <CardTitle>Operations Staff</CardTitle>
           <CardDescription className="mt-1">Login accounts for the Operations panel - created and managed by SuperAdmin</CardDescription>
@@ -254,7 +254,7 @@ function OperationsTab() {
 
       <div className="mb-4 flex flex-col md:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 w-4 h-4 z-10 pointer-events-none" />
           <Input placeholder="Search by name, email, or employee ID..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }} className="pl-10" />
         </div>
         <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as StaffStatus | "ALL"); setPage(1); }}>
@@ -323,7 +323,7 @@ function OperationsTab() {
       </div>
 
       {total > PAGE_SIZE && (
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <p className="text-sm text-muted-foreground">Page {page} of {Math.ceil(total / PAGE_SIZE)} • {total} total</p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
@@ -546,7 +546,7 @@ function FrontlineTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <CardTitle>Frontline Staff</CardTitle>
           <CardDescription className="mt-1">Login accounts for the Frontline panel - lead generation & front desk</CardDescription>
@@ -614,7 +614,7 @@ function FrontlineTab() {
 
       <div className="mb-4 flex flex-col md:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 w-4 h-4 z-10 pointer-events-none" />
           <Input placeholder="Search by name, email, or employee ID..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }} className="pl-10" />
         </div>
         <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as StaffStatus | "ALL"); setPage(1); }}>
@@ -683,7 +683,7 @@ function FrontlineTab() {
       </div>
 
       {total > PAGE_SIZE && (
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <p className="text-sm text-muted-foreground">Page {page} of {Math.ceil(total / PAGE_SIZE)} • {total} total</p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>

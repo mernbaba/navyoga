@@ -236,7 +236,7 @@ export function Attendance() {
             setLoading(true);
           }}
         >
-          <TabsList className="grid w-full grid-cols-4 h-14 bg-muted/30 p-1.5 gap-1 rounded-xl border border-border/40">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto sm:h-14 bg-muted/30 p-1.5 gap-1.5 sm:gap-1 rounded-xl border border-border/40">
             {(Object.keys(categoryMeta) as AttendanceCategory[]).map((key) => {
               const Icon = categoryMeta[key].icon;
               const label = key.charAt(0).toUpperCase() + key.slice(1);
@@ -297,7 +297,7 @@ export function Attendance() {
 
           <div className="grid gap-3 md:grid-cols-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 w-4 h-4 z-10 pointer-events-none" />
               <Input
                 placeholder={meta.searchPlaceholder}
                 value={searchQuery}

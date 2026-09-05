@@ -76,7 +76,7 @@ export function TutorStudents() {
           <CardContent>
             <div className="mb-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700! w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 w-4 h-4 z-10 pointer-events-none" />
                 <Input
                   placeholder="Search by name…"
                   value={searchQuery}

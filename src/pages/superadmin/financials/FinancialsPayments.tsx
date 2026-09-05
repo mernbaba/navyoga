@@ -255,7 +255,7 @@ export function FinancialsPayments() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <CardTitle style={{ color: "#ff691d" }}>Recent Payments</CardTitle>
             <CardDescription>View and search payment transactions</CardDescription>
@@ -278,7 +278,7 @@ export function FinancialsPayments() {
         <CardContent>
           <div className="mb-4 grid gap-3 md:grid-cols-[1fr_160px_160px_180px]">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none z-10" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 w-4 h-4 pointer-events-none z-10" />
               <Input
                 placeholder="Search by sādhaka, payment ID, order ID…"
                 value={searchQuery}
@@ -336,6 +336,7 @@ export function FinancialsPayments() {
           </div>
 
           <div className="border rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -410,10 +411,11 @@ export function FinancialsPayments() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </div>
 
           {total > 0 && (
-            <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 text-sm text-muted-foreground">
               <div>
                 Page {page} of {totalPages} · {total} total
               </div>

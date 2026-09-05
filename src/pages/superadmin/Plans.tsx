@@ -242,7 +242,7 @@ function LivePlansTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <p className="text-muted-foreground text-sm">Validity-based access plans for the entire live-class catalog</p>
         <Button onClick={() => setCreating(true)} className="shrink-0">
           <Plus className="w-4 h-4 mr-2" />
@@ -299,7 +299,7 @@ function LivePlansTab() {
 
       {/* Edit dialog */}
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           {editing && (
             <form onSubmit={handleEdit}>
               <DialogHeader>
@@ -315,7 +315,7 @@ function LivePlansTab() {
                   <Label>Description</Label>
                   <Input name="description" defaultValue={editing.description ?? ""} />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="grid gap-2">
                     <Label>Validity (days)</Label>
                     <Input name="validity" type="number" min={1} defaultValue={editing.validity} required />
@@ -325,7 +325,7 @@ function LivePlansTab() {
                     <Input name="price" type="number" min={0} defaultValue={Number(editing.price)} required />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="grid gap-2">
                     <Label>Original Price (₹)</Label>
                     <Input name="originalPrice" type="number" min={0} defaultValue={editing.originalPrice ? Number(editing.originalPrice) : ""} />
@@ -388,7 +388,7 @@ function LivePlansTab() {
 
       {/* Create dialog */}
       <Dialog open={creating} onOpenChange={(open) => { if (!open) { setCreating(false); setCreateFeaturesRaw(""); } }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <form onSubmit={handleCreate}>
             <DialogHeader>
               <DialogTitle>Create Live Plan</DialogTitle>
@@ -403,7 +403,7 @@ function LivePlansTab() {
                 <Label>Description</Label>
                 <Input name="description" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="grid gap-2">
                   <Label>Validity (days)</Label>
                   <Input name="validity" type="number" min={1} required />
@@ -413,7 +413,7 @@ function LivePlansTab() {
                   <Input name="price" type="number" min={0} required />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="grid gap-2">
                   <Label>Original Price (₹)</Label>
                   <Input name="originalPrice" type="number" min={0} />
@@ -557,7 +557,7 @@ function SelfPacedPlansTab() {
       )}
 
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           {editing && (
             <form onSubmit={handleEdit}>
               <DialogHeader>
@@ -573,7 +573,7 @@ function SelfPacedPlansTab() {
                   <Label>Description</Label>
                   <Input name="description" defaultValue={editing.description ?? ""} />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="grid gap-2">
                     <Label>Validity (days)</Label>
                     <Input name="validity" type="number" min={1} defaultValue={editing.validity} required />
@@ -721,7 +721,7 @@ function YTTPlansTab({ label, listCoursesFn, listPlansFn, updatePlanFn }: YTTPla
 
       {/* Edit plan dialog */}
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           {editing && (
             <form onSubmit={handleEdit}>
               <DialogHeader>
@@ -737,7 +737,7 @@ function YTTPlansTab({ label, listCoursesFn, listPlansFn, updatePlanFn }: YTTPla
                   <Label>Description</Label>
                   <Input name="description" defaultValue={editing.plan.description ?? ""} />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="grid gap-2">
                     <Label>Validity (days)</Label>
                     <Input name="validity" type="number" min={1} defaultValue={editing.plan.validity} required />
@@ -789,20 +789,22 @@ export function Plans() {
       </div>
 
       <Tabs defaultValue="live">
-        <TabsList className="mb-2">
-          <TabsTrigger value="live" className="flex items-center gap-2">
-            <Zap className="w-4 h-4" />Live Classes
-          </TabsTrigger>
-          <TabsTrigger value="selfpaced" className="flex items-center gap-2">
-            <Tag className="w-4 h-4" />Self-Paced Plans
-          </TabsTrigger>
-          <TabsTrigger value="ytt-recorded" className="flex items-center gap-2">
-            <Video className="w-4 h-4" />YTT Recorded
-          </TabsTrigger>
-          <TabsTrigger value="ytt-live" className="flex items-center gap-2">
-            <Radio className="w-4 h-4" />YTT Live
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="mb-2 w-max">
+            <TabsTrigger value="live" className="flex items-center gap-2">
+              <Zap className="w-4 h-4" />Live Classes
+            </TabsTrigger>
+            <TabsTrigger value="selfpaced" className="flex items-center gap-2">
+              <Tag className="w-4 h-4" />Self-Paced Plans
+            </TabsTrigger>
+            <TabsTrigger value="ytt-recorded" className="flex items-center gap-2">
+              <Video className="w-4 h-4" />YTT Recorded
+            </TabsTrigger>
+            <TabsTrigger value="ytt-live" className="flex items-center gap-2">
+              <Radio className="w-4 h-4" />YTT Live
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="live">
           <LivePlansTab />

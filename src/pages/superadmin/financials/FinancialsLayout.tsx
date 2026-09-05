@@ -22,7 +22,7 @@ export function FinancialsLayout() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold" style={{ color: "#ff691d" }}>Financials</h1>
           <p className="mt-1" style={{ color: "#ffac96" }}>
@@ -32,11 +32,13 @@ export function FinancialsLayout() {
       </div>
 
       <Tabs value={value} onValueChange={(v) => navigate(TAB_PATHS[v as Tab])}>
-        <TabsList className="grid w-full max-w-2xl grid-cols-3">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="coupons">Coupons</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="payments">Payments</TabsTrigger>
+            <TabsTrigger value="coupons">Coupons</TabsTrigger>
+          </TabsList>
+        </div>
       </Tabs>
 
       <Outlet />

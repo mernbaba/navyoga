@@ -107,7 +107,7 @@ export function AdminLayout() {
               {classesOpen && (
                 <div className="mt-1 ml-3 pl-3 border-l-2 border-[#610981]/20 space-y-1">
                   {classesSubNav.map((child) => {
-                    const isChildActive = location.pathname === child.href;
+                    const isChildActive = location.pathname.replace(/\/+$/, "") === child.href;
                     return (
                       <Link
                         key={child.name}

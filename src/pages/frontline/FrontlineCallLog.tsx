@@ -156,7 +156,7 @@ export function FrontlineCallLog() {
               {/* Search and Filter */}
               <div className="flex gap-4">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700 w-4 h-4 z-10 pointer-events-none" />
                   <Input
                     placeholder="Search by name or phone..."
                     value={searchQuery}

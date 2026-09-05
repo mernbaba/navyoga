@@ -203,7 +203,7 @@ export function OperationsFrontlineTeam() {
               <CardTitle style={{ color: "#ff691d" }}>All Agents</CardTitle>
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700 w-4 h-4 z-10 pointer-events-none" />
                   <Input
                     placeholder="Search agents..."
                     value={searchTerm}
@@ -307,7 +307,7 @@ export function OperationsFrontlineTeam() {
               </table>
             </div>
             {total > 20 && (
-              <div className="mt-4 flex items-center justify-between">
+              <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <p className="text-sm text-muted-foreground">Page {page} of {Math.ceil(total / 20)} • {total} total</p>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>

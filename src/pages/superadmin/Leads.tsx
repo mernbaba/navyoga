@@ -287,7 +287,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold" style={{ color: '#ff691d' }}>Leads</h1>
           <p className="text-muted-foreground mt-1">Manage potential students and inquiries</p>
@@ -304,7 +304,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
               <Plus className="w-4 h-4 mr-2" />Add Lead
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="sm:max-w-2xl">
             <form onSubmit={handleAdd} noValidate>
               <DialogHeader>
                 <DialogTitle>Add New Lead</DialogTitle>
@@ -430,7 +430,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
         </Dialog>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader><CardTitle>Total Leads</CardTitle></CardHeader>
           <CardContent><div className="text-3xl font-semibold">{stats?.total ?? "-"}</div></CardContent>
@@ -459,7 +459,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
         <CardContent>
           <div className="mb-4 flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none z-10" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 w-4 h-4 pointer-events-none z-10" />
               <Input
                 placeholder="Search by name, email, or lead ID..."
                 value={searchQuery}
@@ -573,12 +573,12 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
           </div>
 
           {total > 0 && (
-            <div className="mt-4 flex items-center justify-between">
+            <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <p className="text-sm text-muted-foreground">
                 Showing {(page - 1) * 15 + 1}–{Math.min(page * 15, total)} of {total}
               </p>
               {total > 15 && (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm text-muted-foreground">Page {page} of {Math.ceil(total / 15)}</span>
                   <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
                   <Button variant="outline" size="sm" disabled={page >= Math.ceil(total / 15)} onClick={() => setPage((p) => p + 1)}>Next</Button>
@@ -591,7 +591,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
 
       {/* View Modal */}
       <Dialog open={!!viewing} onOpenChange={(open) => !open && setViewing(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           {viewing && (
             <>
               <DialogHeader>
@@ -675,7 +675,7 @@ export function Leads({ role = "SUPERADMIN" }: { role?: LeadsRole } = {}) {
 
       {/* Edit Modal */}
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           {editing && (
             <form onSubmit={handleEdit}>
               <DialogHeader>

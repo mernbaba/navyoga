@@ -151,7 +151,7 @@ export function OperationsLayout() {
                       {classesOpen && (
                         <div className="mt-1 ml-4 pl-3 border-l-2 border-[#610981]/15 space-y-1">
                           {classesSubNav.map((child) => {
-                            const childActive = location.pathname === child.href;
+                            const childActive = location.pathname.replace(/\/+$/, "") === child.href;
                             return (
                               <Link
                                 key={child.name}

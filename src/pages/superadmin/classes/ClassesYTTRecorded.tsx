@@ -244,7 +244,7 @@ function CourseFormDialog({ open, initial, onClose, onSaved }: CourseFormDialogP
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="course-yoga">Yoga Type *</Label>
               <Input
@@ -1500,13 +1500,13 @@ function CourseDetail({ course, onBack }: CourseDetailProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground hover:text-foreground px-2">
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
         </Button>
-        <div>
-          <h2 className="text-xl font-semibold" style={{ color: BRAND }}>{course.title}</h2>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-xl font-semibold truncate" style={{ color: BRAND }}>{course.title}</h2>
           <p className="text-xs text-muted-foreground">{totalClasses} class{totalClasses !== 1 ? "es" : ""} across {detail?.modules.length ?? 0} module{(detail?.modules.length ?? 0) !== 1 ? "s" : ""}</p>
         </div>
         <div className="ml-auto">
@@ -1869,7 +1869,7 @@ export function ClassesYTTRecorded() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: BRAND }}>YTT Recorded</h1>
           <p className="text-muted-foreground text-sm mt-1">Yoga Teacher Training - recorded sessions</p>

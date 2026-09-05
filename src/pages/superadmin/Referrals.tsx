@@ -340,7 +340,7 @@ export function Referrals() {
               <p className="text-sm text-muted-foreground mt-0.5">{meta.subtitle}</p>
             </div>
             <div className="relative w-full sm:max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 w-4 h-4 z-10 pointer-events-none" />
               <Input
                 placeholder="Search referrals..."
                 value={searchQuery}
@@ -366,7 +366,7 @@ export function Referrals() {
           </div>
 
           {total > PAGE_SIZE && (
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
               <p className="text-xs text-muted-foreground">
                 Page {page} of {totalPages} • {total} total
               </p>

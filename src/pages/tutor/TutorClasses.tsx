@@ -49,6 +49,19 @@ function isOngoing(cls: TutorAssignedClass): boolean {
   return now >= start && now <= end;
 }
 
+// Same reasoning as isOngoing: the backend only flips state to "PAST" on its
+// own schedule, so a class whose scheduled window has already elapsed can
+// still come back as "UPCOMING". Derive "ended" from the clock as well so the
+// UI doesn't keep calling a finished class upcoming.
+function hasEnded(cls: TutorAssignedClass): boolean {
+  if (cls.state === "PAST") return true;
+  if (cls.state === "LIVE" || !cls.scheduledAt) return false;
+  const start = new Date(cls.scheduledAt).getTime();
+  if (Number.isNaN(start)) return false;
+  const end = start + (cls.duration ?? 0) * 60_000;
+  return Date.now() > end;
+}
+
 function formatSchedule(value: string | null): string {
   return formatISTDateTime(value, "-");
 }
@@ -122,7 +135,7 @@ export function TutorClasses() {
   const upcomingCount = useMemo(() => items.filter((c) => c.state === "UPCOMING").length, [items]);
   const nextClass = useMemo(() => {
     const upcoming = items
-      .filter((c) => c.state !== "PAST" && c.scheduledAt && !isOngoing(c))
+      .filter((c) => !hasEnded(c) && c.scheduledAt && !isOngoing(c))
       .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime());
     return upcoming[0] ?? null;
   }, [items]);
@@ -188,6 +201,7 @@ export function TutorClasses() {
           </Button>
         </div>
 
+        {/* Stats cards (Assigned/Past, Upcoming, Next Up/Most Recent) — hidden for now.
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader>
@@ -236,16 +250,13 @@ export function TutorClasses() {
             </CardContent>
           </Card>
         </div>
+        */}
 
         <Card>
-          <CardHeader>
-            <CardTitle style={{ color: "#ff691d" }}>All Classes</CardTitle>
-            <CardDescription>View and manage your assigned classes</CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700! w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700 w-4 h-4 z-10 pointer-events-none" />
                 <Input
                   placeholder="Search by title, yoga type, or batch..."
                   value={searchQuery}
@@ -308,6 +319,7 @@ export function TutorClasses() {
                       sortedClasses.map((cls) => {
                         const isLive = cls.state === "LIVE";
                         const ongoing = isOngoing(cls);
+                        const ended = hasEnded(cls);
                         const upload = uploads[cls.id];
                         return (
                           <TableRow key={cls.id}>
@@ -396,7 +408,7 @@ export function TutorClasses() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              {cls.state === "PAST" ? (
+                              {ended ? (
                                 <Badge variant="outline">Ended</Badge>
                               ) : ongoing ? (
                                 <Badge className="bg-green-500 hover:bg-green-500/90">Live Now</Badge>
@@ -406,7 +418,7 @@ export function TutorClasses() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
-                                {cls.state === "PAST" ? (
+                                {ended ? (
                                   <span className="text-sm text-muted-foreground">-</span>
                                 ) : (
                                   <>

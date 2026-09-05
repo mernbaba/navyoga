@@ -243,7 +243,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold" style={{ color: '#ff691d' }}>Sādhakas</h1>
           <p className="text-muted-foreground mt-1">Manage your yoga center Sādhakas</p>
@@ -359,7 +359,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
         <CardContent>
           <div className="mb-4 flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 z-10 pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 w-4 h-4 z-10 pointer-events-none" />
               <Input
                 placeholder="Search by name, email, or phone..."
                 value={searchQuery}
@@ -457,7 +457,7 @@ export function Students({ role = "SUPERADMIN" }: { role?: StudentsAdminRole } =
           </div>
 
           {total > 20 && (
-            <div className="mt-4 flex items-center justify-between">
+            <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <p className="text-sm text-muted-foreground">Page {page} of {Math.ceil(total / 20)} • {total} total</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
@@ -880,14 +880,14 @@ function GrantSubscriptionForm({
 
   return (
     <div className="rounded-lg border border-dashed p-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h3 className="font-medium">Grant subscription</h3>
           <p className="text-xs text-muted-foreground">
             Manually enable a subscription (cash payment, or when an online payment failed).
           </p>
         </div>
-        <Button variant={open ? "outline" : "default"} size="sm" onClick={handleOpen}>
+        <Button variant={open ? "outline" : "default"} size="sm" onClick={handleOpen} className="shrink-0">
           {open ? "Cancel" : <><Plus className="w-4 h-4 mr-1" />Grant</>}
         </Button>
       </div>
