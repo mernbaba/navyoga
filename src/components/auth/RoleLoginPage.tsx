@@ -10,7 +10,7 @@ import { isRoleAuthenticated, loginWithRole, setRoleAuth } from "../../lib/auth"
 import { getPlatform } from "../../api/platform";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
 
-const DEFAULT_SUPPORT_EMAIL = "support@navyogaacademy.com";
+const DEFAULT_SUPPORT_EMAIL = "support@navyogawellness.com";
 
 export type LoginRole = "SUPERADMIN" | "TUTOR" | "OPERATIONS" | "FRONTLINE" | "STUDENT";
 

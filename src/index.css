@@ -200,3 +200,14 @@
     display: none;
   }
 }
+
+/* While a live class is open, keep transient toasts off the room's chrome.
+   The global Sonner toaster is fixed at top:16px with z-index 999999999, and on
+   a phone a toast spans the full width - landing exactly on the status rail
+   (brand, recording indicator, gallery/speaker switch). Push it below that rail
+   so it can only ever cover video, never a control. Inline styles set the
+   offset, hence !important. Scoped to .meeting-open (set by RoomShell) so no
+   other screen's toasts move. */
+body.meeting-open [data-sonner-toaster][data-y-position="top"] {
+  top: calc(4.75rem + env(safe-area-inset-top)) !important;
+}
